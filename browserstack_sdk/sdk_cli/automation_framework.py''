@@ -1,0 +1,293 @@
+import logging
+from enum import Enum
+from typing import Dict, Tuple, Callable, Type, List, Any
+import abc
+from datetime import datetime, timezone, timedelta
+from browserstack_sdk.sdk_cli.tracked_instance import TrackedInstance, TrackedContext
+import os
+import threading
+
+class HookState(Enum):
+    PRE = 0
+    POST = 1
+
+    def __repr__(self) -> str:
+        return "HookState.{}".format(self.name)
+
+
+class AutomationFrameworkState(Enum):
+    NONE = 0
+    CREATE = 1
+    DISPATCH = 3
+    EXECUTE = 4
+    IDLE = 5
+    QUIT = 6
+
+    def __eq__(self, other):
+        if self.__class__ is other.__class__:
+            return self.value == other.value
+        return NotImplemented
+
+    def __lt__(self, other):
+        if self.__class__ is other.__class__:
+            return self.value < other.value
+        return NotImplemented
+
+    def __repr__(self) -> str:
+        return "AutomationFrameworkState.{}".format(self.name)
+
+
+class AutomationFrameworkBrowser(TrackedInstance):
+    framework_name: str
+    framework_version: str
+    state: AutomationFrameworkState
+    previous_state: AutomationFrameworkState
+    created_at: datetime
+    updated_at: datetime
+
+    def __init__(
+        self,
+        context: TrackedContext,
+        framework_name: str,
+        framework_version: str,
+        state=AutomationFrameworkState.NONE,
+    ):
+        super().__init__(context)
+        self.framework_name = framework_name
+        self.framework_version = framework_version
+        self.state = state
+        self.previous_state = AutomationFrameworkState.NONE
+        self.created_at = datetime.now(tz=timezone.utc)
+        self.updated_at = datetime.now(tz=timezone.utc)
+
+    def set_state(self, next_state: AutomationFrameworkState):
+        next_state_name = AutomationFrameworkState(next_state).name
+        if not next_state_name:
+            # invalid state
+            return False
+
+        if next_state == self.state:
+            # nothing to do
+            return False
+        if self.state == AutomationFrameworkState.DISPATCH: # Returning early for Dispatch in Playwright, it gets called multiple times requiring a new state
+            return True
+
+        if (
+            # next_state < self.state or # TODO: found one case for EXECUTE called after QUIT
+            # applied state-transition: AutomationFrameworkState.QUIT => AutomationFrameworkState.EXECUTE
+            # (<class 'selenium.webdriver.remote.webdriver.WebDriver'>.execute ('w3cExecuteScript', {'script': 'browserstack_executor: {"action": "setSessionStatus", "arguments": {"status": "passed"}}', 'args': []}))
+            next_state == AutomationFrameworkState.NONE
+            or (self.state != AutomationFrameworkState.NONE and next_state == AutomationFrameworkState.CREATE)
+            or (self.state < AutomationFrameworkState.CREATE and next_state == AutomationFrameworkState.EXECUTE)
+            or (self.state < AutomationFrameworkState.CREATE and next_state == AutomationFrameworkState.QUIT)
+        ):
+            raise ValueError("invalid state transition: " + str(self.state) + " => " + str(next_state))
+
+        self.previous_state = self.state
+        self.state = next_state
+        self.updated_at = datetime.now(tz=timezone.utc)
+        return True
+
+
+class AutomationFramework(abc.ABC):
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
+
+    instances: Dict[str, AutomationFrameworkBrowser] = dict()
+
+    framework_name: str
+    framework_version: str
+    classes: List[Type]
+
+    def __init__(
+        self,
+        framework_name: str,
+        framework_version: str,
+        classes: List[Type],
+    ):
+        self.framework_name = framework_name
+        self.framework_version = framework_version
+        self.classes = classes
+
+    @abc.abstractmethod
+    def log_benchmark(self, instance: AutomationFrameworkBrowser, method_name: str, time_taken: timedelta, *args, **kwargs):
+        # implemented by child classes
+        return
+
+    @abc.abstractmethod
+    def resolve_framework_state(
+        self, method_name, previous_state: AutomationFrameworkState, *args, **kwargs
+    ) -> AutomationFrameworkState:
+        return
+
+    @abc.abstractmethod
+    def on_hook(
+        self,
+        target: object,
+        exec: Tuple[AutomationFrameworkBrowser, str],
+        hook_info: Tuple[AutomationFrameworkState, HookState],
+        result: Any,
+        *args,
+        **kwargs,
+    ) -> Callable:
+        # a before-hook can return a function that can wrap the actual method
+        # an after-hook can return a modified non-None result that replaces original result
+        return
+
+    def track_methods(self, method_names: List[str]):
+        for clazz in self.classes:
+            for method_name in method_names:
+                orig_func = getattr(clazz, method_name, None)
+                if not callable(orig_func):
+                    # unpatched method or already patched
+                    self.logger.warning(f"unpatched method: {method_name}")
+                    continue
+
+                framework_state = self.resolve_framework_state(
+                    method_name, previous_state=AutomationFrameworkState.NONE
+                )
+                patched_method = self.generate_handler(
+                    method_name,
+                    (framework_state if framework_state else AutomationFrameworkState.NONE),
+                    orig_func,
+                )
+
+                if not callable(patched_method):
+                    self.logger.warning(f"method not patched: {method_name} ({self.framework_name}: {self.framework_version})")
+                    continue
+
+                setattr(clazz, method_name, patched_method)
+
+    def generate_handler(
+        self,
+        method_name: str,
+        framework_state: AutomationFrameworkState,
+        orig_func: Callable,
+    ):
+        # self.logger.warning(f"apply method invoked: {method_name} framework_state={framework_state}")
+
+        def wrapped(target, *args, **kwargs):
+            time_start = datetime.now()
+            (framework_state,) = wrapped.__vars__
+            framework_state = (
+                framework_state
+                if framework_state and framework_state != AutomationFrameworkState.NONE
+                else self.resolve_framework_state(method_name, previous_state=framework_state, *args, **kwargs)
+            )
+
+            if framework_state == AutomationFrameworkState.CREATE:
+                # lightweight objects that shadow the state of the driver-browser
+                ctx = TrackedInstance.create_context(self.resolve_target(target))
+                if not self.isPlaywright() or ctx.id not in AutomationFramework.instances:
+                    AutomationFramework.instances[ctx.id] = AutomationFrameworkBrowser(
+                        ctx, self.framework_name, self.framework_version, framework_state
+                    )
+
+                self.logger.debug(f"wrapped method created: {target.__class__} method_name={method_name} framework_state={framework_state} ctx={ctx.id} instances={AutomationFramework.instances.keys()}")
+            else:
+                self.logger.debug(f"wrapped method invoked: {target.__class__} method_name={method_name} framework_state={framework_state} instances={AutomationFramework.instances.keys()}")
+
+            instance = AutomationFramework.get_tracked_instance(self.resolve_target(target))
+            if framework_state == AutomationFrameworkState.NONE or not instance:
+                # instance was not tracked by us at the time of creation
+                # or it was called from a different thread/context
+                # or we could not determine what the framework state is
+                ctx = TrackedInstance.create_context(self.resolve_target(target))
+                self.logger.warning(f"wrapped method untracked: {method_name} framework_state={framework_state} ctx={ctx} instances={AutomationFramework.instances.keys()}")
+                return orig_func(target, *args, **kwargs)
+
+            # before-state
+            wrapper_method = self.on_hook(
+                target,
+                (instance, method_name),
+                (framework_state, HookState.PRE),
+                None,
+                *args,
+                **kwargs,
+            )
+
+            if instance.set_state(framework_state):
+                self.logger.debug(f"applied state-transition: {instance.previous_state} => {instance.state} ({type(target)}.{method_name} {args}) [{instance.ref()}]")
+
+            result = (
+                wrapper_method(target, orig_func, *args, **kwargs)
+                if callable(wrapper_method)
+                else orig_func(target, *args, **kwargs)
+            )
+
+            # after-state
+            result_override = self.on_hook(
+                target,
+                (instance, method_name),
+                (framework_state, HookState.POST),
+                result,
+                *args,
+                **kwargs,
+            )
+            self.log_benchmark(instance, method_name, datetime.now() - time_start, *args, **kwargs)
+            return result_override if result_override else result
+
+        wrapped.__name__ = method_name
+        wrapped.__vars__ = (framework_state,)
+        return wrapped
+
+    @staticmethod
+    def get_tracked_instance(target: object, strict=True):
+        ctx = TrackedInstance.create_context(target)
+        instance = AutomationFramework.instances.get(ctx.id, None)
+
+        if instance and instance.is_tracked_instance(target):
+            # passed strict=True
+            return instance
+
+        return instance if instance and not strict else None
+
+    @staticmethod
+    def get_context_instances(
+        ctx: TrackedContext, state: AutomationFrameworkState, reverse=True
+    ) -> List[AutomationFrameworkBrowser]:
+        return sorted(
+            filter(
+                lambda t: t.state == state
+                and t.context.thread_id == ctx.thread_id
+                and t.context.process_id == ctx.process_id,
+                AutomationFramework.instances.values(),
+            ),
+            key=lambda t: t.created_at,
+            reverse=reverse,
+        )
+
+    @staticmethod
+    def has_state(instance: AutomationFrameworkBrowser, key: str):
+        return instance and key in instance.data
+
+    @staticmethod
+    def get_state(instance: AutomationFrameworkBrowser, key: str, default_value=None):
+        return instance.data.get(key, default_value) if instance else default_value
+
+    @staticmethod
+    def set_state(instance: AutomationFrameworkBrowser, key: str, value: Any) -> bool:
+        instance.data[key] = value
+        AutomationFramework.logger.debug(f"set_state: instance={instance.ref()} key={key} value={value}")
+        return True
+
+    @staticmethod
+    def get_data(key: str, target: object, strict=True, default_value=None):
+        instance = AutomationFramework.get_tracked_instance(target, strict)
+        return AutomationFramework.get_state(instance, key, default_value)
+
+    @staticmethod
+    def set_data(key: str, value: Any, target: object, strict=True):
+        instance = AutomationFramework.get_tracked_instance(target, strict)
+        if not instance:
+            return False
+
+        instance.data[key] = value
+        return True
+    def isPlaywright(self):
+        return self.framework_name == 'playwright'
+    def resolve_target(self, target):
+        return target if not self.isPlaywright() else self.get_target_from_pid()
+    @staticmethod
+    def get_target_from_pid():
+        return str(os.getpid()) + str(threading.get_ident())

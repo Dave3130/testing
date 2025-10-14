@@ -1,0 +1,696 @@
+import os
+from datetime import datetime, timezone
+from uuid import uuid4
+from typing import Dict, List, Any, Tuple
+
+from browserstack_sdk.sdk_cli.tracked_instance import TrackedInstance
+from browserstack_sdk.sdk_cli.utils.file_uploader import set_event_state
+from browserstack_sdk.sdk_cli.test_framework import (
+    TestFramework,
+    TestFrameworkState,
+    TestFrameworkTest,
+    TestHookState,
+    TestFrameworkContext,
+    LogEntry,
+)
+from pathlib import Path
+import grpc
+from browserstack_sdk import sdk_pb2 as structs
+# import logging
+from datetime import datetime, timezone
+from typing import List, Dict, Any
+import traceback
+
+from bstack_utils.helper import get_writable_dir
+from bstack_utils.performance_tester import PerformanceTester
+from bstack_utils.constants import EVENTS
+from browserstack_sdk.sdk_cli.async_dispatcher import AsyncDispatcher
+from browserstack_sdk.sdk_cli.utils.custom_tag_manager import CustomTagManager
+
+from bstack_utils.to_handler import TOHandler
+# https://docs.pytest.org/en/7.1.x/reference/reference.html#pytest.hookspec.pytest_runtest_protocol
+# pytest_configure(config)
+# pytest_sessionstart(session)
+# pytest_runtest_logstart(nodeid, location)
+# Setup phase:
+#     pytest_fixture_setup(fixturedef, request)
+#     call = pytest_runtest_setup(item) (wrapped in CallInfo(when="setup"))
+#     report = pytest_runtest_makereport(item, call)
+#     pytest_runtest_logreport(report)
+#     pytest_exception_interact(call, report) if an interactive exception occurred
+# Call phase, if the the setup passed and the setuponly pytest option is not set:
+#     call = pytest_runtest_call(item) (wrapped in CallInfo(when="call"))
+#     report = pytest_runtest_makereport(item, call)
+#     pytest_runtest_logreport(report)
+#     pytest_exception_interact(call, report) if an interactive exception occurred
+# Teardown phase:
+#     call = pytest_runtest_teardown(item, nextitem) (wrapped in CallInfo(when="teardown"))
+#     report = pytest_runtest_makereport(item, call)
+#     pytest_runtest_logreport(report)
+#     pytest_exception_interact(call, report) if an interactive exception occurred
+# pytest_runtest_logfinish(nodeid, location)
+# pytest_sessionfinish(session, exitstatus)
+# pytest_unconfigure(config)
+BROWSERSTACK_ROOT_DIR = get_writable_dir()
+POLLING_INTERVAL = 1.0
+UPLOADED_ATTACHMENTS_PREFIX = "UploadedAttachments-"
+LEVEL_TEST = "TestLevel"
+LEVEL_BUILD = "BuildLevel"
+LEVEL_HOOK = "HookLevel"
+BUILD_LEVEL_HOOK_EVENT = "BuildLevelHookEvent"
+_processed_attachments = set()
+class PytestFramework(TestFramework):
+    KEY_FIXTURES = "test_fixtures"
+    KEY_HOOKS_STARTED = "test_hooks_started"
+    KEY_HOOKS_FINISHED = "test_hooks_finished"
+    KEY_HOOK_LAST_STARTED = "test_hook_last_started"
+    KEY_HOOK_LAST_FINISHED = "test_hook_last_finished"
+
+    is_pytest: bool
+    async_dispatcher: AsyncDispatcher  = None
+    cli_service = None
+    hook_events = [
+        TestFrameworkState.BEFORE_ALL,
+        TestFrameworkState.AFTER_ALL,
+        TestFrameworkState.BEFORE_EACH,
+        TestFrameworkState.AFTER_EACH,
+    ]
+
+    def __init__(
+        self,
+        test_framework_versions: Dict[str, str],
+        test_frameworks: List[str]=["pytest"],
+        async_dispatcher: AsyncDispatcher=None,
+        cli_service=None
+    ):
+        super().__init__(test_frameworks, test_framework_versions, async_dispatcher)
+        self.is_pytest = any("pytest" in item.lower() for item in test_frameworks)
+        self.cli_service = cli_service
+
+    def track_event(
+        self,
+        context: TestFrameworkContext,
+        test_framework_state: TestFrameworkState,
+        test_hook_state: TestHookState,
+        *args,
+        **kwargs,
+    ):
+        super().track_event(self, context, test_framework_state, test_hook_state, *args, **kwargs)
+        if test_framework_state == TestFrameworkState.TEST or test_framework_state in PytestFramework.hook_events:
+            set_event_state(test_framework_state, test_hook_state)
+        if test_framework_state == TestFrameworkState.NONE:
+            self.logger.warning(f"ignored callback test_framework_state={test_framework_state} test_hook_state={test_hook_state}")
+            return
+
+        if not self.is_pytest:
+            # guard for whatever reason
+            self.logger.warning(f"track_event: unsupported framework={str(self.test_frameworks)}")
+            return
+
+        if not isinstance(args, tuple) or len(args) == 0:
+            self.logger.warning(f"track_event: unexpected args={args} kwargs={kwargs}")
+            return
+
+        instance = self.__resolve_instance(context, test_framework_state, test_hook_state, *args, **kwargs)
+        if not instance:
+            self.logger.debug(f"track_event: unhandled event={test_framework_state}.{test_hook_state} args={args}")
+            return
+        try:
+            if instance!= None and test_framework_state in PytestFramework.hook_events and test_hook_state == TestHookState.PRE:
+                random_label = PerformanceTester.mark_start(EVENTS.SDK_HOOK.value)
+                name = str(EVENTS.SDK_HOOK.name)+":"+str(test_framework_state.name)
+                TestFramework.set_data_with_instance(instance, name, random_label)
+        except Exception as e:
+            self.logger.debug("Exception in hook error pre: {}".format(e))
+        
+        try:
+            if not TestFramework.has_state(instance, TestFramework.KEY_TEST_ID) and test_hook_state == TestHookState.PRE:
+                test = PytestFramework.__parse_pytest_test(args[0])
+                if test:
+                    instance.data.update(test)
+                    self.logger.debug(f"loaded instance={instance.ref()} event={test_framework_state}.{test_hook_state}")
+
+            if test_framework_state == TestFrameworkState.TEST:
+                # TODO: move to base class and call super
+                if test_hook_state == TestHookState.PRE and not TestFramework.has_state(instance, TestFramework.KEY_TEST_STARTED_AT):
+                    TestFramework.set_state(instance, TestFramework.KEY_TEST_STARTED_AT, datetime.now(tz=timezone.utc))
+                    self.logger.debug(f"set test-start for instance={instance.ref()} event={test_framework_state}.{test_hook_state}")
+
+                elif test_hook_state == TestHookState.POST and not TestFramework.has_state(instance, TestFramework.KEY_TEST_ENDED_AT):
+                    TestFramework.set_state(instance, TestFramework.KEY_TEST_ENDED_AT, datetime.now(tz=timezone.utc))
+                    self.logger.debug(f"set test-end for instance={instance.ref()} event={test_framework_state}.{test_hook_state}")
+
+            elif test_framework_state == TestFrameworkState.LOG and test_hook_state == TestHookState.POST:
+                # process caplog
+                PytestFramework.__load_log_entries(instance, *args)
+            elif test_framework_state == TestFrameworkState.LOG_REPORT and test_hook_state == TestHookState.POST:
+                self.__load_test_result(instance, *args)
+                self.__load_custom_tags(instance)
+            elif test_framework_state in PytestFramework.hook_events:
+                # hook events
+                self.__track_hook_event(instance, test_framework_state, test_hook_state, *args)
+
+            self.logger.debug(f"track_event: handled event={test_framework_state}.{test_hook_state} instance={instance.ref()}")
+        except Exception as e:
+            self.logger.error(e)
+            traceback.print_exc()
+
+        self.run_hooks(instance, (test_framework_state, test_hook_state), *args, **kwargs)
+        try:
+            if instance!= None and test_framework_state in PytestFramework.hook_events and test_hook_state == TestHookState.POST:
+                name = str(EVENTS.SDK_HOOK.name)+":"+str(test_framework_state.name)
+                random_label = TestFramework.get_data_with_instance(instance, name)
+                PerformanceTester.end(EVENTS.SDK_HOOK.value, random_label+":start", random_label+":end", True, None, test_framework_state.name)
+        except Exception as e:
+            self.logger.debug("Exception in hook error: {}".format(e))
+
+    def is_pytest_framework(self):
+        return self.is_pytest
+
+    def __parse_report(self, *args):
+        if len(args) > 2 and callable(getattr(args[2], "get_result", None)):
+            # https://docs.pytest.org/en/7.1.x/example/simple.html#post-process-test-reports-failures
+            rep = args[2].get_result()
+            if rep:
+                # TODO: reuse map in event_dispatcher for attributes
+                return TestFramework.extract_keys(rep, ["when", "outcome", "passed", "failed", "skipped", "longreprtext"])
+        return None
+
+    def __load_test_result(self, instance: TestFrameworkTest, *args):
+        # (item, call, outcome)
+        result = self.__parse_report(*args)
+        if not result:
+            return
+
+        # TODO: move failure parsing to a method
+        failure = None
+        failure_type = None
+
+        if result.get("outcome", None) == "failed" and len(args) > 1 and getattr(args[1], "excinfo", None) is not None:
+            failure = [{'backtrace': [args[1].excinfo.exconly(), result.get("longreprtext", None)]}]
+            failure_type = "AssertionError" if "Assertion" in getattr(args[1].excinfo, "typename", "") else "UnhandledError"
+
+        test_result = result.get("outcome", TestFramework.DEFAULT_TEST_RESULT)
+        if test_result != TestFramework.DEFAULT_TEST_RESULT:
+            TestFramework.set_state(instance, TestFramework.KEY_TEST_RESULT_AT, datetime.now(tz=timezone.utc))
+
+        TestFramework.set_state_entries(instance, {
+            TestFramework.KEY_TEST_FAILURE: failure,
+            TestFramework.KEY_TEST_FAILURE_TYPE: failure_type,
+            TestFramework.KEY_TEST_RESULT: test_result,
+        })
+
+    def __resolve_instance(
+        self,
+        context: TestFrameworkContext,
+        test_framework_state: TestFrameworkState,
+        test_hook_state: TestHookState,
+        *args,
+        **kwargs,
+    ):
+        instance = None
+        if test_framework_state == TestFrameworkState.SETUP_FIXTURE:
+            # hook/fixture events
+            instance = self.__track_fixture_event(context, test_framework_state, test_hook_state, *args, **kwargs)
+        else:
+            # test/hook events
+            target = None # we want this to be "nodeid"
+            # resolve value for target
+            if test_framework_state == TestFrameworkState.INIT_TEST:
+                target = args[0] if isinstance(args[0], str) else None
+
+                if target:
+                    # pytest_runtest_logstart(nodeid, location)
+                    # first event for a test as per pytest runtest protocol
+                    # setup tracking object so TestFramework.get_tracked_instance(target) will return it later
+                    self.__track_pytest_test(context, test_framework_state, target, *args)
+            elif test_framework_state == TestFrameworkState.LOG:
+                # TestFrameworkState.LOG(request, caplog)
+                # request.node.nodeid
+                nodeid = getattr(getattr(args[0], "node", None), "nodeid", None) if args else None
+                if isinstance(nodeid, str):
+                    target = nodeid
+            elif getattr(args[0], "nodeid", None):
+                target = args[0].nodeid
+
+            instance = TestFramework.get_tracked_instance(target) if target else None
+        return instance
+
+    def __track_hook_event(
+        self,
+        instance: TestFrameworkTest,
+        test_framework_state: TestFrameworkState,
+        test_hook_state: TestHookState,
+        *args,
+    ):
+        key = test_framework_state.name
+        hooks_started = TestFramework.get_state(instance, PytestFramework.KEY_HOOKS_STARTED, {})
+        if not key in hooks_started:
+            hooks_started[key] = []
+
+        hooks_finished = TestFramework.get_state(instance, PytestFramework.KEY_HOOKS_FINISHED, {})
+        if not key in hooks_finished:
+            hooks_finished[key] = []
+
+        updates = {
+            PytestFramework.KEY_HOOKS_STARTED: hooks_started,
+            PytestFramework.KEY_HOOKS_FINISHED: hooks_finished,
+        }
+
+        if test_hook_state == TestHookState.PRE:
+            # register hook
+            hook = {
+                "key": key,
+                TestFramework.KEY_HOOK_ID: uuid4().__str__(),
+                TestFramework.KEY_HOOK_RESULT: TestFramework.DEFAULT_HOOK_RESULT,
+                TestFramework.KEY_EVENT_STARTED_AT: datetime.now(tz=timezone.utc),
+                TestFramework.KEY_HOOK_LOGS: [],
+                TestFramework.KEY_HOOK_NAME: args[1] if len(args) > 1 else '',
+                TestFramework.KEY_CUSTOM_TAGS: CustomTagManager.get_test_level_custom_metadata()
+            }
+            hooks_started[key].append(hook)
+            updates[PytestFramework.KEY_HOOK_LAST_STARTED] = key
+        elif test_hook_state == TestHookState.POST:
+            hooks_list = hooks_started.get(key, [])
+            hook = hooks_list.pop() if hooks_list else None
+
+            if hook:
+                # (item, call, outcome)
+                result = self.__parse_report(*args)
+                if result:
+                    hook_result = result.get("outcome", TestFramework.DEFAULT_HOOK_RESULT)
+
+                    if hook_result != TestFramework.DEFAULT_HOOK_RESULT:
+                        hook[TestFramework.KEY_HOOK_RESULT] = hook_result
+
+                hook[TestFramework.KEY_EVENT_ENDED_AT] = datetime.now(tz=timezone.utc)
+                hook[TestFramework.KEY_CUSTOM_TAGS]= CustomTagManager.get_test_level_custom_metadata()
+                self.process_hook_level_attachments(hook)
+                logs = hook.get(TestFramework.ATTACHMENT_LOGS, [])
+                if logs: self.send_log_created_event(instance, logs)
+                hooks_finished[key].append(hook)
+                updates[PytestFramework.KEY_HOOK_LAST_FINISHED] = key
+
+        TestFramework.set_state_entries(instance, updates)
+        self.logger.debug(f"track_hook_event: test_hook_state={key}.{test_hook_state} hooks_started={hooks_started} hooks_finished={hooks_finished}")
+
+    def __track_fixture_event(
+        self,
+        context: TestFrameworkContext,
+        test_framework_state: TestFrameworkState,
+        test_hook_state: TestHookState,
+        *args,
+        **kwargs,
+    ):
+        # pytest_fixture_setup(fixturedef, request)
+        # TODO: reuse map in event_dispatcher
+        fixturedef = TestFramework.extract_keys(args[0], ["scope", "argname", "params", "ids", "unittest", "baseid"]) if len(args) > 0 else {}
+
+        request = args[1] if len(args) > 1 else None
+        scope = request.scope if hasattr(request, "scope") else fixturedef.get("scope", None)
+        fixturename = request.fixturename if hasattr(request, "fixturename") else None
+        node = request.node if hasattr(request, "node") else None
+        target = request.node.nodeid if hasattr(node, "nodeid") else None
+        baseid = fixturedef.get("baseid", None) or ""
+
+        if (not target or len(baseid) > 0) and hasattr(request, "_pyfuncitem"):
+            # scope is possibly shared, i.e. class, module, package, session
+            # so we inspect the request/subrequest internals
+            target = PytestFramework.__location_to_nodeid(request._pyfuncitem.location) if hasattr(request._pyfuncitem, "location") else None
+
+            if target and not TestFramework.get_tracked_instance(target):
+                # setup tracking object so any TestFramework.get_tracked_instance(target) will return it later
+                # we start saving setup fixture info against the instance before the actual test definition arrives
+                self.__track_pytest_test(context, test_framework_state, target, (target, request._pyfuncitem.location))
+                node = request._pyfuncitem
+                self.logger.debug(f"track_fixture_event: fallback target={target} fixturename={fixturename} node={node} event={test_framework_state}.{test_hook_state}")
+
+        if not fixturedef or not scope or not target:
+            # noisy
+            self.logger.warning(f"track_fixture_event: unhandled event={test_framework_state}.{test_hook_state} fixturedef={fixturedef} scope={scope} target={target}")
+            return None
+
+        instance = TestFramework.get_tracked_instance(target)
+        if not instance:
+            # noisy
+            self.logger.warning(f"track_fixture_event: unhandled event={test_framework_state}.{test_hook_state} fixturename={fixturename} scope={scope} baseid={baseid} target={target}")
+            return None
+
+        tracked_fixtures = TestFramework.get_state(instance, PytestFramework.KEY_FIXTURES, {})
+
+        if os.getenv("SDK_CLI_FLAG_FIXTURES", "1") == "1":
+            fixture_key = ":".join((scope, fixturename))
+            datetime_now = datetime.now(tz=timezone.utc)
+
+            test_fixture = {
+                "key": fixture_key,
+                "tags": PytestFramework.__parse_pytest_tags(request.node),
+                "fixture": fixturedef,
+                "scope": scope,
+                "type": None,
+            }
+
+            try:
+                if test_hook_state == TestHookState.POST and callable(getattr(args[-1], "get_result", None)):
+                    test_fixture["type"] = TestFramework.object_fqcn(args[-1].get_result())
+            except Exception as e:
+                pass
+
+            if test_hook_state == TestHookState.PRE:
+                test_fixture["uuid"] = uuid4().__str__()
+                test_fixture[PytestFramework.KEY_EVENT_STARTED_AT] = datetime_now
+            elif test_hook_state == TestHookState.POST:
+                test_fixture[PytestFramework.KEY_EVENT_ENDED_AT] = datetime_now
+
+            if fixture_key in tracked_fixtures:
+                tracked_fixtures[fixture_key].update(test_fixture)
+                self.logger.debug(f"updated fixturename={fixturename} scope={scope} fixture={tracked_fixtures[fixture_key]}")
+            else:
+                tracked_fixtures[fixture_key] = test_fixture
+                self.logger.debug(f"saved fixturename={fixturename} scope={scope} fixture={test_fixture} tracked_fixtures={len(tracked_fixtures)}")
+
+        TestFramework.set_state(instance, PytestFramework.KEY_FIXTURES, tracked_fixtures)
+        self.logger.debug(f"saved fixtures={len(tracked_fixtures)} instance={instance.ref()}")
+        return instance
+
+    def __track_pytest_test(
+        self,
+        context: TestFrameworkContext,
+        test_framework_state: TestFrameworkState,
+        target: Any,
+        *args,
+    ):
+        ctx = TrackedInstance.create_context(target)
+        ob = TestFrameworkTest(ctx, self.test_frameworks, self.test_framework_versions, test_framework_state)
+
+        TestFramework.set_state_entries(ob, {
+            TestFramework.KEY_TEST_FRAMEWORK_NAME: context.test_framework_name,
+            TestFramework.KEY_TEST_FRAMEWORK_VERSION: context.test_framework_version,
+            TestFramework.KEY_TEST_LOGS: [],
+            PytestFramework.KEY_FIXTURES: {},
+            PytestFramework.KEY_HOOKS_FINISHED: {},
+            PytestFramework.KEY_HOOKS_STARTED: {},
+        })
+
+        if len(args) > 1 and isinstance(args[1], tuple):
+            # location of test file
+            TestFramework.set_state(ob, TestFramework.KEY_TEST_LOCATION, str(args[1][0]))
+
+        if context.platform_index >= 0:
+            TestFramework.set_state(ob, TestFramework.KEY_PLATFORM_INDEX, context.platform_index)
+
+        TestFramework.instances[ctx.id] = ob
+        self.logger.debug(f"saved instance ctx.id={ctx.id} target={target} args={args} instances={TestFramework.instances.keys()}")
+        return ob
+
+    def get_log_entries(self, instance: TestFrameworkTest, hook_info: Tuple[TestFrameworkState, TestHookState]):
+        last_hook_key = (
+            PytestFramework.KEY_HOOK_LAST_STARTED
+            if hook_info[1] == TestHookState.PRE
+            else PytestFramework.KEY_HOOK_LAST_FINISHED
+        )
+        hook = PytestFramework.last_active_hook(instance, last_hook_key)
+        entries = hook.get(TestFramework.KEY_HOOK_LOGS, []) if isinstance(hook, dict) else []
+        entries.extend(TestFramework.get_state(instance, TestFramework.KEY_TEST_LOGS, []))
+        return entries
+
+    def clear_logs(self, instance: TestFrameworkTest, hook_info: Tuple[TestFrameworkState, TestHookState]):
+        last_hook_key = (
+            PytestFramework.KEY_HOOK_LAST_STARTED
+            if hook_info[1] == TestHookState.PRE
+            else PytestFramework.KEY_HOOK_LAST_FINISHED
+        )
+        PytestFramework.clear_hook_logs(instance, last_hook_key)
+        TestFramework.get_state(instance, TestFramework.KEY_TEST_LOGS, []).clear()
+
+
+    def process_hook_level_attachments(self, hook: Dict[str, Any]) -> None:
+        """
+        Processes the HookLevel attachments similar to the Java implementation.
+
+        This method:
+          - Checks the HookLevel directory inside ~/.browserstack/UploadedAttachments.
+          - For each file in hook_level_files, replaces "TestLevel" with "HookLevel" in its path.
+          - If a file in the directory matches a modified hook-level file, it creates a LogEntry object with attachment details.
+          - Similarly, it processes BuildLevel attachments located in HookLevel/BuildLevelHookEvent by replacing "BuildLevel" with "HookLevel/BuildLevelHookEvent".
+          - The created LogEntry objects are added to the hook's "logs" list.
+
+        Args:
+            hook: The event dictionary containing existing logs and hook information.
+            hook_level_files: List of Path objects from the TestLevel monitoring.
+            build_level_files: List of Path objects from the BuildLevel monitoring.
+        """
+        # Define the HookLevel directory inside ~/.browserstack/UploadedAttachments
+        global _processed_attachments
+        platform_index = os.environ['BROWSERSTACK_PLATFORM_INDEX']
+        attachment_dir = os.path.join(BROWSERSTACK_ROOT_DIR, (UPLOADED_ATTACHMENTS_PREFIX + str(platform_index)), LEVEL_HOOK)
+        if not os.path.exists(attachment_dir) or not os.path.isdir(attachment_dir):
+            self.logger.debug("Directory does not exists to process {}".format(attachment_dir))
+            return
+
+        # Retrieve existing logs from hook, or initialize a new list.
+        logs = hook.get("logs", [])
+
+        # Process files in the HookLevel directory.
+        with os.scandir(attachment_dir) as entries:
+            for entry in entries:
+                abs_path = os.path.abspath(entry.path)
+                if abs_path in _processed_attachments:
+                    self.logger.info("Path already processed {}".format(abs_path))
+                    continue
+                if entry.is_file():
+                    try:
+                        timestamp = datetime.fromtimestamp(entry.stat().st_mtime, tz=timezone.utc).isoformat()
+                    except Exception:
+                        timestamp = ""
+
+                    log_entry = LogEntry(
+                        kind="TEST_ATTACHMENT",
+                        message="",
+                        level="",
+                        timestamp=timestamp,
+                        fileName=entry.name,
+                        fileSize=entry.stat().st_size,
+                        attachmentType="MANUAL_UPLOAD",
+                        filePath=os.path.abspath(entry.path),  # Get the absolute path
+                        hook_run_uuid=hook.get(TestFramework.KEY_HOOK_ID)
+                    )
+                    logs.append(log_entry)
+                    _processed_attachments.add(abs_path)
+
+        # Process BuildLevel attachments.
+        platform_index = os.environ['BROWSERSTACK_PLATFORM_INDEX']
+        build_attachment_dir = os.path.join(BROWSERSTACK_ROOT_DIR, (UPLOADED_ATTACHMENTS_PREFIX + str(platform_index)), LEVEL_HOOK, BUILD_LEVEL_HOOK_EVENT)
+        if not os.path.exists(build_attachment_dir) or not os.path.isdir(build_attachment_dir):
+            self.logger.info("No BuildLevelHookEvent attachments directory found at: {}".format(build_attachment_dir))
+        else:
+            self.logger.info("Processing BuildLevelHookEvent attachments from directory: {}".format(build_attachment_dir))
+
+            with os.scandir(build_attachment_dir) as entries:
+                for entry in entries:
+                    abs_path = os.path.abspath(entry.path)
+                    if abs_path in _processed_attachments:
+                        self.logger.info("Path already processed {}".format(abs_path))
+                        continue
+                    if entry.is_file():
+                        try:
+                            timestamp = datetime.fromtimestamp(entry.stat().st_mtime, tz=timezone.utc).isoformat()
+                        except Exception:
+                            timestamp = ""
+
+                        log_entry = LogEntry(
+                            kind="TEST_ATTACHMENT",
+                            message="",
+                            level="BuildLevel",
+                            timestamp=timestamp,
+                            fileName=entry.name,
+                            fileSize=entry.stat().st_size,
+                            attachmentType="MANUAL_UPLOAD",
+                            filePath=os.path.abspath(entry.path),  # Get the absolute path
+                            build_run_uuid=hook.get(TestFramework.KEY_HOOK_ID)
+                        )
+                        logs.append(log_entry)
+                        _processed_attachments.add(abs_path)
+        hook["logs"] = logs
+
+    def send_log_created_event(
+        self,
+        test_instance: TestFrameworkTest,
+        entries: List[LogEntry],
+    ):
+        # body of this method must not contain a self.logger statement
+        # self.ensure_bin_session()
+        req = structs.LogCreatedEventRequest()
+        req.bin_session_id = os.environ.get("BROWSERSTACK_CLI_BIN_SESSION_ID")
+        req.platform_index = TestFramework.get_state(test_instance, TestFramework.KEY_PLATFORM_INDEX)
+        req.execution_context.hash = str(test_instance.context.hash)
+        req.execution_context.thread_id = str(test_instance.context.thread_id)
+        req.execution_context.process_id = str(test_instance.context.process_id)
+
+        for entry in entries:
+            log_entry = req.logs.add()
+            log_entry.test_framework_name = TestFramework.get_state(test_instance, TestFramework.KEY_TEST_FRAMEWORK_NAME)
+            log_entry.test_framework_version = TestFramework.get_state(test_instance, TestFramework.KEY_TEST_FRAMEWORK_VERSION)
+            log_entry.uuid = entry.hook_run_uuid
+            log_entry.test_framework_state = test_instance.state.name
+            log_entry.message = entry.message.encode("utf-8")
+            log_entry.kind = entry.kind
+            log_entry.timestamp = (
+                entry.timestamp.isoformat()
+                if isinstance(entry.timestamp, datetime)
+                else datetime.now(tz=timezone.utc).isoformat()
+            )
+            log_entry.level = ""
+            if entry.kind == "TEST_ATTACHMENT":
+                log_entry.file_name = entry.fileName
+                log_entry.file_size = entry.fileSize
+                log_entry.file_path = entry.filePath
+        def make_grpc_request():
+            time_start = datetime.now()
+            try:
+                self.cli_service.LogCreatedEvent(req)
+                test_instance.add_benchmark("grpc:send_log_created_event_attachment", datetime.now() - time_start)
+            except grpc.RpcError as e:
+                self.log_error("rpc-error: send_log_created_event_attachment {}".format(str(e)))
+                traceback.print_exc()
+
+        self.async_dispatcher.enqueue(make_grpc_request)
+
+    def __load_custom_tags(self, instance) -> None:
+        """
+        Loads custom tags for the given test framework instance.
+        Creates a dict containing test level custom metadata retrieved from
+        CustomTagManager and updates the instance state using set_state_entries.
+        """
+        updates = {"custom_metadata": CustomTagManager.get_test_level_custom_metadata()}
+        # Using a key for custom tags – adjust the key name as needed for your project
+        # set_state_entries is inherited from TestFramework which updates instance.data
+        # with the given entries.
+        from browserstack_sdk.sdk_cli.test_framework import TestFramework
+        TestFramework.set_state_entries(instance, updates)
+
+    @staticmethod
+    def last_active_hook(instance: TestFrameworkTest, last_hook_key: str):
+        hook_store = (
+            PytestFramework.KEY_HOOKS_FINISHED
+            if last_hook_key == PytestFramework.KEY_HOOK_LAST_FINISHED
+            else PytestFramework.KEY_HOOKS_STARTED
+        )
+
+        last_active = TestFramework.get_state(instance, last_hook_key, None)
+        hooks_dict = TestFramework.get_state(instance, hook_store, None) if last_active else None
+
+        return (
+            hooks_dict[last_active][-1]
+            if isinstance(hooks_dict, dict) and len(hooks_dict.get(last_active, [])) > 0
+            else None
+        )
+
+    @staticmethod
+    def clear_hook_logs(instance: TestFrameworkTest, last_hook_key: str):
+        hook = PytestFramework.last_active_hook(instance, last_hook_key)
+        if isinstance(hook, dict):
+            hook.get(TestFramework.KEY_HOOK_LOGS, []).clear()
+
+    @staticmethod
+    def __load_log_entries(instance: TestFrameworkTest, *args):
+        if len(args) < 2 or not callable(getattr(args[1], "get_records", None)):
+            return
+
+        if os.getenv("SDK_CLI_FLAG_LOGS", "1") != "1":
+            PytestFramework.logger.warning("ignoring caplog")
+            return
+
+        hook_conf_map = {
+            "setup": (PytestFramework.KEY_HOOK_LAST_STARTED, PytestFramework.KEY_HOOKS_STARTED),
+            "teardown": (PytestFramework.KEY_HOOK_LAST_FINISHED, PytestFramework.KEY_HOOKS_FINISHED),
+        }
+
+        for when in ("setup", "call", "teardown"):
+            caplog_records = args[1].get_records(when)
+            if not caplog_records:
+                continue
+
+            records = [
+                LogEntry(
+                    kind=TestFramework.KIND_LOG,
+                    message=r.message,
+                    level=r.levelname if hasattr(r, "levelname") and r.levelname else None,
+                    timestamp=(
+                        datetime.fromtimestamp(r.created, tz=timezone.utc)
+                        if hasattr(r, "created") and r.created
+                        else None
+                    ),
+                )
+                for r in caplog_records
+                if isinstance(getattr(r, "message", None), str) and r.message.strip()
+            ]
+
+            if not records:
+                continue
+
+            last_active_key, hook_store = hook_conf_map.get(when, (None, None))
+            hook_key_active = TestFramework.get_state(instance, last_active_key, None) if last_active_key else None
+            hooks_dict = TestFramework.get_state(instance, hook_store, None) if hook_key_active else None
+
+            if isinstance(hooks_dict, dict) and len(hooks_dict.get(hook_key_active, [])) > 0:
+                hook = hooks_dict[hook_key_active][-1]
+
+                if isinstance(hook, dict) and TestFramework.KEY_HOOK_LOGS in hook:
+                    # found a hook more suitable to attach logs to
+                    hook[TestFramework.KEY_HOOK_LOGS].extend(records)
+                    continue
+
+            # fallback to attaching logs to a test instance
+            logs = TestFramework.get_state(instance, TestFramework.KEY_TEST_LOGS, [])
+            logs.extend(records)
+
+    @staticmethod
+    def __parse_pytest_test(test) -> Dict[str, Any]:
+        test_id = PytestFramework.__location_to_nodeid(test.location) if hasattr(test, "location") else getattr(test, "nodeid", None)
+        test_name = test.name if hasattr(test, "name") else None
+        test_location = test.fspath.strpath if hasattr(test, "fspath") and test.fspath else None
+
+        if not test_id or not test_name or not test_location:
+            return None
+
+        code = None
+        if hasattr(test, "obj"):
+            try:
+                import inspect
+                code = inspect.getsource(test.obj)
+            except:
+                pass
+
+        test_scopes = []
+        try: 
+            test_scopes = TOHandler.get_scope_of_test(test)
+        except:
+            PytestFramework.logger.warning("Unable to find test scopes, test scopes will be resolved in CLI")
+
+        return {
+            TestFramework.KEY_TEST_UUID: uuid4().__str__(),
+            TestFramework.KEY_TEST_ID: test_id,
+            TestFramework.KEY_TEST_NAME: test_name,
+            TestFramework.KEY_TEST_RERUN_NAME: getattr(test, "nodeid", None),
+            TestFramework.KEY_TEST_FILE_PATH: test_location,
+            TestFramework.KEY_TEST_TAGS: PytestFramework.__parse_pytest_tags(test),
+            TestFramework.KEY_TEST_CODE: code,
+            TestFramework.KEY_TEST_RESULT: TestFramework.DEFAULT_TEST_RESULT,
+            TestFramework.KEY_AUTOMATE_SESSION_NAME: test_id,
+            TestFramework.KEY_TEST_SCOPES: test_scopes
+        }
+
+    @staticmethod
+    def __parse_pytest_tags(test) -> List[str]:
+        markers = []
+        current = test
+        while current:
+            own_markers = getattr(current, "own_markers", [])
+            markers.extend([getattr(m, "name", None) for m in own_markers if getattr(m, "name", None)])
+            current = getattr(current, "parent", None)
+        return markers
+
+    @staticmethod
+    def __location_to_nodeid(location):
+        return "::".join(filter(lambda x: isinstance(x, str), location))

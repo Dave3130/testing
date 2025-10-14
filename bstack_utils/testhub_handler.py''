@@ -1,0 +1,422 @@
+import json
+import logging
+import os
+import datetime
+import threading
+
+from bstack_utils.constants import EVENTS, STAGE
+from bstack_utils.helper import get_username, get_access_key, fire_request, error_handler, get_cloud_provider, session_info, log_direct, current_time, get_thread_value_or_default
+from bstack_utils.measure import measure
+from bstack_utils.request_queue import RequestQueue
+import bstack_utils.testhub_utils as TestHubUtils
+from bstack_utils.to_handler import TOHandler
+import bstack_utils.accessibility as a11y
+from bstack_utils.accessibility_scripts import accessibility_scripts
+from bstack_utils.test_data import EventData
+from bstack_utils.constants import TEST_REPORTING_ANALYTICS
+
+BROWSERSTACK_TESTHUB_URL = 'https://collector-observability.browserstack.com'
+
+logger = logging.getLogger(__name__)
+
+class TestHubHandler:
+    request_queue = None
+    bs_config = None
+    framework_details = None
+
+    @classmethod
+    @error_handler(class_method=True)
+    @measure(event_name=EVENTS.SDK_TESTHUB, stage=STAGE.SINGLE)
+    def launch(cls, bs_config, framework_details):
+        cls.bs_config = bs_config
+        cls.framework_details = framework_details
+        try:
+            cls.init_request_queue()
+            user_name = get_username(bs_config)
+            access_key = get_access_key(bs_config)
+            data = TestHubUtils.get_common_request_payload(bs_config, framework_details)
+
+            config = {
+                'auth': (user_name, access_key),
+                'headers': cls.default_headers()
+            }
+
+            # log_direct('sending launch request ' + data.__str__())
+            response = fire_request('POST', cls.request_url('api/v2/builds'), data, config)
+            if response.status_code != 200:
+                response_data = response.json()
+                if response_data['success'] == False:
+                    cls.log_build_error(response_data)
+                    return
+                cls.handle_error_for_observability(response_data['observability'])
+                cls.handle_error_for_accessibility(response_data['accessibility'])
+                return None
+
+            build_data = cls.handle_build_response(response)
+            return build_data, response.json()
+        except Exception as error:
+            logger.error("Exception while creating build for TestHub: {}".format(str(error)))
+            return None
+
+    @classmethod
+    @error_handler(class_method=True)
+    def stop(cls, kill_sig=None):
+        if not TOHandler.on() and not a11y.on():
+            return
+
+        if os.environ.get('BROWSERSTACK_TESTHUB_JWT') == "null" or os.environ.get('BROWSERSTACK_TESTHUB_UUID') == "null":
+            logger.error('Exception in stop build request to TestHub: Missing authentication token')
+            return {
+                'status': 'error',
+                'message': 'Token/buildID is undefined, build creation might have failed'
+            }
+        try:
+            cls.request_queue.shutdown()
+            data = {
+                'finished_at': current_time()
+            }
+            if not kill_sig is None:
+                data['finished_metadata'] = [{
+                    'reason': 'user_killed',
+                    'signal': kill_sig
+                }]
+            config = {
+                'headers': cls.default_headers()
+            }
+            endpoint = 'api/v1/builds/{}/stop'.format(os.environ["BROWSERSTACK_TESTHUB_UUID"])
+            stop_url = cls.request_url(endpoint)
+            response = fire_request('PUT', stop_url, data, config)
+
+            if not response.ok:
+                raise Exception("Stop request not ok")
+        except Exception as error:
+            logger.error("Exception in stop build request to TestHub:: " + str(error))
+            return {
+                'status': 'error',
+                'message': str(error)
+            }
+
+    @classmethod
+    @error_handler(class_method=True)
+    def handle_build_response(cls, response):
+        response_data = response.json() if not isinstance(response, dict) else response
+        build_data = {}
+        if response_data.get('jwt') is None:
+            # when both O11y and A11y are false jwt is not sent
+            os.environ['BROWSERSTACK_TESTHUB_JWT'] = 'null'
+        else:
+            os.environ['BROWSERSTACK_TESTHUB_JWT'] = response_data.get('jwt', 'null')
+
+        os.environ['BROWSERSTACK_TESTHUB_UUID'] = response_data.get('build_hashed_id', 'null')
+        logger.info('Testhub started with id: ' + os.getenv('BROWSERSTACK_TESTHUB_UUID'));
+        if TOHandler.is_observability_enabled(cls.bs_config, cls.framework_details.get('framework_used', '')) is True:
+            jwt_token, build_hashed_id, allow_screenshots = cls.set_observability_variables(response_data)
+            if jwt_token != None and build_hashed_id != None:
+                build_data['observability'] = {
+                    'jwt_token': jwt_token,
+                    'build_hashed_id': build_hashed_id,
+                    'allow_screenshots': allow_screenshots
+                }
+            else:
+                build_data['observability'] = {}
+        else:
+            build_data['observability'] = {}
+
+        auth_token, build_hashed_id = cls.set_accessibility_variables(response_data)
+        if auth_token != None and build_hashed_id != None:
+            build_data['accessibility'] = {
+                'auth_token': auth_token,
+                'build_hashed_id': build_hashed_id,
+            }
+        else:
+            build_data['accessibility'] = {}
+
+        if build_data['observability'].get('build_hashed_id') != None or build_data['accessibility'].get('build_hashed_id') != None:
+            cls.set_common_env(response_data.get('jwt'), response_data.get('build_hashed_id'))
+
+        return build_data
+
+    @classmethod
+    def set_observability_variables(cls, response_data):
+        if response_data.get('observability') == None:
+            cls.handle_error_for_observability()
+            return [None, None, None]
+
+        if response_data['observability']['success'] != True:
+            cls.handle_error_for_observability(response_data['observability'])
+            return [None, None, None]
+
+        logger.debug('{} Build creation Successful!'.format(TEST_REPORTING_ANALYTICS))
+        os.environ['BS_TESTOPS_BUILD_COMPLETED'] = 'true'
+        if response_data.get('jwt'):
+            os.environ['CREDENTIALS_FOR_CRASH_REPORTING'] = json.dumps({
+                'username': get_username(cls.bs_config),
+                'password': get_access_key(cls.bs_config)
+            })
+        if response_data.get('build_hashed_id'):
+            os.environ['BS_TESTOPS_BUILD_HASHED_ID'] = response_data['build_hashed_id']
+        if response_data['observability'].get('options', {}).get('allow_screenshots'):
+            os.environ['BS_TESTOPS_ALLOW_SCREENSHOTS'] = str(response_data['observability']['options']['allow_screenshots'])
+        else:
+            os.environ['BS_TESTOPS_ALLOW_SCREENSHOTS'] = "null"
+
+        return [response_data['jwt'], response_data['build_hashed_id'], os.environ['BS_TESTOPS_ALLOW_SCREENSHOTS']]
+
+    @classmethod
+    def set_accessibility_variables(cls, response_data):
+        if response_data.get('accessibility') == None:
+            cls.handle_error_for_accessibility()
+            return [None, None]
+
+        if response_data['accessibility']['success'] != True:
+            cls.handle_error_for_accessibility(response_data['accessibility'])
+            return [None, None]
+
+        if response_data['accessibility'].get('options'):
+            logger.debug('Test Accessibility Build creation Successful!')
+            parsed = json.loads(os.getenv('BROWSERSTACK_TEST_ACCESSIBILITY_CONFIGURATION_YML', '{}'))
+
+            capabilities = TestHubUtils.convert_array_to_dict(response_data['accessibility']['options']['capabilities'], 'name', 'value')
+            auth_token = capabilities['accessibilityToken']
+            os.environ['BS_A11Y_JWT'] = auth_token
+
+            if "automate" in response_data and response_data.get("app_automate") is None:
+                parsed['scannerVersion'] = capabilities['scannerVersion']
+
+            os.environ['BROWSERSTACK_TEST_ACCESSIBILITY_CONFIGURATION_YML'] = json.dumps(parsed)
+
+            scripts = TestHubUtils.convert_array_to_dict(response_data['accessibility']['options']['scripts'], 'name', 'command')
+            accessibility_scripts.update_scripts(scripts)
+            commands = response_data['accessibility']['options']['commandsToWrap'].get('commands')
+            accessibility_scripts.update_commands(commands)
+            non_bstack_infra_a11y_chrome_options = capabilities.get('goog:chromeOptions')
+            accessibility_scripts.update_non_bstack_infra_a11y_chrome_options(non_bstack_infra_a11y_chrome_options)
+            accessibility_scripts.store()
+
+        return [auth_token, response_data['build_hashed_id']]
+
+    @classmethod
+    def handle_error_for_observability(cls, response=None):
+        os.environ['BROWSERSTACK_TESTHUB_UUID'] = 'null'
+        os.environ['BROWSERSTACK_TESTHUB_JWT'] = 'null'
+        os.environ['BS_TESTOPS_BUILD_COMPLETED'] = 'false'
+        os.environ['BS_TESTOPS_BUILD_HASHED_ID'] = "null"
+        os.environ['BS_TESTOPS_ALLOW_SCREENSHOTS'] = "null"
+        cls.log_build_error(response, "observability")
+        return [None, None, None]
+
+    @classmethod
+    def handle_error_for_accessibility(cls, response=None):
+        os.environ['BROWSERSTACK_TESTHUB_UUID'] = 'null'
+        os.environ['BS_A11Y_JWT'] = 'null'
+        os.environ['BROWSERSTACK_TESTHUB_JWT'] = 'null'
+
+        cls.log_build_error(response, "accessibility")
+        return [None, None, None]
+
+    @classmethod
+    def set_common_env(cls, jwt, build_hashed_id):
+        os.environ['BROWSERSTACK_TESTHUB_JWT'] = jwt
+        os.environ['BROWSERSTACK_TESTHUB_UUID'] = build_hashed_id
+
+    @classmethod
+    def log_build_error(cls, response=None, product=""):
+        if response == None or response.get('errors') == None:
+            logger.error(product + " Build creation failed")
+            return
+        for error in response['errors']:
+            error_type = error['key']
+            error_message = error['message']
+            if error_message:
+                if error_type == "ERROR_ACCESS_DENIED":
+                    logger.info(error_message)
+                else:
+                    logger.error(error_message)
+            else:
+                logger.error("Data upload to BrowserStack " + product + " failed due to some error")
+
+    @classmethod
+    def init_request_queue(cls):
+        if cls.request_queue is not None:
+            return
+        cls.request_queue = RequestQueue(cls.post_data)
+        cls.request_queue.start()
+
+    @classmethod
+    def flush_data(cls):
+        if cls.request_queue is None:
+            return
+
+        cls.request_queue.shutdown()
+
+    @classmethod
+    @error_handler(class_method=True)
+    def post_data(cls, event_data, event_url='api/v1/batch'):
+        config = {
+            'headers': cls.default_headers()
+        }
+
+        # log_direct('sending data ' + event_data.__str__())
+        logger.debug("post_data: Sending data to testhub for events {}".format(', '.join([event['event_type'] for event in event_data])))
+        response = fire_request('POST', cls.request_url(event_url), event_data, config)
+        response_json = response.json()
+
+    @classmethod
+    def send_data(cls, event_data, event_url='api/v1/batch'):   
+        logger.debug("send_data: Attempting to add data to batch with event_type: {}".format(event_data['event_type']))
+        if not TestHubUtils.should_send_event_for_testhub(event_data['event_type']):
+            logger.debug("send_data: Not adding data with event_type: {}".format(event_data['event_type']))
+            return
+
+        product_map = TestHubUtils.get_product_map_for_event(event_data['event_type'], event_data.get('test_run'))
+        if product_map != None:
+            if event_data.get('test_run') != None:
+                event_data['test_run']['product_map'] = product_map
+            else:
+                event_data['product_map'] = product_map
+        if event_url == 'api/v1/batch':
+            cls.init_request_queue()
+            logger.debug("send_data: Adding data to batch with event_type: {}".format(event_data['event_type']))
+            cls.request_queue.add(event_data)
+        elif event_url == 'api/v1/screenshots':
+            cls.post_data([event_data], event_url)
+
+    @classmethod
+    @error_handler(class_method=True)
+    def send_logs(cls, logs):
+        for log in logs:
+            final_log = {
+                'kind': 'TEST_LOG',
+                'level': log['level'],
+                'timestamp': log['timestamp'],
+                'http_response': {},
+                'message': log['message'],
+            }
+            if 'test_run_uuid' in log:
+                final_log['test_run_uuid'] = log['test_run_uuid']
+            elif 'hook_run_uuid' in log:
+                final_log['hook_run_uuid'] = log['hook_run_uuid']
+
+            cls.send_data({
+                'event_type': 'LogCreated',
+                'logs': [final_log]
+            })
+
+    @classmethod
+    @error_handler(class_method=True)
+    def send_test_step(cls, steps):
+        formatted_steps = []
+        for step in steps:
+            formatted_step = {
+                'kind': 'TEST_STEP',
+                'level': step['level'],
+                'timestamp': step['timestamp'],
+                'message': step['message'],
+                'duration': step['duration']
+            }
+            if 'test_run_uuid' in step:
+                formatted_step['test_run_uuid'] = step['test_run_uuid']
+            elif 'hook_run_uuid' in step:
+                formatted_step['hook_run_uuid'] = step['hook_run_uuid']
+
+            formatted_steps.append(formatted_step)
+
+        cls.send_data({
+            'event_type': 'LogCreated',
+            'logs': formatted_steps
+        })
+
+    @classmethod
+    @error_handler(class_method=True)
+    @measure(event_name=EVENTS.SDK_O11Y_TAKE_SCREENSHOT, stage=STAGE.SINGLE)
+    def send_screenshot(cls, screenshot):
+        cls.send_data({
+            'event_type': 'LogCreated',
+            'logs': [{
+                'kind': 'TEST_SCREENSHOT',
+                'timestamp': datetime.datetime.utcnow().isoformat() + 'Z',
+                'message': screenshot['image'],
+                'test_run_uuid': screenshot['test_run_uuid']
+            }]
+        }, event_url='api/v1/screenshots')
+
+    @classmethod
+    @error_handler(class_method=True)
+    def send_cbt_info(cls, driver):
+        current_test_uuid = cls.current_test_uuid()
+        if not current_test_uuid:
+            return
+        cls.send_data({
+            'event_type': 'CBTSessionCreated',
+            'test_run': {
+                "uuid": cls.current_test_uuid(),
+                "integrations": cls.integrations_object(driver)
+            }
+        })
+
+    @classmethod
+    def send_run_event(cls, event: str, event_data: EventData):
+        upload_data = {
+            'event_type': event,
+            event_data.event_key(): event_data.data_for_event(event)
+        }
+        cls.send_data(upload_data)
+        result = getattr(event_data, 'result', None)
+        if event == 'TestRunStarted':
+            threading.current_thread().bstackTestMeta = {'status': 'pending'}
+        elif event == 'TestRunFinished':
+            threading.current_thread().bstackTestMeta = {'status': getattr(result, 'result', '')}
+
+    @classmethod
+    def on(cls):
+        if (os.environ.get('BROWSERSTACK_TESTHUB_JWT', None) is None or os.environ['BROWSERSTACK_TESTHUB_JWT'] == "null") and (os.environ.get('BS_A11Y_JWT', None) is None or os.environ['BS_A11Y_JWT'] == "null"):
+            return False
+
+        return True
+
+    @staticmethod
+    def need_th(func):
+        # TODO: Figure out a way to use this decorator with pytest hooks which uses signature inspection.
+        # https://stackoverflow.com/q/65734222/8852419
+        # https://stackoverflow.com/a/72242606/8852419
+        def wrap(*args, **kwargs):
+            if TestHubHandler.on():
+                return func(*args, **kwargs)
+            return
+
+        return wrap
+
+    @staticmethod
+    def default_headers():
+        headers = {
+            'Content-Type': 'application/json',
+            'X-BSTACK-TESTOPS': 'true'
+        }
+        if os.environ.get('BROWSERSTACK_TESTHUB_JWT', None):
+            headers['Authorization'] = 'Bearer {}'.format(os.environ["BROWSERSTACK_TESTHUB_JWT"])
+
+        return headers
+
+    @staticmethod
+    def request_url(url):
+        return '{}/{}'.format(BROWSERSTACK_TESTHUB_URL, url)
+
+    @staticmethod
+    def current_test_uuid():
+        return getattr(threading.current_thread(), 'current_test_uuid', None)
+
+    @staticmethod
+    def integrations_object(driver):
+        return {
+            get_cloud_provider(): session_info(driver)
+        }
+
+    @staticmethod
+    def failure_data(exception_info, report):
+        return [{'backtrace': [exception_info.exconly(), report.longreprtext]}]
+
+    @staticmethod
+    def failure_type(typename):
+        if "Assertion" in typename:
+            return "AssertionError"
+        return "UnhandledError"

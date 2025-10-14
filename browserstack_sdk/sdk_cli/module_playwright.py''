@@ -1,0 +1,219 @@
+import json
+import os
+import grpc
+import copy
+import asyncio
+import threading
+from browserstack_sdk import sdk_pb2 as structs
+from packaging import version
+import traceback
+from browserstack_sdk.sdk_cli.module_base import BaseModule
+from browserstack_sdk.sdk_cli.automation_framework import (
+    AutomationFrameworkState,
+    HookState,
+    AutomationFrameworkBrowser,
+)
+from bstack_utils.constants import *
+from typing import Any, List, Union, Dict
+from pathlib import Path
+from browserstack_sdk.sdk_cli.playwright_framework import PlaywrightFramework
+from datetime import datetime
+from typing import Tuple, Any
+from bstack_utils.messages import SETUP_COMPLETE
+from bstack_utils.helper import is_bstack_automation
+import threading
+import os
+import urllib.parse
+
+class PlaywrightModule(BaseModule):
+    def __init__(self, module_automation_framework_test):
+        super().__init__()
+        PlaywrightFramework.set_hook_callback((AutomationFrameworkState.CREATE, HookState.PRE), self.on_browser_launch)
+        PlaywrightFramework.set_hook_callback((AutomationFrameworkState.CREATE, HookState.PRE), self.on_new_page)
+        PlaywrightFramework.set_hook_callback((AutomationFrameworkState.DISPATCH, HookState.PRE), self.on_connection_dispatch)
+        PlaywrightFramework.set_hook_callback((AutomationFrameworkState.EXECUTE, HookState.PRE), self.send_message)
+        PlaywrightFramework.set_hook_callback((AutomationFrameworkState.CREATE, HookState.PRE), self.on_connect)
+        PlaywrightFramework.set_hook_callback((AutomationFrameworkState.QUIT, HookState.PRE), self.on_close)
+        self.module_automation_framework_test = module_automation_framework_test
+
+    def is_enabled(self) -> bool:
+        return True
+
+    def on_browser_launch(
+        self,
+        f: PlaywrightFramework,
+        browserType: object,
+        exec: Tuple[AutomationFrameworkBrowser, str],
+        hook_info: Tuple[AutomationFrameworkState, HookState],
+        result: Any,
+        *args,
+        **kwargs,
+    ):
+        instance, method_name = exec
+        if method_name != "launch":
+            return
+        if not is_bstack_automation():
+            self.logger.debug("Returning in launch method, not browserstack session")
+            return
+        def wrapped(browserType, launch, *args, **kwargs):
+            response = self.register_webdriver_init(f.platform_index, instance.ref(), json.dumps({'isPlaywright': True}).encode("utf-8"))
+            if response is not None and response.capabilities:
+                if not is_bstack_automation():
+                    browser = launch(browserType)
+                    return browser
+                final_capabilities = json.loads(response.capabilities.decode("utf-8"))
+                if not final_capabilities: # empty caps means either browserstackAutomation false or error in processing
+                    return
+                cdp_url = PLAYWRIGHT_HUB_URL + urllib.parse.quote(json.dumps(final_capabilities))
+                f.set_state(instance, PlaywrightFramework.KEY_HUB_URL, cdp_url)
+                f.set_state(instance, PlaywrightFramework.KEY_CAPABILITIES, final_capabilities)
+                browser = browserType.connect(cdp_url)
+                return browser
+        return wrapped
+
+    def on_connection_dispatch(
+        self,
+        f: PlaywrightFramework,
+        Connection: object,
+        exec: Tuple[AutomationFrameworkBrowser, str],
+        hook_info: Tuple[AutomationFrameworkState, HookState],
+        result: Any,
+        *args,
+        **kwargs,
+    ):
+        instance, method_name = exec
+        if method_name != "dispatch":
+            self.logger.debug("Returning in dispatch method, not browserstack session")
+            return
+        if not is_bstack_automation():
+            return
+        def wrapped(Connection, dispatch, *args, **kwargs):
+            data = args[0]
+            try:
+                if args and args[0].get('params', {}).get('bsParams'):
+                    bsParams = args[0]["params"]["bsParams"]
+                    session_id = bsParams.get("sessionId")
+                    f.set_state(instance, PlaywrightFramework.KEY_FRAMEWORK_SESSION_ID, session_id)
+            except Exception as e:
+                self.logger.debug("Exception in dispatch method: ", e)
+            dispatch(Connection, *args)
+        return wrapped
+
+    def on_connect(
+        self,
+        f: PlaywrightFramework,
+        browserType: object,
+        exec: Tuple[AutomationFrameworkBrowser, str],
+        hook_info: Tuple[AutomationFrameworkState, HookState],
+        result: Any,
+        *args,
+        **kwargs,
+    ):
+        instance, method_name = exec
+        if method_name != "connect":
+            return
+        if not is_bstack_automation():
+            self.logger.debug("Returning in connect method, not browserstack session")
+            return
+        def wrapped(browserType, connect, *args, **kwargs):
+            response = self.register_webdriver_init(f.platform_index, instance.ref(), json.dumps({'isPlaywright': True}).encode("utf-8"))
+            if response is not None and response.capabilities:
+                final_capabilities = json.loads(response.capabilities.decode("utf-8"))
+                if not final_capabilities:
+                    return
+                cdp_url = PLAYWRIGHT_HUB_URL + urllib.parse.quote(json.dumps(final_capabilities))
+                if final_capabilities.get('browserstack.accessibility'):
+                    # TODO: A11Y WILL NOT RUN WHEN playwright.firefox() is specified, need to handle this
+                    browser = browserType.connect_over_cdp(cdp_url)
+                    return browser
+                else:
+                    args = list(args)
+                    args[0] = cdp_url
+                    return connect(browserType, *args, **kwargs)
+        return wrapped
+
+    def on_new_page(  
+        self,
+        f: PlaywrightFramework,
+        browserContext: object,
+        exec: Tuple[AutomationFrameworkBrowser, str],
+        hook_info: Tuple[AutomationFrameworkState, HookState],
+        result: Any,
+        *args,
+        **kwargs,
+    ):
+        instance, method_name = exec
+        if method_name != "new_page":
+            return
+        if not is_bstack_automation():
+            self.logger.debug("Returning in new_page method, not browserstack session")
+            return
+        def wrapped(browserContext, newPage, *args, **kwargs):
+            contexts = browserContext.browser.contexts
+            if contexts:
+                for context in contexts:
+                    if context.pages:
+                        for page in context.pages:
+                                if "about:blank" in page.url:
+                                    return page
+                    else:
+                        return newPage(browserContext)
+        return wrapped
+
+    def register_webdriver_init(self, platform_index: int, ref, user_input_params: bytes):
+        req = structs.DriverInitRequest()
+        req.bin_session_id = self.bin_session_id
+        req.platform_index = platform_index
+        req.user_input_params = user_input_params
+        req.ref = ref
+        self.logger.debug(f"register_webdriver_init: {req}")
+
+        try:
+            r = self.cli_service.DriverInit(req)
+            if not r.success:
+                self.logger.debug(f"received from server: success={r.success}")
+            return r
+        except grpc.RpcError as e:
+            self.logger.error(f"rpc-error: {e}")
+            traceback.print_exc()
+            raise e
+
+    def send_message(
+        self,
+        f: PlaywrightFramework,
+        Connection: object,
+        exec: Tuple[AutomationFrameworkBrowser, str],
+        hook_info: Tuple[AutomationFrameworkState, HookState],
+        result: Any,
+        *args,
+        **kwargs,
+    ):
+        instance, method_name = exec
+        if method_name != "_send_message_to_server":
+            return
+        if not is_bstack_automation():
+            return
+        def wrapped(Connection, send_message_to_server, *args, **kwargs):
+            return send_message_to_server(Connection, *args, **kwargs)
+
+        return wrapped
+
+    def on_close(
+        self,
+        f: PlaywrightFramework,
+        browserType: object,
+        exec: Tuple[AutomationFrameworkBrowser, str],
+        hook_info: Tuple[AutomationFrameworkState, HookState],
+        result: Any,
+        *args,
+        **kwargs,
+    ):
+        instance, method_name = exec
+        if method_name != "close":
+            return
+        if not is_bstack_automation():
+            self.logger.debug("Returning in close method, not browserstack session")
+            return
+        def wrapped(Connection, close, *args, **kwargs):
+            return close(Connection)
+        return wrapped

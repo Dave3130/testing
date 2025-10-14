@@ -1,0 +1,35 @@
+import logging
+import abc
+from browserstack_sdk.sdk_cli.async_dispatcher import AsyncDispatcher
+
+
+class BaseModule(abc.ABC):
+    bin_session_id: str
+    async_dispatcher: AsyncDispatcher
+
+    def __init__(self):
+        self.cli_service = None
+        self.config = None
+        self.bin_session_id = None
+        self.async_dispatcher = None
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger.setLevel(logging.INFO)
+
+    def is_configured(self):
+        return (self.cli_service != None and self.bin_session_id != None and self.async_dispatcher != None)
+
+    def configure(self, cli_service, config, bin_session_id: str, async_dispatcher: AsyncDispatcher):
+        self.cli_service = cli_service
+        self.config = config
+        self.bin_session_id = bin_session_id
+        self.async_dispatcher = async_dispatcher
+        if self.bin_session_id:
+            self.logger.debug(f"[{id(self)}] configured module {self.__class__.__name__}: bin_session_id={self.bin_session_id}")
+
+    def ensure_bin_session(self):
+        if not self.bin_session_id:
+            raise ValueError("bin_session_id cannot be None")
+
+    @abc.abstractmethod
+    def is_enabled(self) -> bool:
+        return False

@@ -1,0 +1,224 @@
+import sys
+import logging
+import tarfile
+import io
+import os
+import time
+import requests
+import re
+from requests_toolbelt.multipart.encoder import MultipartEncoder
+from bstack_utils.constants import AUTO_CAPTURE_LOGS_URL, LOG_LEVELS, REDACT_KEYS
+import tempfile
+import json
+
+DEBUG_LOG_FILE = os.getenv("BROWSERSTACK_LOG_FILE", None) or os.path.join(tempfile.gettempdir(), "browserstack.debug.log")
+SDK_CLI_DEBUG_LOG_FILE = os.path.join("log", 'sdk-cli-debug.log')
+
+logging.Formatter.converter = time.gmtime
+
+def get_logger(name=__name__, level=None):
+  logger = logging.getLogger(name)
+  if level:
+    logging.basicConfig(
+      level=level,
+      format='%(asctime)s [%(name)s][%(levelname)s] - %(message)s',
+      datefmt='%Y-%m-%dT%H:%M:%SZ',
+      stream=sys.stdout
+    )
+  return logger
+
+def get_log_level():
+  is_binary_debug = os.environ.get("BROWSERSTACK_BINARY_DEBUG", "false")
+  return logging.DEBUG if is_binary_debug.lower() == "true" else logging.INFO
+
+def clear_logs():
+  global DEBUG_LOG_FILE
+  if os.path.exists(DEBUG_LOG_FILE):
+    os.remove(DEBUG_LOG_FILE)
+  if os.path.exists(SDK_CLI_DEBUG_LOG_FILE):
+    os.remove(SDK_CLI_DEBUG_LOG_FILE)
+
+def clear_handlers():
+  for handler in logging.getLogger().handlers:
+    logging.getLogger().removeHandler(handler)
+
+def configure_logger(config, log_level):
+  conf_level = log_level
+  if 'logLevel' in config and config['logLevel'] in LOG_LEVELS:
+    conf_level = LOG_LEVELS[config['logLevel']]
+
+  if config.get('disableAutoCaptureLogs', False):
+    logging.getLogger().setLevel(conf_level)
+    return conf_level
+
+  global DEBUG_LOG_FILE
+
+  # reset log handlers
+  clear_handlers()
+
+  log_formatter = logging.Formatter(
+    fmt='%(asctime)s [%(name)s][%(levelname)s] - %(message)s',
+    datefmt='%Y-%m-%dT%H:%M:%SZ',
+  )
+  console_handler = logging.StreamHandler(sys.stdout)
+  file_handler = logging.FileHandler(DEBUG_LOG_FILE)
+
+  file_handler.setFormatter(log_formatter)
+  console_handler.setFormatter(log_formatter)
+
+  file_handler.setLevel(logging.DEBUG)
+  console_handler.setLevel(log_level)
+  # filter out unnecessary and large log records
+  file_handler.addFilter(lambda r: r.name != 'selenium.webdriver.remote.remote_connection')
+
+  # set root logger level debug so that everything is captured
+  logging.getLogger().setLevel(logging.DEBUG)
+
+  # only update user facing console logs log level
+  console_handler.setLevel(conf_level)
+
+  logging.getLogger().addHandler(console_handler)
+  logging.getLogger().addHandler(file_handler)
+  return conf_level
+
+
+def get_redacted_config_str(config):
+  try:
+    redact_keys = set(REDACT_KEYS)
+
+    redacted_bstack_yml = ''
+    with open('browserstack.yml') as bstack_yml_fd:
+      bstack_yml = bstack_yml_fd.read()
+      # remove comments
+      redacted_bstack_yml = re.sub(r'^(\s+)?#.*$\n', '', bstack_yml, flags=re.M)
+      redacted_bstack_yml = re.sub(
+        r'^(\s+)?(' + '|'.join(redact_keys) + ').*$',
+        r'\2: [REDACTED]',
+        redacted_bstack_yml, flags=re.M | re.I
+      )
+
+    def nested_redact(dic):
+      new_config = {}
+      for key, value in dic.items():
+        if key in redact_keys:
+          new_config[key] = '[REDACTED]'
+        else:
+          if isinstance(value, dict):
+            new_config[key] = nested_redact(value)
+          else:
+            new_config[key] = value
+      return new_config
+
+    new_config = nested_redact(config)
+
+    return {
+      'browserstack.yml': redacted_bstack_yml,
+      'finalconfig.json': json.dumps(new_config)
+    }
+  except Exception as e:
+    return {}
+
+def save_pytest_config_paths(inipath, rootpath):
+  log_dir = os.path.join(os.getcwd(), 'log')
+  if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
+
+  config_path = os.path.join(log_dir, 'pytest_configs')
+
+  if not os.path.exists(config_path):
+    config_paths = {
+      "inipath": str(inipath),
+      "rootpath": str(rootpath)
+    }
+    with open(os.path.join(log_dir, 'pytest_configs.json'), 'w') as json_file:
+      json_file.write(json.dumps(config_paths))
+
+def get_pytest_config_paths():
+  try:
+    config_path = os.path.join(os.getcwd(), 'log', 'pytest_configs.json')
+    if os.path.exists(config_path):
+      with open(config_path, 'r') as json_file:
+        conf_paths = json.load(json_file)
+      return conf_paths.get('inipath', ''), conf_paths.get('rootpath', '')
+  except:
+    pass
+  return None, None
+
+def remove_config_path():
+  try:
+    config_path = os.path.join(os.getcwd(), 'log', 'pytest_configs.json')
+
+    if os.path.exists(config_path):
+      os.remove(config_path)
+  except:
+    pass
+
+def send_logs(config):
+  try:
+    from bstack_utils.helper import global_config, get_nested_value
+    from browserstack_sdk.sdk_cli.cli import cli
+    global DEBUG_LOG_FILE
+
+    if config.get('disableAutoCaptureLogs', False):
+      return
+
+    uuid = os.getenv('BROWSERSTACK_TESTHUB_UUID') if os.getenv('BROWSERSTACK_TESTHUB_UUID') else global_config.get_property("sdkRunId")
+    if not uuid or uuid == 'null':
+      return
+
+    # Collect
+    files_to_archive = ['requirements.txt', 'Pipfile', 'pyproject.toml', DEBUG_LOG_FILE, SDK_CLI_DEBUG_LOG_FILE]
+    ini_path, root_path = get_pytest_config_paths()
+
+    if ini_path != None:
+      files_to_archive.append(ini_path)
+    
+    if root_path != None:
+      files_to_archive.append(os.path.join(root_path, 'conftest.py'))
+
+    clear_handlers()
+    logging.shutdown()
+
+    # Compress
+    output_file = os.path.join(tempfile.gettempdir(), 'bstack-logs-' + uuid + '.tar.gz')
+    with tarfile.open(output_file, "w:gz") as archive:
+      for file in filter(lambda f: os.path.exists(f), files_to_archive):
+        try:
+          archive.add(file,  arcname=os.path.basename(file))
+        except:
+          pass
+
+      for name, data in get_redacted_config_str(config).items():
+        tarinfo = tarfile.TarInfo(name)
+        data_bytes = data.encode()
+        tarinfo.size = len(data_bytes)
+        archive.addfile(tarinfo, io.BytesIO(data_bytes))
+
+    # Upload
+    multipart_data = MultipartEncoder(
+      fields= {
+        'data': (os.path.basename(output_file), open(os.path.abspath(output_file), 'rb'), 'application/x-gzip'),
+        'clientBuildUuid': uuid
+      }
+    )
+    auto_capture_url = get_nested_value(cli.config, ["apis", "observability", "upload"], AUTO_CAPTURE_LOGS_URL)
+    response = requests.post(
+      "{}/client-logs/upload".format(auto_capture_url),
+      data=multipart_data,
+      headers={'Content-Type': multipart_data.content_type},
+      auth=(config['userName'], config['accessKey'])
+    )
+    os.remove(output_file)
+
+    if response.status_code != 200:
+      get_logger().debug('Error upload logs: ' + response.status_code)
+
+  except Exception as e:
+    get_logger().debug('Exception in sending logs:' + str(e))
+
+  finally:
+    try:
+      clear_logs()
+      remove_config_path()
+    except:
+      pass

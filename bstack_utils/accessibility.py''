@@ -1,0 +1,441 @@
+import os
+import json
+import requests
+import logging
+import threading
+import bstack_utils.constants as CONSTANTS
+from urllib.parse import urlparse
+from bstack_utils.constants import ACCESSIBILITY_API_URL as API_URL, EVENTS
+from bstack_utils.accessibility_scripts import accessibility_scripts
+from bstack_utils.helper import current_time, get_utcnow_wo_tzinfo, is_browserstack_automation, get_username, \
+  get_access_key, get_ci_info, get_host_info, get_git_metadata, fire_request, error_handler, merge_dicts, get_selenium_version, get_thread_value_or_default
+from browserstack_sdk._version import __version__
+from bstack_utils.logger_utils import get_logger
+from bstack_utils.performance_tester import PerformanceTester
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from browserstack_sdk.sdk_cli.cli import cli
+from bstack_utils.constants import *
+
+# Setup logger
+logger = get_logger(__name__)
+performance_tester = PerformanceTester()
+
+@error_handler(class_method=False)
+def _fetch_platform_details(driver, platform_config):
+  response = {}
+  try:
+    caps = driver.capabilities
+    response = {
+        'os_name': caps.get('platformName', None),
+        'os_version': platform_config.get('osVersion', None),
+        'browser_name': caps.get('browserName', None),
+        'browser_version': caps.get('browserVersion', None)
+    }
+  except Exception as error:
+    logger.debug('Exception in fetching platform details with error : ' + str(error))
+  return response
+
+def on():
+    if os.environ.get('BS_A11Y_JWT', None) is None or os.environ['BS_A11Y_JWT'] == "null":
+        return False
+
+    return True
+
+def is_enabled_root(config):
+  return config.get('accessibility', False) or any([p.get('accessibility', False) == True for p in config.get('platforms', [])])
+
+def is_enabled_platform(config, p_index):
+  try:
+    a11y_config_enabled = config.get('accessibility', False)
+    if int(p_index) < len(config.get('platforms', [])) and config['platforms'][p_index]:
+      a11y_platform_enabled = config['platforms'][p_index].get('accessibility', None)
+    else:
+      a11y_platform_enabled = config.get('accessibility', None)
+    if a11y_platform_enabled != None:
+      a11y_config_enabled = a11y_platform_enabled
+
+    has_a11y_jwt_token = os.getenv('BS_A11Y_JWT') is not None and len(os.getenv('BS_A11Y_JWT')) > 0 and os.getenv('BS_A11Y_JWT') != 'null'
+    return a11y_config_enabled and has_a11y_jwt_token
+  except Exception as error:
+    logger.debug('Exception in verifying the Accessibility session with error : ' + str(error))
+  return False
+
+def is_enabled_testcase(test_tags):
+  accessibility_config = os.getenv('BROWSERSTACK_TEST_ACCESSIBILITY_CONFIGURATION_YML')
+  if accessibility_config is None:
+    return True
+  accessibility_config = json.loads(accessibility_config)
+  try:
+    include_tags = accessibility_config['includeTagsInTestingScope'] if 'includeTagsInTestingScope' in accessibility_config and isinstance(accessibility_config['includeTagsInTestingScope'], list) else []
+    exclude_tags = accessibility_config['excludeTagsInTestingScope'] if 'excludeTagsInTestingScope' in accessibility_config and isinstance(accessibility_config['excludeTagsInTestingScope'], list) else []
+
+    excluded = any(tag in exclude_tags for tag in test_tags)
+    included = len(include_tags) == 0 or any(tag in include_tags for tag in test_tags)
+
+    return not excluded and included
+  except Exception as error:
+    logger.debug("Error while validating test case for accessibility before scanning. Error : " + str(error))
+  return False
+
+def create_test_run(config, frameworkName, frameworkVersion, seleniumVersion):
+  user_name = get_username(config)
+  access_key = get_access_key(config)
+
+  if user_name is None or access_key is None:
+    logger.error('Exception while creating test run for BrowserStack Accessibility Automation: Missing authentication token')
+    return [None, None]
+
+  try:
+    settings = json.loads(os.getenv('BROWSERSTACK_TEST_ACCESSIBILITY_CONFIGURATION_YML', '{}'))
+
+    data = {
+        'projectName': config['projectName'],
+        'buildName': config.get('buildName', os.path.basename(os.getcwd())),
+        'startTime': current_time(),
+        'description': config.get('buildDescription', ''),
+        'source': {
+            'frameworkName': frameworkName,
+            'frameworkVersion': frameworkVersion,
+            'sdkVersion': __version__,
+            'language': 'python',
+            'testFramework': 'selenium',
+            'testFrameworkVersion': seleniumVersion
+        },
+        'settings': settings,
+        'versionControl': get_git_metadata(),
+        'ciInfo': get_ci_info(),
+        'hostInfo': get_host_info(),
+        'browserstackAutomation': is_browserstack_automation(config)
+    }
+    headers = {
+        'Content-Type': 'application/json',
+    }
+
+    config = {
+        'auth': (user_name, access_key),
+        'headers': headers
+    }
+
+    # log_direct('sending launch request ' + data.__str__())
+    response = fire_request('POST', API_URL + '/v2/test_runs', data, config)
+
+    response_json = response.json()
+
+    if response_json['success']:
+      parsed = json.loads(os.getenv('BROWSERSTACK_TEST_ACCESSIBILITY_CONFIGURATION_YML', '{}'))
+      parsed['scannerVersion'] = response_json['data']['scannerVersion']
+      os.environ['BROWSERSTACK_TEST_ACCESSIBILITY_CONFIGURATION_YML'] = json.dumps(parsed)
+
+      accessibility_scripts.update_scripts(response_json['data']['scripts'])
+      accessibility_scripts.update_commands(response_json['data']['commands'])
+      accessibility_scripts.store()
+
+      return response_json['data']['accessibilityToken'], response_json['data']['id']
+    else:
+      logger.error('Exception while running BrowserStack Accessibility Automation: ' + response_json['message'])
+      if response_json['message'] == 'Invalid configuration passed.':
+        for error_key in response_json['errors']:
+          logger.error(error_key['message'])
+      return None, None
+  except Exception as error:
+    logger.error("Exception while creating test run for BrowserStack Accessibility Automation: " +  str(error))
+    return None, None
+
+def stop_test_run():
+  if os.getenv('BS_A11Y_JWT') is None:
+    return {
+        'status': 'error',
+        'message': 'Build creation had failed.'
+    }
+
+  data = {'endTime': current_time()}
+  headers = {
+      'Authorization': 'Bearer ' + os.getenv("BS_A11Y_JWT"),
+      'Content-Type': 'application/json'
+  }
+  response = fire_request('PUT', API_URL + '/test_runs/stop', data, { 'headers': headers })
+
+  try:
+    if response.status_code == 200:
+      logger.info("BrowserStack Accessibility Automation Test Run marked as completed at " + get_utcnow_wo_tzinfo().isoformat() + 'Z')
+      return {'status': 'success', 'message': ''}
+    else:
+      response.raise_for_status()
+  except requests.RequestException as error:
+    logger.error("Exception while marking completion of BrowserStack Accessibility Automation Test Run: " + str(error))
+    return {
+        'status': 'error',
+        'message': str(error)
+    }
+
+def is_numeric_version(version_str):
+    return re.match(r'^\d+(\.\d+)?$', version_str.strip()) is not None
+
+def is_platform_supported(caps, options, desired_capabilities={}, config=None):
+    try:
+        if options:
+          caps_from_options = options.to_capabilities()
+        elif desired_capabilities:
+          caps_from_options = desired_capabilities
+        else:
+          caps_from_options = {}
+          
+        platform_name = (caps_from_options.get('platformName', '').lower() or caps.get('platformName', '').lower())
+        if platform_name == 'ios':
+            return True
+        if platform_name == 'android':
+            platform_version = str(float(caps.get('platformVersion') or caps_from_options.get('bstack:options', {}).get('osVersion','')))
+            if platform_name == 'android' and int(platform_version.split('.')[0]) < float(APP_ACCESSIBILITY_ANDROID_SUPPORTED_PLATFORM_VERSION):
+                logger.warning(str(APP_ACCESSIBILITY_ANDROID_SUPPORTED_PLATFORM_WARNING))
+                return False
+            return True
+
+        # Existing checks for desktop browsers
+        device_name = caps.get('bstack:options', {}).get('deviceName', caps.get('device', ''))
+        if device_name:
+            logger.warning("Accessibility Automation will run only on Desktop browsers.")
+            return False
+
+        browser = caps.get('browserName', '').lower() or caps_from_options.get('browserName', '').lower()
+        if browser != 'chrome':
+            logger.warning("Accessibility Automation will run only on Chrome browsers.")
+            return False
+        browser_version = caps.get('browserVersion') or caps.get('browser_version') or caps_from_options.get('browserVersion') or caps_from_options.get('bstack:options', {}).get('browserVersion') or caps_from_options.get('bstack:options', {}).get('browser_version')
+        min_a11y_supported_chrome_version = CONSTANTS.MINIMUM_ACCESSIBILITY_SUPPORTED_CHROME_VERSION
+        is_turboscale = False
+        if config is not None:
+          is_turboscale = 'turboScale' in config and str(config['turboScale']).lower() != 'false'
+        if os.environ.get('IS_NON_BSTACK_INFRA_A11Y_SESSION', '').lower() == 'true' or is_turboscale:
+          min_a11y_supported_chrome_version = CONSTANTS.MINIMUM_NON_BSTACK_INFRA_A11Y_SUPPORTED_CHROME_VERSION
+        if browser_version and browser_version != 'latest' and int(browser_version.split('.')[0]) <= min_a11y_supported_chrome_version:
+          logger.warning(f'Accessibility Automation will run only on Chrome browser version greater than {min_a11y_supported_chrome_version}.')
+          return False
+
+        if not options:
+          chromeOptions = caps.get('goog:chromeOptions') or caps_from_options.get('goog:chromeOptions', {})
+          if '--headless' in chromeOptions.get('args', []):
+              logger.warning("Accessibility Automation will not run on legacy headless mode. Switch to new headless mode or avoid using headless mode.")
+              return False
+        return True
+    except Exception as error:
+        logger.debug("Exception in validate a11y support :" + str(error))
+        return False
+    
+def set_capabilities(caps, config):
+  try:
+    accessibility_options = config.get('accessibilityOptions', {})
+    accessibility_options['authToken'] = os.getenv('BS_A11Y_JWT')
+    scanner_version = json.loads(os.getenv('BROWSERSTACK_TEST_ACCESSIBILITY_CONFIGURATION_YML', '{}')).get('scannerVersion')
+    if not config['buildProductMap'].get("app_automate"):
+      if 'bstack:options' in caps:
+        caps['bstack:options']['accessibilityOptions'] = accessibility_options
+        caps['bstack:options']['accessibilityOptions']['scannerVersion'] = scanner_version
+      else:
+        caps['browserstack.accessibilityOptions'] = accessibility_options
+        caps['browserstack.accessibilityOptions']['scannerVersion'] = scanner_version
+  except Exception as error:
+    logger.debug("Exception while setting Accessibility Automation capabilities. Error: " +  str(error))
+
+def start_test_capture(driver, should_scan_a11y):
+  try:
+    setattr(driver, 'bstackA11yShouldScan', True)
+
+    session = driver.session_id
+    if session:
+      page_open = True
+      current_url = driver.current_url
+
+      try:
+        url = urlparse(current_url)
+      except Exception as e:
+        page_open = False
+      page_open = url.scheme in ["http", "https"]
+
+      if page_open:
+        if should_scan_a11y:
+          logger.info("Setup for Accessibility testing has started. Automate test case execution will begin momentarily.")
+      return should_scan_a11y
+  except Exception as e:
+    logger.error("Exception in starting accessibility automation scan for this test case: " + str(e))
+    return False
+
+def stop_test_capture(driver, name, path):
+  try:
+    data_for_extension = {
+        'thTestRunUuid': threading.current_thread().current_test_uuid,
+        'thBuildUuid': os.environ.get('BROWSERSTACK_TESTHUB_UUID', ''),
+        'thJwtToken': os.environ.get('BROWSERSTACK_TESTHUB_JWT', '')
+    }
+    # Perform Scan
+    random_label = performance_tester.mark_start(EVENTS.SDK_A11Y_PERFORM_SCAN.value)
+    # Perform scan before saving results
+    logger.debug('Performing scan before saving results')
+    # Not calling perform_scan method in init.py to avoid circular dependency
+    try:
+
+      if (get_thread_value_or_default(threading.current_thread(), 'isAppA11yTest', None) and get_thread_value_or_default(threading.current_thread(), 'appA11yPlatform', None)):
+        scripts = {'scan': accessibility_scripts.perform_scan}
+
+        scan_data = json.loads(scripts["scan"].replace("browserstack_executor: ", ""))
+        scan_data['arguments']['method'] = None
+        scripts["scan"] = "browserstack_executor: " + json.dumps(scan_data)
+        accessibility_scripts.update_scripts(scripts)
+        accessibility_scripts.store()
+        logger.debug(driver.execute_script(accessibility_scripts.perform_scan))
+      else:
+        logger.debug(driver.execute_async_script(accessibility_scripts.perform_scan, {"method": name}))
+
+      performance_tester.end(EVENTS.SDK_A11Y_PERFORM_SCAN.value, random_label + ":start", random_label + ":end", True, None)
+    except Exception as error:
+      performance_tester.end(EVENTS.SDK_A11Y_PERFORM_SCAN.value, random_label + ":start", random_label + ":end", False, str(error))
+
+
+
+    random_label = performance_tester.get_randomized_label(EVENTS.SDK_A11Y_SAVE_RESULTS.value)
+    performance_tester.mark(random_label + ":start")
+    try:
+      if (get_thread_value_or_default(threading.current_thread(), 'isAppA11yTest', None) and get_thread_value_or_default(threading.current_thread(), 'appA11yPlatform', None)):
+        scripts = {'scan': accessibility_scripts.perform_scan}
+        scan_data = json.loads(scripts["scan"].replace("browserstack_executor: ", ""))
+        scan_data['arguments']['method'] = None
+        scripts["scan"] = "browserstack_executor: " + json.dumps(scan_data)
+        accessibility_scripts.update_scripts(scripts)
+        accessibility_scripts.store()
+        logger.debug(driver.execute_script(accessibility_scripts.perform_scan))
+      else:
+        logger.debug(driver.execute_async_script(accessibility_scripts.save_test_results, data_for_extension))
+
+      performance_tester.end(random_label, random_label + ":start", random_label + ":end",True, None)
+    except Exception as error:
+      performance_tester.end(random_label, random_label + ":start", random_label + ":end",False, str(error))
+
+    logger.info("Accessibility testing for this test case has ended.")
+  except Exception as er:
+    logger.error("Accessibility results could not be processed for the test case: " + str(path) + " Error :" + str(er))
+
+def validate_app_a11y_platform(driver):
+    caps = driver.capabilities
+
+    if caps.get("platformName") and str(caps.get("platformName")).lower() == "android":
+        platform_version = caps.get("appium:platformVersion") or caps.get("platformVersion")
+
+        if platform_version and int(str(platform_version)) < APP_ACCESSIBILITY_ANDROID_SUPPORTED_PLATFORM_VERSION:
+            return False
+
+    return True
+
+def get_accessibility_value_from_yml(config):
+  if 'accessibility' in config:
+        return config['accessibility']
+  for platform in config.get('platforms', []):
+      if 'accessibility' in platform:
+          return platform['accessibility']
+  return None
+
+def is_browser_supported_for_a11y(browser_data):
+  try:
+    browser_name = browser_data['browser_name']
+    browser_version = browser_data['browser_version']
+    chrome_options = browser_data['chrome_options']
+    try:
+        browser_version_int = int(browser_version.split('.')[0])
+    except ValueError as e:
+        logger.error("Error while converting browser version" + str(e))
+        return False 
+
+    if not (browser_name and browser_name.lower() == 'chrome'):
+        logger.warning("Accessibility Automation will run only on Chrome browsers.")
+        return False
+    if browser_version_int < CONSTANTS.MINIMUM_NON_BSTACK_INFRA_A11Y_SUPPORTED_CHROME_VERSION:
+        logger.warning(f'Accessibility Automation requires Chrome version {CONSTANTS.MINIMUM_NON_BSTACK_INFRA_A11Y_SUPPORTED_CHROME_VERSION} or higher.')
+        return False
+    if chrome_options and any('--headless' in value for value in chrome_options.values() if isinstance(value, str)):
+        logger.warning("Accessibility Automation will not run on legacy headless mode. Switch to new headless mode or avoid using headless mode.")
+        return False 
+    
+    return True
+  except Exception as e:
+    logger.error("Error in checking platform support for local Chrome: " + str(e))
+    return False
+  
+def add_non_bstack_infra_a11y_chrome_options(input_options, config):
+    try:
+      is_accessibility = 'accessibility' in config and config['accessibility'] == True 
+      is_turboscale = 'turboScale' in config and str(config['turboScale']).lower() != 'false'
+
+      if not (is_accessibility and (not is_browserstack_automation(config) or is_turboscale)):
+        return input_options
+        
+      google_chrome_options = accessibility_scripts.non_bstack_infra_a11y_chrome_options
+      if google_chrome_options is None:
+        logger.debug("Google chrome options are None")
+        return input_options
+
+      selenium_version_int = int(str(get_selenium_version()).split('.')[0])
+      logger.debug(f"Selenium version detected: {selenium_version_int}")
+      
+      if selenium_version_int == 3 and isinstance(input_options, dict) and 'desired_capabilities' in input_options and google_chrome_options is not None:
+        if 'goog:chromeOptions' not in input_options['desired_capabilities']:
+          input_options['desired_capabilities']['goog:chromeOptions'] = {}
+
+        if 'args' in google_chrome_options:
+          if 'args' not in input_options['desired_capabilities']['goog:chromeOptions']:
+            input_options['desired_capabilities']['goog:chromeOptions']['args'] = []
+          for arg in google_chrome_options['args']:
+            if arg not in input_options['desired_capabilities']['goog:chromeOptions']['args']:
+              input_options['desired_capabilities']['goog:chromeOptions']['args'].append(arg)
+        if 'extensions' in google_chrome_options:
+          if 'extensions' not in input_options['desired_capabilities']['goog:chromeOptions']:
+            input_options['desired_capabilities']['goog:chromeOptions']['extensions'] = []
+          for ext in google_chrome_options['extensions']:
+            if ext not in input_options['desired_capabilities']['goog:chromeOptions']['extensions']:
+              input_options['desired_capabilities']['goog:chromeOptions']['extensions'].append(ext)
+        if 'prefs' in google_chrome_options:
+          if 'prefs' not in input_options['desired_capabilities']['goog:chromeOptions']:
+            input_options['desired_capabilities']['goog:chromeOptions']['prefs'] = {}
+          merge_dicts(input_options['desired_capabilities']['goog:chromeOptions']['prefs'], 
+                    google_chrome_options['prefs'])
+        
+        os.environ['IS_NON_BSTACK_INFRA_A11Y_SESSION'] = 'true'
+        return input_options
+      
+      else:
+        chrome_options = None
+        if isinstance(input_options, ChromeOptions):
+          chrome_options = input_options
+        elif isinstance(input_options, dict):
+          for value in input_options.values():
+            if isinstance(value, ChromeOptions):
+              chrome_options = value
+              break
+        if chrome_options is None:
+          chrome_options = ChromeOptions()
+          if isinstance(input_options, dict):
+            input_options['options'] = chrome_options
+          else:
+            input_options = chrome_options
+            
+        if google_chrome_options is not None:
+          if 'args' in google_chrome_options:
+                existing_args = chrome_options.arguments or []
+                new_args = google_chrome_options['args']
+                for arg in new_args:
+                    if arg not in existing_args:
+                        chrome_options.add_argument(arg)
+          if 'extensions' in google_chrome_options:
+                existing_extensions = chrome_options.experimental_options.get('extensions', [])
+                new_extensions = google_chrome_options['extensions']
+                for extension in new_extensions:
+                    if extension not in existing_extensions:
+                        chrome_options.add_encoded_extension(extension)
+          if 'prefs' in google_chrome_options:
+                existing_prefs = chrome_options.experimental_options.get('prefs', {})
+                new_prefs = google_chrome_options['prefs']
+                merge_dicts(existing_prefs, new_prefs)
+                chrome_options.add_experimental_option('prefs', existing_prefs)
+          
+        os.environ['IS_NON_BSTACK_INFRA_A11Y_SESSION'] = 'true'                
+        return input_options
+    except Exception as e:
+      logger.error("Error while adding non-BS infra a11y chrome options: " + str(e))
+      return input_options

@@ -1,0 +1,43 @@
+from time import sleep
+from datetime import datetime
+from urllib.parse import urlencode
+from bstack_utils.request_utils import RequestUtils
+from bstack_utils.constants import *
+import json
+
+class AssertionPollingCallable:    
+    def __init__(self, test_run_uuid, assertion_type):
+        self.test_run_uuid = test_run_uuid
+        self.assertion_type = assertion_type
+        self.fire_request_at = None
+        
+    def __call__(self):
+        response_map = {}
+        
+        while True:
+            self.fire_request_at = response_map.get(
+                'next_poll_time', 
+                int(datetime.now().timestamp() * 1000)
+            )
+            
+            sleep_for = self.fire_request_at - int(datetime.now().timestamp() * 1000)
+            if sleep_for > 0:
+                sleep(sleep_for / 1000)  
+                
+            params = {
+                'test_run_uuid': self.test_run_uuid,
+                'timestamp': int(datetime.now().timestamp() * 1000)
+            }
+            
+            base_url = "https://" + APP_ACCESSIBILITY_API_HOST + "/automate/api/v1/"
+
+            if self.assertion_type.lower() == "results":
+                response_map = RequestUtils.results(base_url, params)
+            else:
+                response_map = RequestUtils.results_summary(base_url, params)
+
+            if str(response_map.get('status', '200')) != '404':
+                break
+        return response_map.get('data', response_map)
+
+

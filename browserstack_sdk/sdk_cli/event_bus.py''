@@ -1,0 +1,90 @@
+from collections import defaultdict
+from threading import Lock
+from dataclasses import dataclass
+import logging
+import traceback
+from typing import List, Dict, Any
+import os
+
+@dataclass
+class BootstrapEvent:
+    sdk_version: str
+    path_config: str
+    path_project: str
+    test_framework: str
+    frameworks: List[str]
+    framework_versions: Dict[str, str]
+    bs_config: Dict[str, Any]
+
+@dataclass
+class ConnectEvent:
+    pass
+
+class Events:
+    BOOTSTRAP = "bootstrap"
+    CONNECT = "connect"
+    SHUTDOWN = "shutdown"
+    CONFIG = "config"
+    FRAMEWORKS = "frameworks"
+    EXIT = "exit"
+
+class BuildEvents:
+    STARTED = "build_started"
+    FINISHED = "build_finished"
+
+class TestRunEvents:
+    STARTED = "test_run_started"
+    FINISHED = "test_run_finished"
+
+class HookRunEvents:
+    STARTED = "hook_run_started"
+    FINISHED = "hook_run_finished"
+
+class CBTEvents:
+    SESSION_CREATED = "cbt_session_created"
+
+
+class EventBus:
+    _instance = None
+
+    def __new__(cls):
+        if not cls._instance:
+            cls._instance = super(EventBus, cls).__new__(cls)
+        return cls._instance
+
+    def __init__(self):
+        self._hooks = defaultdict(lambda: defaultdict(list))
+        self._lock = Lock()
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger.setLevel(logging.INFO)
+
+    def clear(self):
+        with self._lock:
+            self._hooks = defaultdict(list)
+
+    def register(self, event_name, callback):
+        with self._lock:
+            if not callable(callback):
+                raise ValueError("Callback must be callable for " + event_name)
+
+            pid = os.getpid()
+            self.logger.debug(f"Registering callback for event '{event_name}' with pid {pid}")
+            self._hooks[event_name][pid].append(callback)
+    def invoke(self, event_name, *args, **kwargs):
+        with self._lock:
+            pid = os.getpid()
+            callbacks = self._hooks.get(event_name, {}).get(pid, [])
+            if not callbacks:
+                self.logger.warning(f"No callbacks for event '{event_name}' with pid {pid}")
+                return
+
+            self.logger.debug(f"Invoking {len(callbacks)} callbacks for event '{event_name}' with pid {pid}")
+            for callback in callbacks:
+                try:
+                    self.logger.debug(f"Invoked callback for event '{event_name}' with pid {pid}")
+                    callback(event_name, *args, **kwargs)
+                except Exception as e:
+                    self.logger.error(f"Error invoking callback for event '{event_name}' with pid {pid}: {e}")
+                    traceback.print_exc()
+
+event_bus = EventBus()

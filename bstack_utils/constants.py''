@@ -1,0 +1,748 @@
+import os
+import re
+from enum import Enum
+
+W3C_TO_JSONWIRE_MAPPING = {
+  'userName': 'browserstack.user',
+  'accessKey': 'browserstack.key',
+  'osVersion': 'os_version',
+  'useW3C': 'browserstack.use_w3c',
+  'projectName': 'project',
+  'buildName': 'build',
+  'sessionName': 'name',
+  'debug': 'browserstack.debug',
+  'consoleLogs': 'browserstack.console',
+  'networkLogs': 'browserstack.networkLogs',
+  'appiumLogs': 'browserstack.appiumLogs',
+  'video': 'browserstack.video',
+  'seleniumLogs': 'browserstack.seleniumLogs',
+  'telemetryLogs': 'browserstack.telemetryLogs',
+  'geoLocation': 'browserstack.geoLocation',
+  'timezone': 'browserstack.timezone',
+  'seleniumVersion': 'browserstack.selenium_version',
+  'maskCommands': 'browserstack.maskCommands',
+  'idleTimeout': 'browserstack.idleTimeout',
+  'maskBasicAuth': 'browserstack.maskBasicAuth',
+  'sendKeys': 'browserstack.sendKeys',
+  'autoWait': 'browserstack.autoWait',
+  'hosts': 'browserstack.hosts',
+  'bfcache': 'browserstack.bfcache',
+  'wsLocalSupport': 'browserstack.wsLocalSupport',
+  'disableCorsRestrictions': 'browserstack.disableCorsRestrictions',
+  'deviceName': 'device',
+  'realMobile': 'real_mobile',
+  'appiumVersion': 'browserstack.appium_version',
+  'customNetwork': 'browserstack.customNetwork',
+  'networkProfile': 'browserstack.networkProfile',
+  'acceptInsecureCerts': 'acceptSslCerts',
+  'browserstackSDK': 'browserstack.browserstackSDK',
+  'source': 'browserstack.source',
+  'buildIdentifier': 'browserstack.buildIdentifier',
+  'hostName': 'browserstack.hostName',
+  'enableSim': 'browserstack.enableSim',
+  'simOptions': 'browserstack.simOptions',
+  'uploadMedia': 'browserstack.uploadMedia',
+  'testhubBuildUuid': 'browserstack.testhubBuildUuid',
+  'buildProductMap': 'browserstack.buildProductMap'
+}
+
+PLATFORM_CAPS = [
+  'os',
+  'osVersion',
+  'seleniumVersion',
+  'sessionName',
+  'deviceName',
+  'realMobile',
+  'appiumVersion',
+]
+
+ENV_CAPS_TO_CONFIG = {
+  'userName': ['BROWSERSTACK_USERNAME', 'BROWSERSTACK_USER_NAME'],
+  'accessKey': 'BROWSERSTACK_ACCESS_KEY',
+  'buildName': 'BROWSERSTACK_BUILD_NAME',
+  'projectName': 'BROWSERSTACK_PROJECT_NAME',
+  'buildIdentifier': 'BROWSERSTACK_BUILD_IDENTIFIER',
+  'parallelsPerPlatform': 'BROWSERSTACK_PARALLELS_PER_PLATFORM',
+  'browserstackLocal': 'BROWSERSTACK_LOCAL',
+  'rerunTests': 'BROWSERSTACK_RERUN_TESTS',
+  'app': ['BROWSERSTACK_APP_ID', 'BROWSERSTACK_APP'],
+  'logLevel': 'BROWSERSTACK_SDK_LOGLEVEL',
+  'automation': 'BROWSERSTACK_AUTOMATION',
+  'testObservability': ['BROWSERSTACK_TEST_OBSERVABILITY', 'BROWSERSTACK_TEST_REPORTING'],
+  'turboScale': 'BROWSERSTACK_TURBOSCALE',
+  'smartSelectionFeatureBranchesENV': 'BROWSERSTACK_ORCHESTRATION_SMART_SELECTION_FEATURE_BRANCHES'
+}
+
+CLI_CAPS_TO_CONFIG = {
+  'userName': ['browserstack.user_name', 'browserstack.userName'],
+  'accessKey': ['browserstack.access_key', 'browserstack.accessKey'],
+  'buildName': 'browserstack.buildName',
+  'projectName': 'browserstack.projectName',
+  'buildIdentifier': 'browserstack.buildIdentifier',
+  'parallelsPerPlatform': ['browserstack.ppp', 'browserstack.parallelsPerPlatform'],
+  'browserstackLocal': 'browserstack.local',
+  'rerunTests': 'browserstack.rerunTests',
+  'app': 'browserstack.app',
+  'logLevel': 'browserstack.logLevel',
+  'automation': 'browserstack.automation',
+  "smartSelectionFeatureBranchesCLI": "browserstack.testOrchestration.smartSelectionFeatureBranches",
+}
+
+W3C_TO_JSONWP_ROOT_LEVEL_CAPS = {
+  'osVersion': 'os_version',
+  'seleniumVersion': ['browserstack.selenium_version', 'selenium_version'],
+  'sessionName': 'name',
+  'deviceName': 'device',
+  'browserName': ['browser', 'browser_name'],
+  'browserVersion': 'browser_version',
+  'realMobile': 'real_mobile',
+  'appiumVersion': ['browserstack.appium_version', 'appium_version'],
+  'acceptInsecureCerts': ['acceptSslCerts', 'acceptSslCert']
+}
+
+ROOT_LEVEL_CAPS = [
+  'acceptInsecureCerts',
+  'pageLoadStrategy',
+  'proxy',
+  'setWindowRect',
+  'timeouts',
+  'strictFileInteractability',
+  'unhandledPromptBehavior',
+  'goog:chromeOptions',
+  'moz:firefoxOptions',
+  'ms:edgeOptions',
+  'se:ieOptions',
+  'safari.options',
+]
+
+SDK_SPECIFIC_CAPS = [
+  'browserstackLocal',
+  'browserStackLocalOptions',
+  'localOptions',
+  'parallelsPerPlatform',
+  'platforms',
+  'logLevel',
+  'httpProxy',
+  'httpsProxy',
+  'framework',
+  'testContextOptions',
+  'testObservability',
+  'testReporting',
+  'customVariables',
+  'customTag',
+  'automation',
+  'browserstackAutomation',
+  'rerunTests',
+  'CUSTOM_TAG_1',
+  'CUSTOM_TAG_2',
+  'CUSTOM_TAG_3',
+  'CUSTOM_TAG_4',
+  'CUSTOM_TAG_5',
+  'CUSTOM_TAG_6',
+  'CUSTOM_TAG_7',
+  'CUSTOM_TAG_8',
+  'CUSTOM_TAG_9',
+  'percy',
+  'percyOptions',
+  'percyCaptureMode',
+  'disableAutoCaptureLogs',
+  'turboScale',
+  'turboScaleOptions',
+  'testOrchestrationOptions'
+]
+
+BROWSERSTACK_OPTIONS = [
+  'uploadMedia',
+  'userName',
+  'accessKey',
+  'sessionName',
+  'testPriority',
+  'buildName',
+  'buildTag',
+  'projectName',
+  'seleniumVersion',
+  'browserName',
+  'browserVersion',
+  'local',
+  'os',
+  'osVersion',
+  'hosts',
+  'autoWait',
+  'region',
+  'timezone',
+  'machine',
+  'resolution',
+  'idleTimeout',
+  'deviceOrientation',
+  'video',
+  'noPageLoadTimeout',
+  'bfcache',
+  'debug',
+  'customScreenshots',
+  'customSendKeys',
+  'realMobile',
+  'noPipeline',
+  'checkURL',
+  'localIdentifier',
+  'acceptCookies',
+  'captureCrash',
+  'deviceName',
+  'appiumVersion',
+  'automationVersion',
+  'noBlankPolling',
+  'maskSendKeys',
+  'deviceLogs',
+  'deviceId',
+  'dedicatedDevice',
+  'headerParams',
+  'phoneNumber',
+  'networkLogs',
+  'networkLogsOptions',
+  'consoleLogs',
+  'useW3C',
+  'appiumLogs',
+  'enableBiometric',
+  'videoV2',
+  'midSessionInstallApps',
+  'espressoServer',
+  'seleniumLogs',
+  'seleniumCdp',
+  'telemetryLogs',
+  'syncTimeWithNTP',
+  'geoLocation',
+  'gpsLocation',
+  'networkProfile',
+  'customNetwork',
+  'forceChangeJar',
+  'xmsJar',
+  'xmxJar',
+  'maskCommands',
+  'maskBasicAuth',
+  'wsLocalSupport',
+  'disableCorsRestrictions',
+  'appVersion',
+  'acceptInsecureCerts',
+  'resignApp',
+  'disableAnimations',
+  'canary',
+  'firefox',
+  'chrome',
+  'ie',
+  'edge',
+  'safari',
+  'queue',
+  'internal',
+  'appStoreConfiguration',
+  'enableCameraImageInjection',
+  'networkLogsExcludeHosts',
+  'networkLogsIncludeHosts',
+  'updateAppSettings',
+  'reserveDevice',
+  'source',
+  'sendKeys',
+  'enablePasscode',
+  'updateIosDeviceSettings',
+  'enableAudioInjection',
+  'enableApplePay',
+  'browser',
+  'wdioService',
+  'browserstackSDK',
+  'preventCrossSiteTracking',
+  'highContrast',
+  'devicePreferences',
+  'enableSim',
+  'simOptions',
+  'removeIOSAppSettingsLocalization',
+  'hostName',
+  'buildIdentifier',
+  'platform',
+  'platformName',
+  'platformVersion',
+  'pageLoadStrategy',
+  'proxy',
+  'timeouts',
+  'unhandledPromptBehavior'
+]
+
+# { key: value } = { lower-case-option: correctly-formatted-option }
+LOCAL_OPTIONS_MAPPING = {
+  'v': 'v',
+  'f': 'f',
+  'force': 'force',
+  'onlyautomate': 'onlyAutomate',
+  'forcelocal': 'forcelocal',
+  'proxyhost': 'proxyHost',
+  'proxyport': 'proxyPort',
+  'proxyuser': 'proxyUser',
+  'proxypass': 'proxyPass',
+  'localproxyhost': 'localProxyHost',
+  'localproxyport': 'localProxyPort',
+  'localproxyuser': '-localProxyUser',
+  '-localproxyuser': '-localProxyUser',
+  'localproxypass': '-localProxyPass',
+  '-localproxypass': '-localProxyPass',
+  'binarypath': 'binarypath',
+  'pacfile': '-pac-file',
+  'pac-file': '-pac-file',
+  '-pac-file': '-pac-file',
+  'logfile': 'logfile',
+  'localidentifier': 'localIdentifier',
+  'custom-repeater': 'customRepeater'
+}
+
+PERCY_BINARY_DOWNLOAD_URI = "https://github.com/percy/cli/releases/latest/download"
+
+PERCY_HEALTH_CHECK_ENDPOINT = "/percy/healthcheck"
+
+EDS_EVENTS = "https://eds.browserstack.com/send_sdk_events"
+
+HTTPS_HUB = 'https://hub.browserstack.com/wd/hub'
+
+HTTP_HUB = 'http://hub.browserstack.com:80/wd/hub'
+
+NEXT_HUBS = 'https://hub.browserstack.com/next_hubs'
+
+LOG_LEVELS = {
+  'critical': 50,
+  'error': 40,
+  'warning': 30,
+  'info': 20,
+  'debug': 10
+}
+
+DEFAULT_LOG_LEVEL = LOG_LEVELS['info']
+
+VANILLA_PYTHON = 'python-pythonagent/'
+
+ROBOT_PYTHON = 'robot-pythonagent/'
+
+BEHAVE_PYTHON = 'behave-pythonagent/'
+
+PYTEST_PYTHON = 'pytest-pythonagent/'
+IMPORT_ERROR_PYTEST = 'Please install pytest and pytest-selenium packages. `pip install pytest pytest-selenium`'
+
+IGNORED_USERNAME = ['BROWSERSTACK_USERNAME', 'YOUR_USERNAME']
+
+IGNORED_ACCESS_KEY = ['BROWSERSTACK_ACCESS_KEY', 'YOUR_ACCESS_KEY']
+
+W3C_ACCEPTED_REGEX = re.compile('^[\\w-]+:.*$')
+
+APP_AUTOMATE_CAPS = [
+  'automationName',
+  'platformVersion',
+  'deviceName',
+  'newCommandTimeout',
+  'app',
+  'udid',
+  'language',
+  'locale',
+  'orientation',
+  'autoWebview',
+  'noReset', 'fullReset',
+  'clearSystemFiles',
+  'eventTimings',
+  'enablePerformanceLogging',
+  'otherApps',
+  'printPageSourceOnFindFailure',
+  'appActivity', 'appPackage', 'appWaitActivity', 'appWaitPackage', 'appWaitDuration',
+  'deviceReadyTimeout',
+  'allowTestPackages',
+  'androidCoverage', 'androidCoverageEndIntent',
+  'androidDeviceReadyTimeout',
+  'adbPort',
+  'androidDeviceSocket',
+  'androidInstallTimeout',
+  'androidInstallPath',
+  'avd', 'avdLaunchTimeout', 'avdReadyTimeout', 'avdArgs',
+  'useKeystore', 'keystorePath', 'keystorePassword',
+  'keyAlias', 'keyPassword',
+  'chromedriverExecutable', 'chromedriverArgs', 'chromedriverExecutableDir', 'chromedriverChromeMappingFile', 'chromedriverUseSystemExecutable',
+  'chromedriverPort', 'chromedriverPorts',
+  'chromedriverDisableBuildCheck',
+  'autoWebviewTimeout',
+  'intentAction', 'intentCategory', 'intentFlags', 'optionalIntentArguments',
+  'dontStopAppOnReset',
+  'unicodeKeyboard', 'resetKeyboard',
+  'noSign',
+  'ignoreUnimportantViews',
+  'disableAndroidWatchers',
+  'chromeOptions',
+  'recreateChromeDriverSessions',
+  'nativeWebScreenshot',
+  'androidScreenshotPath',
+  'networkSpeed',
+  'gpsEnabled',
+  'isHeadless',
+  'adbExecTimeout',
+  'localeScript',
+  'skipDeviceInitialization',
+  'autoGrantPermissions',
+  'androidNaturalOrientation',
+  'systemPort',
+  'remoteAdbHost',
+  'skipUnlock', 'unlockType', 'unlockKey',
+  'autoLaunch',
+  'skipLogcatCapture',
+  'uninstallOtherPackages',
+  'disableWindowAnimation',
+  'buildToolsVersion',
+  'enforceAppInstall',
+  'ensureWebviewsHavePages', 'webviewDevtoolsPort', 'enableWebviewDetailsCollection',
+  'remoteAppsCacheLimit',
+  'calendarFormat',
+  'bundleId',
+  'launchTimeout',
+  'locationServicesEnabled', 'locationServicesAuthorized',
+  'autoAcceptAlerts', 'autoDismissAlerts',
+  'nativeInstrumentsLib',
+  'nativeWebTap',
+  'safariInitialUrl', 'safariAllowPopups', 'safariIgnoreFraudWarning', 'safariOpenLinksInBackground',
+  'keepKeyChains',
+  'localizableStringsDir',
+  'processArguments',
+  'interKeyDelay',
+  'showIOSLog',
+  'sendKeyStrategy',
+  'webkitResponseTimeout', 'screenshotWaitTimeout',
+  'remoteDebugProxy',
+  'enableAsyncExecuteFromHttps',
+  'skipLogCapture',
+  'webkitDebugProxyPort',
+  'fullContextList',
+  'waitForAppScript',
+  'webviewConnectRetries',
+  'appName',
+  'customSSLCert',
+  'tapWithShortPressDuration',
+  'scaleFactor',
+  'wdaLocalPort',
+  'showXcodeLog',
+  'iosInstallPause',
+  'xcodeConfigFile',
+  'keychainPassword',
+  'usePrebuiltWDA',
+  'preventWDAAttachments',
+  'webDriverAgentUrl',
+  'keychainPath',
+  'useNewWDA',
+  'wdaLaunchTimeout', 'wdaConnectionTimeout',
+  'xcodeOrgId', 'xcodeSigningId',
+  'updatedWDABundleId',
+  'resetOnSessionStartOnly',
+  'commandTimeouts',
+  'wdaStartupRetries', 'wdaStartupRetryInterval',
+  'connectHardwareKeyboard',
+  'maxTypingFrequency',
+  'simpleIsVisibleCheck',
+  'useCarthageSsl',
+  'shouldUseSingletonTestManager',
+  'startIWDP',
+  'allowTouchIdEnroll',
+  'ignoreHiddenApiPolicyError',
+  'mockLocationApp',
+  'logcatFormat', 'logcatFilterSpecs',
+  'allowDelayAdb',
+  'disableIdLocatorAutocompletion'
+]
+
+APP_UPLOAD_URL = 'https://api-cloud.browserstack.com/app-automate/upload'
+
+VALID_APP_EXTENSIONS = ['.apk', '.aab', '.ipa']
+
+SUPPORTED_APP_VALUES = ['id', 'path', 'custom_id', 'shareable_id']
+
+BROWSER_OPTIONS = {
+  'chromeOptions': 'goog:chromeOptions',
+  'firefoxOptions': 'moz:firefoxOptions',
+  'edgeOptions': 'ms:edgeOptions',
+  'ieOptions': 'se:ieOptions',
+  'safariOptions': 'safari.options'
+}
+
+SANITIZED_BROWSER_OPTS = [
+  'goog:chromeOptions',
+  'moz:firefoxOptions',
+  'ms:edgeOptions',
+  'se:ieOptions',
+  'safari.options',
+]
+
+AMBIGUOUS_CAPS = SDK_SPECIFIC_CAPS + BROWSERSTACK_OPTIONS + APP_AUTOMATE_CAPS
+
+PRIVATE_DOMAIN_OR_IP_REGEX = [
+  '^localhost$',
+  '^bs-local.com$',
+  '^127.',
+  '^10.',
+  '^172.1[6-9].',
+  '^172.2[0-9].',
+  '^172.3[0-1].',
+  '^192.168.'
+]
+
+BROWSERSTACK_API_URL = 'https://api.browserstack.com'
+
+FUNNEL_INSTRUMENTATION_API_ENDPOINT = 'sdk/v1/event'
+
+PRODUCT_IF_AUTOMATE = [ 'automate' ]
+
+PRODUCT_IF_APP_AUTOMATE = [ 'app-automate' ]
+
+PRODUCT_IF_TURBOSCALE = ['turboScale']
+
+PRODUCT_IF_NOT_BROWSERSTACK_INFRA = [ 'observability' ]
+
+SDK_SETUP = 'SDKSetup'
+
+SDK_TEST_ATTEMPTED = 'SDKTestAttempted'
+
+SDK_TEST_COMPLETED = 'SDKTestSuccessful'
+
+MIN_PROXY_SUPPORTED_VERSION = '4.0.0'
+
+LOCAL_NUDGE_ERROR_CODES = [
+  'ERR_FAILED',
+  'ERR_TIMED_OUT',
+  'ERR_BLOCKED_BY_CLIENT',
+  'ERR_NETWORK_CHANGED',
+  'ERR_SOCKET_NOT_CONNECTED',
+  'ERR_CONNECTION_CLOSED',
+  'ERR_CONNECTION_RESET',
+  'ERR_CONNECTION_REFUSED',
+  'ERR_CONNECTION_ABORTED',
+  'ERR_CONNECTION_FAILED',
+  'ERR_NAME_NOT_RESOLVED',
+  'ERR_ADDRESS_INVALID',
+  'ERR_ADDRESS_UNREACHABLE',
+  'ERR_TUNNEL_CONNECTION_FAILED',
+  'ERR_CONNECTION_TIMED_OUT',
+  'ERR_SOCKS_CONNECTION_FAILED',
+  'ERR_SOCKS_CONNECTION_HOST_UNREACHABLE',
+  'ERR_PROXY_CONNECTION_FAILED',
+  'ERR_NAME_NOT_RESOLVED',
+  'ERR_NAME_RESOLUTION_FAILED',
+  'ERR_MANDATORY_PROXY_CONFIGURATION_FAILED',
+]
+
+CI_ARTIFACTS_PATH = './browserstack-artifacts/'
+
+BROWSERSTACK_EXECUTION_FILE_PATH = os.path.join(os.path.expanduser('~'), '.browserstack', '.bstack-config.json')
+
+ACCESSIBILITY_API_URL = 'https://accessibility.browserstack.com/api'
+
+O11Y_SUPPORTED_FRAMEWORKS = [ 'pytest', 'robot', 'pabot', 'behave']
+
+A11Y_SUPPORTED_FRAMEWORKS = [ 'pytest', 'robot', 'pabot', 'behave' ]
+
+APP_A11Y_SUPPORTED_FRAMEWORKS = [ 'robot' ]
+
+TEST_ORDERING_SUPPORTED_FRAMEWORKS = [ 'pytest' ]
+
+DEFAULT_APP_ACCESSIBILITY_POLLING_TIMEOUT = 360
+APP_ACCESSIBILITY_API_HOST = "app-accessibility.browserstack.com"
+APP_ACCESSIBILITY_RESULTS_ENDPOINT = "automate/api/v1/issues"
+APP_ACCESSIBILITY_SUMMARY_ENDPOINT = "automate/api/v1/issues-summary"
+APP_ACCESSIBILITY_ANDROID_SUPPORTED_PLATFORM_WARNING = "App Accessibility Automation tests are supported on OS version %s and above for Android devices."
+APP_ACCESSIBILITY_ANDROID_SUPPORTED_PLATFORM_VERSION = "11.0"
+
+ROBOT_TEST_STATUS_MAPPING = {
+  'PASS': 'passed',
+  'FAIL': 'failed',
+  'SKIP': 'skipped'
+}
+
+PERCY_EVENT_NAME_MAP = [
+  "get",
+  "goBack",
+  "goForward",
+  "refresh",
+  "clickElement",
+  "screenshot",
+  "submitElement",
+  "sendKeysToElement",
+  "sendKeysToActiveElement",
+  "clearElement",
+  "actions",
+  "executeScript",
+  "executeAsyncScript",
+  "close",
+  "quit",
+  # Appium specific
+  "performTouchAction",
+  "performMultiTouch",
+  "shake",
+  "closeApp"
+]
+
+PERCY_CAPTURE_MODES = [
+  "click",
+  "screenshot",
+  "auto",
+  "manual",
+  "testcase"
+]
+PERCY_CAPTURE_MODE_MAP = {
+  "click": ["clickElement"],
+  "screenshot": ["screenshot"],
+  "auto": ["sendKeysToElement", "sendKeysToActiveElement", "screenshot", "clickElement"],
+  "manual": ["manual"],
+  "testcase": ["testcase"],
+}
+
+PERCY_COMMAND_MAPPING = {
+  "clickElement": "click",
+  "screenshot": "screenshot",
+  "sendKeysToElement": "sendKeys",
+  "sendKeysToActiveElement": "sendKeys",
+  "testcase": "testcase"
+}
+
+ROBOT_HOOKS_MAPPING = {
+  'BEFORE_ALL': 'Suite Setup',
+  'AFTER_ALL': 'Suite Teardown',
+  'BEFORE_EACH': 'Test Setup',
+  'AFTER_EACH': 'Test Teardown'
+}
+
+# Maximum size of VCS info which is allowed
+MAX_GIT_META_DATA_SIZE_IN_BYTES = 65536
+
+# The value to be appended at the end if git metadata is larger than
+# MAX_GIT_META_DATA_SIZE_IN_BYTES
+GIT_META_DATA_TRUNCATED = '...[TRUNCATED]'
+
+REDACT_KEYS = [
+      'userName', 'accessKey', 'httpProxy', 'httpsProxy', 'customVariables', 
+      'proxyUser', 'proxyPass', 'localProxyUser', 'localProxyPass',
+      'browserstack.userName', 'browserstack.accessKey', 'authToken'
+    ]
+
+SDK_INSTRUMENTATION_CONFIG= {
+  'browserstackLocal': 'browserstackLocal',
+  'browserStackLocalOptions': 'browserStackLocalOptions',
+  'localOptions': 'browserStackLocalOptions',
+  'parallelsPerPlatform': 'parallelsPerPlatform',
+  'platforms': 'platforms',
+  'logLevel': 'logLevel',
+  'httpProxy': 'httpProxy',
+  'httpsProxy': 'httpsProxy',
+  'framework': 'framework',
+  'testContextOptions': 'testContextOptions',
+  'testObservability': 'testObservability',
+  'testReporting': 'testReporting',
+  'testObservabilityOptions': 'testObservabilityOptions',
+  'testReportingOptions': 'testReportingOptions',
+  'customVariables': 'customVariables',
+  'automation': 'browserstackAutomation',
+  'browserstackAutomation': 'browserstackAutomation',
+  'rerunTests': 'rerunTests',
+  'percy': 'percy',
+  'percyOptions': 'percyOptions',
+  'percyCaptureMode': 'percyCaptureMode',
+  'disableAutoCaptureLogs': 'disableAutoCaptureLogs',
+  'accessibility': 'accessibility',
+  'accessibilityOptions': 'accessibilityOptions',
+  'turboScale': 'turboScale',
+  'turboScaleOptions': 'turboScaleOptions',
+  'testOrchestrationOptions': 'testOrchestrationOptions',
+  'proxySettings': 'proxySettings'
+}
+
+FULLY_SUPPORTED_PERCY_FRAMEWORKS = ['pytest', 'robot']
+CLI_ENABLED_FRAMEWORKS = ("pytest",)
+
+UPDATED_CLI_ENDPOINT = 'sdk/v1/update_cli'
+
+ATS_GRID_URL = "https://api.browserstack.com/automate-turboscale/v1/grids/"
+
+ATS_DASHBOARD_BUILD_URL = "https://grid.browserstack.com/dashboard/builds/"
+
+ATS_BUILDS_URL = "https://api.browserstack.com/automate-turboscale/v1/builds.json"
+
+class EVENTS(Enum):
+  SDK_O11Y_PRINT_BUILDLINK = 'sdk:o11y:print-buildlink'
+  SDK_CLEANUP = 'sdk:cleanup' # final execution
+  SDK_SEND_LOGS = 'sdk:sendlogs'
+  SDK_TURBOSCALE_PRINT_BUILDLINK = 'sdk:turboscale:print-buildlink' #shift post implement
+  SDK_AUTOMATE_PRINT_BUILDLINK = 'sdk:automate:print-buildlink' #shift post implement
+  SDK_TESTHUB = 'sdk:testhub' #shift
+  SDK_PERCY_DOWNLOAD = 'sdk:percy:download' #shift
+  SDK_TURBOSCALE_HUB_MANAGEMENT = 'sdk:turboscale:hub-management'
+  SDK_A11Y_SAVE_RESULTS = 'sdk:a11y:save-results'
+  SDK_A11Y_PERFORM_SCAN = 'sdk:a11y:driver-performscan'
+  SDK_AUTOMATE_LOCAL = 'sdk:automate:local' #shift
+  SDK_APP_AUTOMATE_APP_UPLOAD = 'sdk:app-automate:app-upload' #shift
+  SDK_AUTOMATE_GENERATE_CI_ARTIFACT = 'sdk:automate:ci-artifacts'
+  SDK_A11Y_GET_RESULTS_SUMMARY = 'sdk:a11y:get-accessibility-results-summary' #shift
+  SDK_A11Y_GET_RESULTS = 'sdk:a11y:get-accessibility-results' #shift
+  SDK_PERCY = 'sdk:percy' #shift
+  SDK_PERCY_SCREENSHOT = 'sdk:percy:screenshot'
+  SDK_AUTOMATE_SESSION_STATUS = 'sdk:automate:session-status' #shift
+  SDK_AUTOMATE_HUB_MANAGEMENT = 'sdk:automate:hub-management'
+  SDK_PROXY_SETUP = 'sdk:proxy-setup' #shift
+  SDK_BS_SETUP = 'sdk:setup'
+  SDK_PERCY_SNAPSHOT = 'sdk:percy:snapshot' # not there in python
+  SDK_DRIVER_QUIT = 'sdk:driver:quit' # used in patching
+  SDK_DRIVER_GET = 'sdk:driver:get' # used in patching
+  SDK_HOOK = 'sdk:hook'
+  SDK_AUTOMATE_SESSION_NAME = 'sdk:automate:session-name'
+  SDK_AUTOMATE_SESSION_ANNOTATION = 'sdk:automate:session-annotation' #
+  SDK_O11Y_TAKE_SCREENSHOT = 'sdk:o11y:driver-takeScreenShot'
+  SDK_PERCY_AUTO_CAPTURE = 'sdk:percy:auto-capture'
+  SDK_PRE_TEST = 'sdk:pre-test'
+  SDK_POST_TEST = 'sdk:post-test'
+  SDK_PRE_INITIALIZE = 'sdk:driver:pre-initialization' #shift
+  SDK_POST_INITIALIZE = 'sdk:driver:post-initialization' #shift
+  SDK_AUTO_CAPTURE = 'sdk:auto-capture'
+  SDK_AUTOMATE_IDLE_TIMEOUT = 'sdk:automate:idle-timeout'
+
+  # New events added for the cli flow:
+  SDK_CLI_START = 'sdk:cli:start'
+  SDK_CLI_DOWNLOAD = 'sdk:cli:download'
+  SDK_CLI_CHECK_UPDATE = 'sdk:cli:check-update'
+  SDK_CLI_ON_BOOTSTRAP = 'sdk:cli:on-bootstrap'
+  SDK_CLI_ON_CONNECT = 'sdk:cli:on-connect'
+  SDK_CLI_ON_STOP = 'sdk:cli:on-stop'
+  SDK_START_BIN_SESSION = 'sdk:startBinSession'
+  SDK_CONNECT_BIN_SESSION = 'sdk:connectBinSession'
+  SDK_DRIVER_INIT = 'sdk:driverInit'
+  SDK_FIND_NEAREST_HUB = 'sdk:findNearestHub'
+  SDK_AUTOMATION_FRAMEWORK_INIT = 'sdk:automationFrameworkInit'
+  SDK_AUTOMATION_FRAMEWORK_START = 'sdk:automationFrameworkStart'
+  SDK_ACCESSIBILITY_CONFIG = 'sdk:accessibilityConfig'
+  SDK_OBSERVABILITY_CONFIG = 'sdk:observabilityConfig'
+  SDK_AI_SELF_HEAL_STEP = 'sdk:aiSelfHealStep'
+  SDK_AI_SELF_HEAL_GET_RESULT = 'sdk:aiSelfHealGetResult'
+  SDK_TEST_FRAMEWORK_EVENT = 'sdk:testFrameworkEvent'
+  SDK_TEST_SESSION_EVENT = 'sdk:testSessionEvent'
+  SDK_CLI_LOG_CREATED_EVENT = 'sdk:cli:logCreatedEvent'
+  SDK_CLI_ENQUEUE_TEST_EVENT = 'sdk:cli:enqueueTestEvent'
+  SDK_AUTOMATION_FRAMEWORK_STOP = 'sdk:automationFrameworkStop'
+  SDK_ON_STOP = 'sdk:onStop'
+
+
+class STAGE(Enum):
+  START = 'start'
+  END = 'end'
+  SINGLE = 'single'
+
+
+TEST_FRAMEWORK_NAME = {
+  'PYTEST': 'pytest',
+  'PYTEST-BDD': 'Pytest-cucumber'
+}
+
+PLAYWRIGHT_HUB_URL = "wss://cdp.browserstack.com/playwright?caps="
+
+MINIMUM_ACCESSIBILITY_SUPPORTED_CHROME_VERSION = 98
+MINIMUM_NON_BSTACK_INFRA_A11Y_SUPPORTED_CHROME_VERSION = 100
+
+PYTEST_RERUN_FLAGS = {
+  'rerun': '--reruns',
+  'delay': '--reruns-delay',
+  'rerun-delay': 0
+}
+
+ORCHESTRATION_API_URL = "https://collector-observability.browserstack.com"
+AUTO_CAPTURE_LOGS_URL = "https://upload-observability.browserstack.com"
+TEST_REPORTING_ANALYTICS = "TEST REPORTING AND ANALYTICS"

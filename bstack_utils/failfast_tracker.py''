@@ -1,0 +1,118 @@
+import threading
+import tempfile
+import os
+import time
+from datetime import datetime
+from bstack_utils.request_utils import RequestUtils
+from bstack_utils.constants import ORCHESTRATION_API_URL, DEFAULT_LOG_LEVEL
+from bstack_utils.orchestration_utils import OrchestrationUtils
+from bstack_utils import logger_utils
+
+POLL_INTERVAL = 10  # Poll every 10 seconds
+
+class FailFastTracker:
+    def __init__(self, framework_used, config, total_tests=0):
+        self.failed_tests = set()
+        self.lock = threading.Lock()
+        self.FAILED_TESTS_URL = "{}/testorchestration/api/v1/failed-tests".format(ORCHESTRATION_API_URL)
+        self.ABORT_BUILD_FILE = os.path.join(tempfile.gettempdir(), "abort_build_{}".format(os.environ.get('BROWSERSTACK_TESTHUB_UUID')))
+        self.FAILED_TESTS_FILE = os.path.join(tempfile.gettempdir(), "failed_tests_{}.txt".format(os.environ.get('BROWSERSTACK_TESTHUB_UUID')))
+        self.THRESHOLD = 2  # Set your threshold for failed tests
+        self.framework_used = framework_used
+        self.config = config
+        self.logger = logger_utils.get_logger(__name__, DEFAULT_LOG_LEVEL)
+        self.total_tests = total_tests
+        self.stop_threads = False  # Flag to stop threads
+        self.local_mode = not (
+                            os.environ.get("BROWSERSTACK_BUILD_RUN_IDENTIFIER") and
+                            os.environ.get("BROWSERSTACK_NODE_INDEX") and
+                            os.environ.get("BROWSERSTACK_TOTAL_NODE_COUNT")
+                        )
+
+        if OrchestrationUtils.is_abort_build_on_failure_enabled(config):
+            self.THRESHOLD = OrchestrationUtils.get_failure_threshold(config, self.total_tests)
+            self.start_polling_thread()
+
+    def get_build_identifier_for_split_builds(self):
+        return "{}_{}".format(self.config.get('buildName'), os.environ.get('BROWSERSTACK_BUILD_RUN_IDENTIFIER'))
+
+    def send_failed_tests(self):
+        try:
+            if self.local_mode:
+                # Local mode: Just update the file and return
+                return
+            with self.lock:
+                # Read current file contents
+                try:
+                    with open(self.FAILED_TESTS_FILE, "r") as f:
+                        file_tests = set(line.strip() for line in f if line.strip())
+                except FileNotFoundError:
+                    file_tests = set()
+
+                # Find new test failures not yet in memory
+                new_tests = file_tests - self.failed_tests
+
+                if not new_tests:
+                    return  # No new test failures to send
+
+                # Update in-memory set
+                self.failed_tests.update(new_tests)
+                data = {"failedTests": list(self.failed_tests), "buildName": self.config.get('buildName'), "buildRunIdentifier": os.environ.get('BROWSERSTACK_BUILD_RUN_IDENTIFIER'), "projectName": self.config.get('projectName')}
+
+            # Send outside of the lock to avoid blocking
+            response = RequestUtils.put_failed_tests(self.FAILED_TESTS_URL, data)
+            if response.get("status") == 200:
+                self.logger.debug("Successfully sent failed tests: {}".format(data))
+            else:
+                self.logger.debug("Failed to send failed tests: {}".format(response))
+        except Exception as e:
+            self.logger.debug("Exception during sending failed tests: {}".format(e))
+
+    def get_failed_tests(self):
+        if self.local_mode:
+            # Local mode: Count Unique failures from the local file
+            with self.lock:
+                try:
+                    with open(self.FAILED_TESTS_FILE, "r") as f:
+                        unique_lines = set(line.strip() for line in f if line.strip())
+                    failed_count = len(unique_lines)
+                except FileNotFoundError:
+                    failed_count = 0
+
+                self.logger.debug("Polled failed tests count (local): {}".format(failed_count))
+                if failed_count >= self.THRESHOLD:
+                    self.logger.info("Threshold crossed (local): {} >= {}".format(failed_count, self.THRESHOLD))
+                    self.create_threshold_file(failed_count)
+                    self.stop_threads = True  # Stop threads when threshold is breached
+            return
+
+        # Remote mode: Fetch failed tests from the server
+        try:
+            response = RequestUtils.get_failed_tests("{}?buildName={}&buildRunIdentifier={}&projectName={}".format(self.FAILED_TESTS_URL, self.config.get('buildName'), os.environ.get('BROWSERSTACK_BUILD_RUN_IDENTIFIER'), self.config.get('projectName')))
+            if response.get("status") == 200:
+                failed_count = response.get("failedTestsCount", 0)
+                self.logger.debug("Polled failed tests count: {}".format(failed_count))
+                if failed_count >= self.THRESHOLD:
+                    self.logger.info("Threshold crossed: {} >= {}".format(failed_count, self.THRESHOLD))
+                    self.create_threshold_file(failed_count)
+                    self.stop_threads = True  # Stop threads when threshold is breached
+            else:
+                self.logger.error("Failed to poll failed tests: {}".format(response))
+        except Exception as e:
+            self.logger.error("Exception during polling: {}".format(e))
+
+    def create_threshold_file(self, failed_count):
+        with open(self.ABORT_BUILD_FILE, "w") as f:
+            f.write("Threshold crossed at {}\n".format(datetime.now()))
+            f.write("Failed tests count: {}\n".format(failed_count))
+        self.logger.debug("Abort Build file created: {}".format(self.ABORT_BUILD_FILE))
+
+    def start_polling_thread(self):
+        def poll_loop():
+            while not self.stop_threads:  # Check the stop flag
+                time.sleep(POLL_INTERVAL)
+                self.send_failed_tests()
+                self.get_failed_tests()
+
+        polling_thread = threading.Thread(target=poll_loop, daemon=True)
+        polling_thread.start()
