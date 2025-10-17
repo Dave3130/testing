@@ -27,7 +27,6 @@ class TestOrderingServer:
         Initiates the split tests request and stores the response data for polling.
         """
         self.logger.debug("[splitTests] Initiating split tests with strategy: {}".format(orchestration_strategy))
-        self.logger.info("[splitTests] Test files: {}".format(test_files))
         try:
             pr_details = []
             """We will not fetch git metadata is source is type of array and it's elements are of type dict

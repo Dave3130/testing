@@ -131,6 +131,7 @@ def pytest_configure(config):
 
     global_config = Config.get_instance()
     config.args = TOHandler.get_pytest_rerun_specs(config.args)
+    
     global_config.set_skip_session_status(is_true(config.getoption('skipSessionStatus')))
     try:
         logger_utils.save_pytest_config_paths(config.inipath, config.rootpath)
@@ -153,7 +154,6 @@ def pytest_configure(config):
         logger.debug(f"CLI is active for platform_index={cli_context.platform_index}")
         cli.test_framework.track_event(cli_context, TestFrameworkState.BEFORE_ALL, TestHookState.PRE, config)
 
-
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     when = getattr(call, "when", None)
@@ -162,7 +162,7 @@ def pytest_runtest_makereport(item, call):
         cli.test_framework.track_event(cli_context, TestFrameworkState.LOG_REPORT, TestHookState.PRE, item, call)
 
     outcome = yield
-    
+
     if when == "call":
         report = outcome.get_result()
         passed = report.passed or report.skipped or (report.failed and hasattr(report, "wasxfail"))
@@ -359,6 +359,7 @@ def browserstackplugin_runtest_makereport_playwright(item, report, summary, skip
 def pytest_addoption(parser):
     parser.addoption("--skipSessionName", default="False", help="Automatic set session name")
     parser.addoption("--skipSessionStatus", default="False", help="Automatic set session name")
+    parser.addoption('--bstack-collect-nodeids', action='store_true', default=False, help='BrowserStack: Collect and print test nodeids in clean format, then exit')
     try:
         import pytest_selenium.pytest_selenium
     except:
@@ -650,7 +651,7 @@ if is_pytest_bdd() and TestHubHandler.on():
         try:
             if not TestHubHandler.on() or FRAMEWORK != 'pytest-bdd':
                 return
-            
+
             if cli.is_running():
                 cli.test_framework.track_event(cli_context, TestFrameworkState.TEST, TestHookState.PRE, request, feature, scenario)
                 return
@@ -1621,6 +1622,154 @@ def pytest_collection_modifyitems(session, config, items):
     if deselected:
         config.hook.pytest_deselected(items=deselected)
         items[:] = selected
+
+def pytest_collection_finish(session):
+    """
+    Called after collection if --bstack-collect-nodeids flag is used.
+    Prints nodeids cleanly and exits pytest in collection-only mode.
+    """
+    try:
+        bstack_collect = session.config.getoption('bstack_collect_nodeids', False)
+        if not bstack_collect:
+            return
+            
+        # Collect items
+        collected_items = session.items
+        nodeids = [item.nodeid for item in collected_items]
+        
+        # Print nodeids cleanly
+        if nodeids:
+            print("\n".join(nodeids))
+            print(f"\n{len(nodeids)} tests collected")
+        else:
+            print("No tests collected")
+        
+        # Set session to collection-only mode to prevent test execution
+        session.config.option.collectonly = True
+        
+    except Exception as e:
+        logger.error(f"Error in bstack collection: {e}")
+
+
+def get_test_count_and_files(test_args=None, test_paths=None, silent=False):
+    """
+    Programmatically collect pytest tests without subprocess.
+    
+    Args:
+        test_args (list, optional): Complete list of pytest arguments including paths and flags.
+                                   Takes precedence over test_paths if both are provided.
+        test_paths (list or str, optional): Test file(s)/directory(ies) to collect from.
+                                           Can be a single path string or list of paths.
+                                           Ignored if test_args is provided.
+        silent (bool, optional): If True, suppresses print output. Default False.
+        
+    Returns:
+        dict: Collection results with nodeids, count, test_files
+        
+    Examples:
+        # Collect with complete pytest args (same as command line)
+        results = collect_tests_programmatically(
+            test_args=["tests/", "-p", "pytest_browserstackplugin", "--driver", "chrome"]
+        )
+        
+        # Collect from specific test paths only
+        results = collect_tests_programmatically(test_paths=["SDK/", "tests/integration/"])
+        results = collect_tests_programmatically(test_paths="SDK/")
+    """
+    try:
+        import pytest
+        
+        # Determine which arguments to use
+        if test_args is not None:
+            # Use complete test_args (takes precedence)
+            args = test_args
+        elif test_paths is not None:
+            # Use test_paths, normalizing to list
+            if isinstance(test_paths, str):
+                args = [test_paths]
+            elif isinstance(test_paths, list):
+                args = test_paths
+            else:
+                args = ["."]
+        else:
+            # Default to current directory
+            args = ["."]
+        
+        # Add collection flags
+        # --collect-only: REQUIRED - tells pytest to only collect, not run tests
+        # Additional flags to suppress all output when silent=True:
+        #   --quiet: Suppress verbose output
+        #   --tb=no: Disable traceback output
+        #   -p no:warnings: Disable warnings plugin
+        #   --no-summary: Don't show test summary info
+        collection_args = list(args) + ["--collect-only"]
+        if silent:
+            collection_args.extend([
+                "--quiet",
+                "--tb=no",
+                "-p", "no:warnings",
+                "--no-summary"
+            ])
+        
+        # Plugin to capture collected items
+        class CollectionPlugin:
+            def __init__(self):
+                self.collected = []
+            
+            def pytest_collection_finish(self, session):
+                self.collected = [item.nodeid for item in session.items]
+        
+        collection_plugin = CollectionPlugin()
+        
+        # Run pytest collection (suppress output if silent)
+        if silent:
+            import sys
+            import io
+            # Redirect stdout and stderr to suppress pytest output
+            old_stdout = sys.stdout
+            old_stderr = sys.stderr
+            sys.stdout = io.StringIO()
+            sys.stderr = io.StringIO()
+            try:
+                pytest.main(collection_args + ["-p", "no:cacheprovider"], plugins=[collection_plugin])
+            finally:
+                sys.stdout = old_stdout
+                sys.stderr = old_stderr
+        else:
+            pytest.main(collection_args + ["-p", "no:cacheprovider"], plugins=[collection_plugin])
+        
+        # Extract information
+        nodeids = collection_plugin.collected
+        test_files = set()
+        
+        for nodeid in nodeids:
+            if "::" in nodeid:
+                file_path = nodeid.split("::", 1)[0]
+                if file_path.endswith('.py'):
+                    test_files.add(file_path)
+        
+        # Build result
+        result = {
+            "success": True,
+            "count": len(nodeids),
+            "nodeids": nodeids,
+            "test_files": sorted(test_files)
+        }
+        
+        # Print only if not silent
+        if not silent:
+            logger.debug(f"[Collection] Found {result['count']} tests in {len(result['test_files'])} files")
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error in programmatic collection: {e}")
+        return {
+            "success": False,
+            "count": 0,
+            "nodeids": [],
+            "test_files": []
+        }
 
 
 @TestHubHandler.need_th
