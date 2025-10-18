@@ -1,8 +1,0 @@
-from bstack_utils.constants import BROWSERSTACK_API_URL
-
-def bstack_api_url(endpoint):
-    from browserstack_sdk.sdk_cli.cli import cli
-    from bstack_utils.helper import get_nested_value
-
-    host = get_nested_value(cli.config, ["apis", "automate", "api"], BROWSERSTACK_API_URL)
-    return '{}/{}'.format(host, endpoint)
