@@ -1,0 +1,112 @@
+import os
+from bstack_utils.constants import *
+from browserstack_sdk.sdk_cli.cli import cli
+from bstack_utils.test_ordering_server import TestOrderingServer
+from bstack_utils.orchestration_utils import OrchestrationUtils
+from bstack_utils.helper import is_true
+import json
+class TestOrchestrationHandler:
+    _instance = None
+    
+    def __init__(self, config, logger):
+        self.config = config
+        self.logger = logger
+        self.test_ordering_server_handler = TestOrderingServer(self.config, logger)
+        self.orchestration_utils = OrchestrationUtils.get_instance(config=self.config)
+        self.ordering_instrumentation_data = {}
+        self.test_ordering_applied = False
+        self.is_test_ordering_enabled = (
+            self.__is_observability_enabled()
+            and self.orchestration_utils is not None
+            and self.orchestration_utils.test_ordering_enabled()
+            and config.get('projectName', None) is not None
+            and config.get('buildName', os.path.basename(os.getcwd())) is not None
+        )
+
+    @classmethod
+    def get_instance(cls, config, logger):
+        if cls._instance is None and config is not None:
+            cls._instance = TestOrchestrationHandler(config, logger)
+        return cls._instance
+
+    def test_ordering_enabled(self):
+        """
+        Do not apply test ordering when:
+          - O11y is not enabled
+          - Ordering is not enabled
+          - projectName is None
+          - buildName is None
+        """
+        
+        return self.is_test_ordering_enabled and self.is_framework_version_supported_for_test_ordering()
+
+    def is_framework_version_supported_for_test_ordering(self):
+        frame_work = os.getenv('FRAMEWORK_USED', self.config.get('framework', None))
+        return frame_work in TEST_ORDERING_SUPPORTED_FRAMEWORKS
+
+    def __is_observability_enabled(self):
+        default_val = False
+        for fw in O11Y_SUPPORTED_FRAMEWORKS:
+            if fw in self.config.get('framework', ''):
+                default_val = True
+        return is_true(self.config.get('testObservability', default_val))
+
+    def should_log_test_ordering_checks(self):
+        return (not self.test_ordering_enabled() and
+                self.orchestration_utils is not None and self.orchestration_utils.test_ordering_enabled())
+
+    def log_test_ordering_checks(self):
+        if not self.should_log_test_ordering_checks():
+            return
+        if self.config.get('projectName', None) is None or self.config.get('buildName', os.path.basename(os.getcwd())) is None:
+            self.logger.info("Test Reordering can't work as buildName or projectName is null. Please set a non-null value.")
+        if not self.__is_observability_enabled():
+            self.logger.info("Test Reordering can't work as testReporting is disabled. Please enable it from browserstack.yml file.")
+
+    def is_test_ordering_applied(self):
+        return self.test_ordering_applied
+
+    def set_test_ordering_applied(self, ordering_applied):
+        self.test_ordering_applied = ordering_applied
+        self.add_to_ordering_instrumentation_data("applied", ordering_applied)
+
+    def reorder_test_files(self, test_files):
+        try:
+            if test_files is None:
+                self.logger.debug("[reorder_test_files] No test files provided for ordering.")
+                return None
+            
+            orchestration_strategy = None
+            orchestration_metadata = self.orchestration_utils.get_test_orchestration_metadata()
+            if self.orchestration_utils is not None:
+                orchestration_strategy = self.orchestration_utils.get_test_ordering_name()
+            if orchestration_strategy is None:
+                self.logger.error("Orchestration strategy is None. Cannot proceed with test orchestration session.")
+                return None
+            self.logger.info("Reordering test files with orchestration strategy: {}".format(orchestration_strategy))
+            
+            if cli.is_running():
+                self.logger.debug("Using CLI flow for test files orchestration.")
+                ordered_test_files = cli.test_orchestration_session(test_files, orchestration_strategy, json.dumps(orchestration_metadata))
+            else:
+                self.logger.debug("Using sdk flow for test files orchestration.")
+                self.test_ordering_server_handler.split_tests(test_files, orchestration_strategy, orchestration_metadata)
+                ordered_test_files = self.test_ordering_server_handler.get_ordered_test_files()
+            
+            if not ordered_test_files:
+                return None
+            self.add_to_ordering_instrumentation_data("uploadedTestFilesCount", len(test_files))
+            self.add_to_ordering_instrumentation_data("nodeIndex", int(os.environ.get("BROWSERSTACK_NODE_INDEX") or "0"))
+            self.add_to_ordering_instrumentation_data("totalNodes", int(os.environ.get("BROWSERSTACK_NODE_COUNT") or "1"))
+            self.add_to_ordering_instrumentation_data("downloadedTestFilesCount", len(ordered_test_files))
+            self.add_to_ordering_instrumentation_data("splitTestsAPICallCount", self.test_ordering_server_handler.get_split_tests_api_call_count())
+            return ordered_test_files
+        except Exception as e:
+            self.logger.debug("[reorder_test_files] Error in ordering test classes: {}".format(e))
+        return None
+
+    def add_to_ordering_instrumentation_data(self, key, value):
+        self.ordering_instrumentation_data[key] = value
+
+    def get_ordering_instrumentation_data(self):
+        return self.ordering_instrumentation_data

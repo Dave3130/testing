@@ -1,0 +1,160 @@
+import os
+import traceback
+from typing import Dict, Tuple, Callable, Type, List, Any
+from urllib.parse import urlparse
+from browserstack_sdk.sdk_cli.automation_framework import (
+    AutomationFramework,
+    AutomationFrameworkBrowser,
+    AutomationFrameworkState,
+    HookState,
+)
+import copy
+from datetime import datetime, timezone, timedelta
+
+class PlaywrightFramework(AutomationFramework):
+    ENV_BROWSERSTACK_PLATFORM_INDEX = "BROWSERSTACK_PLATFORM_INDEX"
+    KEY_FRAMEWORK_SESSION_ID = "framework_session_id"
+    KEY_HUB_URL = "hub_url"
+    KEY_CAPABILITIES = "capabilities"
+    COMMAND_W3C_EXECUTE_SCRIPT = "w3cexecutescript"
+    COMMAND_W3C_EXECUTE_SCRIPT_ASYNC = "w3cexecutescriptasync"
+    NAME = "playwright"
+
+    hook_registry: Dict[str, List[Callable]] = dict()
+
+    platform_index: int
+    options: Any
+    desired_capabilities: Any
+    helper_methods: Any
+    config_capabilities: Dict
+
+    def __init__(
+        self,
+        platform_index: int,
+        framework_name: str,
+        framework_version: str,
+        classes: List[Type],
+        methods=["launch", "connect", "new_page", "close", "dispatch"],
+    ):
+        super().__init__(
+            framework_name,
+            framework_version,
+            classes,
+        )
+        self.platform_index = platform_index
+        self.track_methods(methods)
+
+    def log_benchmark(self, instance: AutomationFrameworkBrowser, method_name: str, time_taken: timedelta, *args, **kwargs):
+        pass
+
+    def on_hook(
+        self,
+        target: object,
+        exec: Tuple[AutomationFrameworkBrowser, str],
+        hook_info: Tuple[AutomationFrameworkState, HookState],
+        result: Any,
+        *args,
+        **kwargs,
+    ) -> Callable[..., Any]:
+        instance, method_name = exec
+        framework_state, hook_state = hook_info
+        hook_registry_key = PlaywrightFramework.hook_info_to_registry_key(hook_info)
+        # call all registered hooks eligible for this event after basic selenium data is loaded above
+        if hook_registry_key in PlaywrightFramework.hook_registry:
+            callback_result = None
+
+            for callback in PlaywrightFramework.hook_registry[hook_registry_key]:
+                try:
+                    new_result = callback(self, target, exec, hook_info, result, *args, **kwargs)
+                    if callback_result == None:
+                        # first result wins
+                        callback_result = new_result
+                except Exception as e:
+                    self.logger.error(f"error invoking callback: {e}")
+                    traceback.print_exc()
+
+            if hook_state == HookState.PRE and callable(callback_result):
+                # BEFORE hooks may return a function that will wrap actual call
+                return callback_result
+            elif hook_state == HookState.POST and callback_result:
+                # AFTER hooks may return a value that will replace the actual return value
+                return callback_result
+
+    def resolve_framework_state(
+        self, method_name, previous_state: AutomationFrameworkState, *args, **kwargs
+    ) -> AutomationFrameworkState:
+        if method_name == 'launch' or method_name == 'connect' or method_name == 'new_page':
+            return AutomationFrameworkState.CREATE
+        if method_name == 'dispatch':
+            return AutomationFrameworkState.DISPATCH
+        if method_name == 'close':
+            return AutomationFrameworkState.QUIT
+        return AutomationFrameworkState.NONE
+
+    @staticmethod
+    def hook_info_to_registry_key(hook_info: Tuple[AutomationFrameworkState, HookState]):
+        return ":".join((AutomationFrameworkState(hook_info[0]).name, HookState(hook_info[1]).name))
+
+    @staticmethod
+    def set_hook_callback(hook_info: Tuple[AutomationFrameworkState, HookState], callback: Callable):
+        hook_registry_key = PlaywrightFramework.hook_info_to_registry_key(hook_info)
+
+        if not hook_registry_key in PlaywrightFramework.hook_registry:
+            PlaywrightFramework.hook_registry[hook_registry_key] = []
+
+        PlaywrightFramework.hook_registry[hook_registry_key].append(callback)
+
+
+    @staticmethod
+    def is_execute_request(method_name: str):
+        return True
+    
+    @staticmethod
+    def is_new_session_command(method_name: str, *args) -> bool:
+        return True
+
+    @staticmethod
+    def instance_capabilities(instance: AutomationFrameworkBrowser, default_value=None):
+        return AutomationFramework.get_state(instance, PlaywrightFramework.KEY_CAPABILITIES, default_value)
+    
+    @staticmethod
+    def is_instance_browserstack_hub(instance: AutomationFrameworkBrowser) -> bool:
+        return True
+
+    @staticmethod
+    def instance_hub_url(instance: AutomationFrameworkBrowser, default_value=None):
+        return AutomationFramework.get_state(instance, PlaywrightFramework.KEY_HUB_URL, default_value)
+    
+    @staticmethod
+    def parse_command_name(*args):
+        return args[0] if args and type(args) in [list, tuple] and isinstance(args[0], str) else None
+
+    @staticmethod
+    def is_browserstack_script_command(method_name: str, *args):
+        if not PlaywrightFramework.is_execute_request(method_name):
+            return False
+
+        if not PlaywrightFramework.COMMAND_W3C_EXECUTE_SCRIPT in PlaywrightFramework.command_name_lower(*args):
+            return False
+
+        command_params = PlaywrightFramework.parse_command_params(*args)
+        return command_params and "script" in command_params and "browserstack_executor" in command_params["script"]
+
+    @staticmethod
+    def is_accessibility_script_command(method_name: str, *args):
+        if not PlaywrightFramework.is_execute_request(method_name):
+            return False
+
+        if not PlaywrightFramework.COMMAND_W3C_EXECUTE_SCRIPT in PlaywrightFramework.command_name_lower(*args):
+            return False
+
+        command_params = PlaywrightFramework.parse_command_params(*args)
+        return (
+            command_params
+            and "script" in command_params
+            and "browserstack_accessibility_automation_script" in command_params["script"]
+        )
+
+    @staticmethod
+    def command_name_lower(*args):
+        return str(PlaywrightFramework.parse_command_name(*args)).lower()

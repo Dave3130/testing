@@ -1,0 +1,61 @@
+import threading
+from collections import deque
+from bstack_utils.constants import *
+
+class PercyCaptureSession:
+    def __init__(self):
+        self._capture_queue = deque()
+        self._capture_counter_map = {}
+        self._capturing_screenshot = False
+        self._lock = threading.RLock()
+
+    def get_percy_capture_count(self, test_name, capture_type):
+        with self._lock:
+            event_counter = self._capture_counter_map.get(test_name, {})
+            return event_counter.get(capture_type, 0)
+
+    def get_new_count(self, test_name, capture_type):
+        with self._lock:
+            current_count = self.get_percy_capture_count(test_name, capture_type)
+            self.increment_capture(test_name, capture_type)
+            return current_count
+
+    def increment_capture(self, test_name, capture_type):
+        with self._lock:
+            if test_name not in self._capture_counter_map:
+                self._capture_counter_map[test_name] = {}
+
+            event_counter = self._capture_counter_map[test_name]
+            current_count = event_counter.get(capture_type, 0)
+            event_counter[capture_type] = current_count + 1
+
+    def defer_capture(self, bstack_session_name, percy_capture_type):
+        percy_index = self.get_new_count(bstack_session_name, percy_capture_type)
+        event_name = PERCY_COMMAND_MAPPING[percy_capture_type]
+        percy_name = "{}-{}-{}".format(bstack_session_name, event_name, percy_index)
+
+        with self._lock:
+            self._capture_queue.append(percy_name)
+
+    def is_capture_empty(self):
+        with self._lock:
+            return len(self._capture_queue) == 0
+
+    def consume_capture(self):
+        with self._lock:
+            if self._capture_queue:
+                temp_var = self._capture_queue.popleft()
+                return temp_var
+            return None
+
+    def capturing(self):
+        with self._lock:
+            return self._capturing_screenshot
+
+    def lock_capture(self):
+        with self._lock:
+            self._capturing_screenshot = True
+
+    def unlock_capture(self):
+        with self._lock:
+            self._capturing_screenshot = False

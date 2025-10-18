@@ -1,0 +1,251 @@
+import os
+from uuid import uuid4
+
+from bstack_utils.helper import current_time, time_diff
+from bstack_utils.pytest_utils import bdd_examples
+
+
+class EventData:
+    def __init__(self, name=None, code=None, uuid=None, file_path=None, started_at=None, framework=None, tags=[], scope=[], rerun_id=None, create_uuid=True, finished_at=None, event_type=None, result=None, duration=None, data_id=None, meta={}):
+        self.data_id = data_id
+        self.name = name
+        self.code = code
+        self.file_path = file_path
+
+        self.uuid = uuid
+        if not self.uuid and create_uuid:
+            self.uuid = uuid4().__str__()
+
+        self.started_at = started_at
+        self.framework = framework
+        self.tags = tags
+        self.scope = scope
+        self.rerun_id = rerun_id
+        self.finished_at = finished_at
+        self.event_type = event_type
+        self.result = result
+        self.duration = duration
+        self.meta = meta
+        self.hooks = []
+
+    def getorsetuuid(self):
+        if self.uuid:
+            return self.uuid
+
+        self.uuid = uuid4().__str__()
+        return self.uuid
+    
+    def set_meta_data(self, meta):
+        self.meta = meta
+
+    def set_hooks_data(self, hooks):
+        self.hooks = hooks
+
+    def file_details(self):
+        rel_file_path = os.path.relpath(self.file_path, start=os.getcwd())
+        return {
+            'file_name': rel_file_path,
+            'location': rel_file_path,
+            'vc_filepath': rel_file_path
+        }
+
+    def set(self, **kwargs):
+        for key, val in kwargs.items():
+            if not hasattr(self, key):
+                raise TypeError("Unexpected argument: " + key)
+            setattr(self, key, val)
+
+    def basic_details(self):
+        return {
+            'name': self.name,
+            'body': {
+                'lang': 'python',
+                'code': self.code
+            },
+            'scopes': self.scope,
+            'tags': self.tags,
+            'framework': self.framework,
+            'started_at': self.started_at
+        }
+
+    def meta_details(self):
+        return {
+         'meta': self.meta
+        }
+
+    def rerun_details(self):
+        return {
+            'customRerunParam': {
+                'rerun_name': self.rerun_id
+            }
+        }
+
+    def update_step(self, sid, details):
+        step = next(filter(lambda st: st['id'] == sid, self.meta['steps']), None)
+        step.update(details)
+
+    def start_step(self, sid):
+        step = next(filter(lambda st: st['id'] == sid, self.meta['steps']), None)
+        step.update({
+            'started_at': current_time()
+        })
+
+    def stop_step(self, sid, result, duration=None):
+        finished_at = current_time()
+        if sid is not None and self.meta.get('steps'):
+            step = next(filter(lambda st: st['id'] == sid, self.meta['steps']), None)
+            step.update({
+                'finished_at': finished_at,
+                'duration': duration if duration else time_diff(step['started_at'], finished_at),
+                'result': result.result,
+                'failure': str(result.exception) if result.exception else None
+            })
+
+    def add_step(self, step_meta_data):
+        if self.meta.get('steps'):
+            self.meta['steps'].append(step_meta_data)
+        else:
+            self.meta['steps'] = [ step_meta_data ]
+
+    def started_event_data(self):
+        return {
+            'uuid': self.getorsetuuid(),
+            **self.basic_details(),
+            **self.file_details(),
+            **self.meta_details()
+        }
+
+    def result_details(self):
+        if not self.result:
+            return {}
+        data = {
+            'finished_at': self.finished_at,
+            'duration_in_ms': self.duration,
+            'result': self.result.result
+        }
+        if data['result'] == 'failed':
+            data['failure_type'] = self.result.failure_type()
+            data['failure'] = [{'backtrace': self.result.backtrace()}]
+
+        return data
+
+    def finished_event_data(self):
+        return {
+            'uuid': self.getorsetuuid(),
+            **self.basic_details(),
+            **self.file_details(),
+            **self.result_details(),
+            **self.meta_details()
+        }
+
+    def data_for_event(self, event, result=None):
+        if result:
+            self.result = result
+        if 'Started' in event:
+            return self.started_event_data()
+        elif 'Finished' in event:
+            return self.finished_event_data()
+
+    def event_key(self):
+        pass
+
+    def stop(self, time=None, duration=None, result=None):
+        self.finished_at = time if time else current_time()
+        self.duration = duration if duration else time_diff(self.started_at, self.finished_at)
+        if result:
+            self.result = result
+
+
+class TestData(EventData):
+    def __init__(self, hooks=[], integrations={}, *args, **kwargs):
+        self.hooks = hooks
+        self.integrations = integrations
+        super().__init__(*args, **kwargs, event_type='test')
+
+    @classmethod
+    def for_pytest_bdd(cls, scenario, feature, test, **kwargs):
+        steps = []
+        for step in scenario.steps:
+            steps.append({
+                'id': id(step),
+                'text': step.name,
+                'keyword': step.keyword,
+            })
+
+        return TestData(
+            **kwargs,
+            meta={
+                'feature': {
+                    'name': feature.name,
+                    'path': feature.filename,
+                    'description': feature.description
+                },
+                'scenario': {
+                    'name': scenario.name
+                },
+                'steps': steps,
+                'examples': bdd_examples(test)
+            }
+        )
+
+    def hooks_details(self):
+        return {
+            'hooks': self.hooks
+        }
+
+    def integrations_details(self):
+        if self.integrations:
+            return {
+                'integrations': self.integrations
+            }
+        return {}
+
+    def finished_event_data(self):
+        return {
+            **super().finished_event_data(),
+            **self.hooks_details()
+        }
+
+    def started_event_data(self):
+        return {
+            **super().started_event_data(),
+            **self.integrations_details()
+        }
+
+    def event_key(self):
+        return 'test_run'
+
+
+class HookData(EventData):
+    def __init__(self, hook_type, *args,integrations={}, **kwargs):
+        self.hook_type = hook_type
+        self.test_run_id = None
+        self.integrations = integrations
+        super().__init__(*args, **kwargs, event_type='hook')
+
+    def get_hook_type(self):
+        return self.hook_type
+    
+    def hook_type_details(self):
+        return {
+            'hook_type': self.hook_type
+        }
+
+    def finished_event_data(self):
+        return {
+            **super().finished_event_data(),
+            **self.hook_type_details()
+        }
+
+    def started_event_data(self):
+        return {
+            **super().started_event_data(),
+            'test_run_id': self.test_run_id,
+            **self.hook_type_details()
+        }
+
+    def event_key(self):
+        return 'hook_run'
+    
+    def set_test_run_id(self, test_run_id):
+        self.test_run_id = test_run_id

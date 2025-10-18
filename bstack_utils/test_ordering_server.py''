@@ -1,0 +1,148 @@
+import os
+import time
+from bstack_utils.request_utils import RequestUtils
+from bstack_utils.constants import ORCHESTRATION_API_URL
+from bstack_utils.helper import get_host_info, get_git_metadata_for_ai_selection
+
+class TestOrderingServer:
+    """
+    Handles test ordering orchestration with the BrowserStack server.
+    """
+
+    def __init__(self, config, logger):
+        """
+        :param config: dict, test orchestration config
+        :param orchestration_strategy: str, test ordering strategy name
+        """
+        self.config = config
+        self.logger = logger
+        self.ORDERING_ENDPOINT = "testorchestration/api/v1/split-tests"
+        self.request_data = None
+        self.default_timeout = 60
+        self.default_timeout_interval = 5
+        self.split_tests_api_call_count = 0
+
+    def split_tests(self, test_files, orchestration_strategy, orchestration_metadata={}):
+        """
+        Initiates the split tests request and stores the response data for polling.
+        """
+        self.logger.debug("[splitTests] Initiating split tests with strategy: {}".format(orchestration_strategy))
+        try:
+            pr_details = []
+            """We will not fetch git metadata is source is type of array and it's elements are of type dict
+            because in that case, user has provided multi-repo source with featureBranch in browserstack"""
+
+            source = orchestration_metadata['run_smart_selection'].get('source', [])
+            is_github_app_approach = isinstance(source, list) and all(isinstance(src, dict) and src is not None for src in source) and len(source) > 0
+
+            if orchestration_metadata['run_smart_selection'].get('enabled', False) and not is_github_app_approach:
+                pr_details = get_git_metadata_for_ai_selection(source) # mono-repo is handled inside
+            
+            payload = {
+                "tests": [{"filePath": f} for f in test_files],
+                "orchestrationStrategy": orchestration_strategy,
+                "orchestrationMetadata": orchestration_metadata,
+                "nodeIndex": int(os.environ.get("BROWSERSTACK_NODE_INDEX") or "0"),
+                "totalNodes": int(os.environ.get("BROWSERSTACK_TOTAL_NODE_COUNT") or "1"),
+                "projectName": self.config.get('projectName', ''),
+                "buildName": self.config.get('buildName', os.path.basename(os.path.abspath(os.getcwd()))),
+                "buildRunIdentifier": os.environ.get("BROWSERSTACK_BUILD_RUN_IDENTIFIER", ""),
+                "hostInfo": get_host_info(),
+                "prDetails": pr_details
+            }
+            self.logger.debug("[splitTests] Sending test files: {}".format(payload))
+            response = RequestUtils.test_orchestration_split_tests(self.ORDERING_ENDPOINT, payload)
+            if response:
+                self.request_data = self._process_split_tests_response(response)
+                self.logger.debug("[splitTests] Split tests response: {}".format(self.request_data))
+            else:
+                self.logger.error("[splitTests] Failed to get split tests response.")
+        except Exception as e:
+            self.logger.error("[splitTests] Exception in sending test files:: {}".format(e))
+
+    def _process_split_tests_response(self, response):
+        """
+        Processes the split tests API response and extracts relevant fields.
+        """
+        response_data = {}
+        response_data["timeout"] = response.get("timeout", self.default_timeout)
+        response_data["timeoutInterval"] = response.get("timeoutInterval", self.default_timeout_interval)
+
+        result_url = response.get("resultUrl")
+        timeout_url = response.get("timeoutUrl")
+
+        # Remove the API prefix if present
+        if result_url:
+            response_data["resultUrl"] = result_url.split(ORCHESTRATION_API_URL + "/")[1] if ORCHESTRATION_API_URL + "/" in result_url else result_url
+        else:
+            response_data["resultUrl"] = None
+
+        if timeout_url:
+            response_data["timeoutUrl"] = timeout_url.split(ORCHESTRATION_API_URL + "/")[1] if ORCHESTRATION_API_URL + "/" in timeout_url else timeout_url
+        else:
+            response_data["timeoutUrl"] = None
+
+        if (
+            response.get("timeout") is None or
+            response.get("timeoutInterval") is None or
+            response.get("timeoutUrl") is None or
+            response.get("resultUrl") is None
+        ):
+            self.logger.debug("[process_split_tests_response] Received null value(s) for some attributes in split tests API response")
+
+        return response_data
+
+    def get_ordered_test_files(self):
+        if not self.request_data:
+            self.logger.error("[getOrderedTestFiles] No request data available to fetch ordered test files.")
+            return None
+
+        test_files_json_list = None
+        test_files = []
+        start_time_millis = int(time.time() * 1000) # milli sec
+        timeout_interval = int(self.request_data.get("timeoutInterval", self.default_timeout_interval))
+        timeout_millis = int(self.request_data.get("timeout", self.default_timeout)) * 1000
+        timeout_url = self.request_data.get("timeoutUrl", None)
+        result_url = self.request_data.get("resultUrl", None)
+
+        if result_url is None and timeout_url is None:
+            return None
+
+        try:
+            # Poll resultUrl until timeout or until tests are available
+            while result_url and (time.time() * 1000 - start_time_millis) < timeout_millis:
+                response = RequestUtils.get_test_orchestration_ordered_tests(result_url, {})
+                if response and response.get("tests"):
+                    test_files_json_list = response.get("tests")
+                self.split_tests_api_call_count += 1
+                if test_files_json_list:
+                    break
+                time.sleep(timeout_interval)  # in seconds
+                self.logger.debug("[getOrderedTestFiles] Fetching ordered tests from result URL after waiting for {} seconds.".format(timeout_interval))
+            # If still not available, try timeoutUrl
+            if timeout_url and not test_files_json_list:
+                self.logger.debug("[getOrderedTestFiles] Fetching ordered tests from timeout URL")
+                response = RequestUtils.get_test_orchestration_ordered_tests(timeout_url, {})
+                if response and response.get("tests"):
+                    test_files_json_list = response.get("tests")
+
+            # Extract file paths
+            if test_files_json_list and len(test_files_json_list) > 0:
+                for test_data in test_files_json_list:
+                    file_path = test_data.get("filePath")
+                    if file_path:
+                        test_files.append(file_path)
+
+            if not test_files_json_list:
+                return None
+            self.logger.debug("[getOrderedTestFiles] Ordered test files received: {}".format(test_files))
+            return test_files
+        except Exception as e:
+            self.logger.error("[getOrderedTestFiles] Exception in fetching ordered test files: {}".format(e))
+            return None
+
+    def get_split_tests_api_call_count(self):
+        """
+        Returns the count of split tests API calls made.
+        """
+        return self.split_tests_api_call_count

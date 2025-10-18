@@ -1,0 +1,57 @@
+import os
+import threading
+import os
+from typing import Dict, Any
+from dataclasses import dataclass
+from collections import defaultdict
+from datetime import timedelta
+
+@dataclass
+class TrackedContext:
+    id: str
+    hash: str
+    thread_id: int
+    process_id: int
+    type: str
+
+
+class TrackedInstance:
+    KEY_BENCHMARK = "benchmark"
+
+    context: TrackedContext
+    data: Dict[str, Any]
+    platform_index: int
+
+    def __init__(self, context: TrackedContext):
+        self.context = context
+        self.data = dict({TrackedInstance.KEY_BENCHMARK: defaultdict(lambda: timedelta(microseconds=0))})
+        self.platform_index = int(os.environ.get('BROWSERSTACK_PLATFORM_INDEX', '0'))
+
+    def ref(self) -> str:
+        return str(self.context.id)
+
+    def is_tracked_instance(self, target: object):
+        return TrackedInstance.create_context(target) == self.context
+
+    def is_same_thread(self, context: TrackedContext):
+        return context and context.thread_id == self.context.thread_id and context.process_id == self.context.process_id
+
+    def add_benchmark(self, key: str, value: timedelta):
+        self.data[TrackedInstance.KEY_BENCHMARK][key] += value
+
+    def get_benchmarks(self) -> dict:
+        return self.data[TrackedInstance.KEY_BENCHMARK]
+
+    @staticmethod
+    def create_context(
+        target: object,
+        thread_id=threading.get_ident(),
+        process_id=os.getpid(),
+    ):
+        return TrackedContext(
+            id=hash(target),
+            hash=hash(target),
+            thread_id=thread_id,
+            process_id=process_id,
+            type=target,
+        )

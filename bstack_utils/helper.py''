@@ -1,0 +1,1371 @@
+import collections
+import datetime
+import json
+import os
+import platform
+import re
+import subprocess
+import traceback
+import tempfile
+import multiprocessing
+import threading
+import sys
+import logging
+from math import ceil
+from unittest import result
+import urllib
+from urllib.parse import urlparse
+import copy
+import zipfile
+
+import git
+import requests
+from packaging import version
+
+from bstack_utils.config import Config
+from bstack_utils.constants import (PRIVATE_DOMAIN_OR_IP_REGEX, HTTP_HUB, HTTPS_HUB,
+                                    MAX_GIT_META_DATA_SIZE_IN_BYTES, GIT_META_DATA_TRUNCATED, REDACT_KEYS, SDK_INSTRUMENTATION_CONFIG)
+from bstack_utils.measure import measure
+from bstack_utils.messages import BUILD_ID_FAILURE, PROXY_SETUP_ERROR
+from bstack_utils.proxy import get_proxy_map, get_proxy_if_exists
+from bstack_utils.constants import *
+from bstack_utils import logger_utils
+from bstack_utils.api_utils import bstack_api_url
+
+from browserstack_sdk._version import __version__
+
+global_config = Config.get_instance()
+
+# Setup logger
+logger = logger_utils.get_logger(__name__, logger_utils.get_log_level())
+
+def get_username(config):
+    return config['userName']
+
+
+def get_access_key(config):
+    return config['accessKey']
+
+def is_playwright_installed():
+    try:
+        import playwright
+        return True
+    except ImportError:
+        return False
+
+def extract_values_with_regex_key_match(obj):
+    values = []
+    custom_tag_regex = re.compile(r"^CUSTOM_TAG_\d+$", re.I)
+    for key in obj.keys():
+        if custom_tag_regex.match(key):
+            values.append(obj[key])
+    return values
+
+
+def get_custom_tags(config):
+    tags = []
+    tags.extend(extract_values_with_regex_key_match(os.environ))
+    tags.extend(extract_values_with_regex_key_match(config))
+    return tags
+
+
+def get_tags_from_markers(markers):
+    tags = []
+    for marker in markers:
+        tags.append(marker.name)
+    return tags
+
+
+def git_author(git_actor):
+    if not git_actor:
+        return ''
+
+    return "{} ({})".format(git_actor.name, git_actor.email)
+
+
+def get_git_metadata():
+    try:
+        repo = git.Repo(search_parent_directories=True)
+        common_git_dir = repo.common_dir
+        info = {
+            "sha": repo.head.commit.hexsha,
+            "short_sha": repo.git.rev_parse(repo.head.commit, short=True),
+            "branch": repo.active_branch.name,
+            "tag": repo.git.describe(all=True, tags=True, exact_match=True),
+            "committer": git_author(repo.head.commit.committer),
+            "committer_date": repo.head.commit.committed_datetime.isoformat(),
+            "author": git_author(repo.head.commit.author),
+            "author_date": repo.head.commit.authored_datetime.isoformat(),
+            "commit_message": repo.head.commit.message,
+            "root": repo.git.rev_parse("--show-toplevel"),
+            "common_git_dir": common_git_dir,
+            "worktree_git_dir": subprocess.check_output(["git", "rev-parse", "--git-common-dir"]).strip().decode(
+                'utf-8'),
+            "last_tag": repo.git.describe(tags=True, abbrev=0, always=True),
+            "commits_since_last_tag": repo.git.rev_list(
+                "{}..{}".format(repo.head.commit, repo.git.describe(tags=True, abbrev=0, always=True)), count=True)
+        }
+
+        remotes = repo.remotes
+        remotes_info = []
+        for remote in remotes:
+            remote_data = {
+                "name": remote.name,
+                "url": remote.url,
+            }
+            remotes_info.append(remote_data)
+
+        git_meta_data = {
+            "name": "git",
+            **info,
+            "remotes": remotes_info
+        }
+
+        git_meta_data = check_and_truncate_vcs_info(git_meta_data)
+        return git_meta_data
+
+    except git.InvalidGitRepositoryError:
+        return {}
+    except Exception as err:
+        print("Exception in populating Git metadata with error: {}".format(err))
+        return {}
+
+def get_git_metadata_for_ai_selection(folders=None):
+    """
+    Get git metadata specifically formatted for AI selection use cases for each folder in the list.
+
+    Args:
+        folders (list, optional): List of folder paths to extract git metadata from. Defaults to [os.getcwd()].
+
+    Returns:
+        list: List of dicts, each containing git metadata for a folder.
+    """
+    if folders == None: # Handles for mono-repo
+        folders = [os.getcwd()]
+    results = []
+    for folder in folders:
+        try:
+            repo = git.Repo(folder, search_parent_directories=True)
+            # Initialize the result structure
+            result = {
+                "prId": "",
+                "filesChanged": [],
+                "authors": [],
+                "prDate": "",
+                "commitMessages": [],
+                "prTitle": "",
+                "prDescription": "",
+                "prRawDiff": ""
+            }
+            current_branch = repo.active_branch.name
+            latest_commit = repo.head.commit
+            result["prId"] = latest_commit.hexsha
+            base_branch = _get_base_branch(repo)
+            logger.debug(f"Base branch for comparison: {base_branch}")
+            if base_branch:
+                try:
+                    changed_files = repo.git.diff("--name-only", f"{base_branch}...{current_branch}").split('\n')
+                    logger.debug(f"Changed files between {base_branch} and {current_branch}: {changed_files}")
+                    result["filesChanged"] = [f.strip() for f in changed_files if f.strip()]
+                    commits = list(repo.iter_commits(f"{base_branch}..{current_branch}"))
+                except Exception:
+                    logger.debug("Failed to get changed files from branch comparison. Falling back to recent commits.")
+                    commits = list(repo.iter_commits(max_count=10))
+                    if commits:
+                        result["filesChanged"] = _get_changed_files_from_commits(commits[:5])
+            else:
+                commits = list(repo.iter_commits(max_count=10))
+                if commits:
+                    result["filesChanged"] = _get_changed_files_from_commits(commits[:5])
+            authors_set = set()
+            commit_messages = []
+            for commit in commits:
+                logger.debug(f"Processing commit: {commit.message}")
+                author_name = commit.author.name if commit.author else "Unknown"
+                authors_set.add(author_name)
+                commit_messages.append({
+                    "message": commit.message.strip(),
+                    "user": author_name
+                })
+            result["authors"] = list(authors_set)
+            result["commitMessages"] = commit_messages
+            result["prDate"] = latest_commit.committed_datetime.strftime("%Y-%m-%d")
+            if (not result["prTitle"] or result["prTitle"].strip() == "") and latest_commit.message:
+                message_lines = latest_commit.message.strip().splitlines()
+                result["prTitle"] = message_lines[0] if message_lines else ""
+                if len(message_lines) > 2:
+                    result["prDescription"] = '\n'.join(message_lines[2:]).strip()
+            results.append(result)
+        except Exception as err:
+            logger.error(f"Exception in populating Git metadata for AI selection (folder: {folder}): {err}")
+    # Filter out results with empty filesChanged
+    filtered_results = [
+        result
+        for result in results
+        if _is_valid_git_result(result)
+    ]
+    return filtered_results
+
+def _is_valid_git_result(result):
+    """
+    Helper to check if a git metadata result is valid (non-empty filesChanged and authors).
+    """
+    return (
+        isinstance(result.get("filesChanged", None), list)
+        and len(result["filesChanged"]) > 0
+        and isinstance(result.get("authors", None), list)
+        and len(result["authors"]) > 0
+    )
+
+def _get_base_branch(repo):
+    """
+    Try to determine the base branch for the given repo without hardcoded names and work with all VCS providers.
+    Returns the default branch if possible, else None.
+    """
+    try:
+        # Try to get the default branch from origin/HEAD symbolic ref (works for most providers)
+        try:
+            origin = repo.remotes.origin
+            origin_head = origin.refs['HEAD']
+            # origin/HEAD -> origin/main or origin/master or any default branch
+            target = origin_head.reference.name
+            if target.startswith('origin/'):
+                return target
+        except Exception:
+            pass
+         # Fallback: use the first remote branch if available
+        if repo.remotes and repo.remotes.origin.refs:
+            for ref in repo.remotes.origin.refs:
+                if ref.name.startswith('origin/'):
+                    return ref.name
+        # Fallback: use the first branch in local heads if available
+        if repo.heads:
+            return repo.heads[0].name
+    except Exception:
+        pass
+
+    return None
+
+
+def _get_changed_files_from_commits(commits):
+    """
+    Get list of changed files from a list of commits.
+    """
+    changed_files = set()
+
+    try:
+        for commit in commits:
+            if commit.parents:  # Skip initial commit
+                for parent in commit.parents:
+                    diff = commit.diff(parent)
+                    for diff_item in diff:
+                        if diff_item.a_path:
+                            changed_files.add(diff_item.a_path)
+                        if diff_item.b_path:
+                            changed_files.add(diff_item.b_path)
+    except Exception:
+        pass
+
+    return list(changed_files)
+
+
+def check_and_truncate_vcs_info(git_meta_data):
+    git_meta_data_size_in_bytes = get_size_of_json_object_in_bytes(git_meta_data)
+
+    if git_meta_data_size_in_bytes and git_meta_data_size_in_bytes > MAX_GIT_META_DATA_SIZE_IN_BYTES:
+        truncate_size = git_meta_data_size_in_bytes - MAX_GIT_META_DATA_SIZE_IN_BYTES
+        truncated_commit_message = truncate_string(git_meta_data["commit_message"], truncate_size)
+        git_meta_data["commit_message"] = truncated_commit_message
+        logger.info("The commit has been truncated. Size of commit after truncation is {} KB"
+                    .format(get_size_of_json_object_in_bytes(git_meta_data) / 1024))
+    return git_meta_data
+
+
+def get_size_of_json_object_in_bytes(json_data):
+    try:
+        if json_data:
+            json_str = json.dumps(json_data)
+            size_in_bytes = sys.getsizeof(json_str)
+            return size_in_bytes
+    except Exception as e:
+        logger.debug("Something went wrong while calculating size of JSON object: {}".format(e))
+    return -1
+
+
+def truncate_string(field, truncate_size_in_bytes):
+    try:
+        buffer_size_in_bytes = len(bytes(GIT_META_DATA_TRUNCATED, 'utf-8'))
+        field_buffer_obj = bytes(field, 'utf-8')
+        len_of_field_buffer_obj = len(field_buffer_obj)
+        final_len = ceil(len_of_field_buffer_obj - truncate_size_in_bytes - buffer_size_in_bytes)
+
+        if final_len > 0:
+            truncated_string = field_buffer_obj[:final_len].decode('utf-8', errors='ignore') + GIT_META_DATA_TRUNCATED
+            return truncated_string
+    except Exception as e:
+        logger.debug("Error while truncating field, nothing was truncated here: {}".format(e))
+
+    return field
+
+
+def get_ci_info():
+    env = os.environ
+
+    # Jenkins
+    if ("JENKINS_URL" in env and len(env["JENKINS_URL"]) > 0) or (
+            "JENKINS_HOME" in env and len(env["JENKINS_HOME"]) > 0):
+        return {
+            "name": "Jenkins",
+            "build_url": env.get("BUILD_URL"),
+            "job_name": env.get("JOB_NAME"),
+            "build_number": env.get("BUILD_NUMBER")
+        }
+
+    # CircleCI
+    if env.get("CI") == "true" and is_true(env.get("CIRCLECI")):
+        return {
+            "name": "CircleCI",
+            "build_url": env.get("CIRCLE_BUILD_URL"),
+            "job_name": env.get("CIRCLE_JOB"),
+            "build_number": env.get("CIRCLE_BUILD_NUM")
+        }
+
+    # Travis CI
+    if env.get("CI") == "true" and is_true(env.get("TRAVIS")):
+        return {
+            "name": "Travis CI",
+            "build_url": env.get("TRAVIS_BUILD_WEB_URL"),
+            "job_name": env.get("TRAVIS_JOB_NAME"),
+            "build_number": env.get("TRAVIS_BUILD_NUMBER")
+        }
+
+    # Codeship
+    if env.get("CI") == "true" and env.get("CI_NAME") == "codeship":
+        return {
+            "name": "Codeship",
+            "build_url": None,
+            "job_name": None,
+            "build_number": None
+        }
+
+    # Bitbucket
+    if env.get("BITBUCKET_BRANCH") and env.get("BITBUCKET_COMMIT"):
+        return {
+            "name": "Bitbucket",
+            "build_url": env.get("BITBUCKET_GIT_HTTP_ORIGIN"),
+            "job_name": None,
+            "build_number": env.get("BITBUCKET_BUILD_NUMBER")
+        }
+
+    # Drone
+    if env.get("CI") == "true" and is_true(env.get("DRONE")):
+        return {
+            "name": "Drone",
+            "build_url": env.get("DRONE_BUILD_LINK"),
+            "job_name": None,
+            "build_number": env.get("DRONE_BUILD_NUMBER")
+        }
+
+    # Semaphore
+    if env.get("CI") == "true" and is_true(env.get("SEMAPHORE")):
+        return {
+            "name": "Semaphore",
+            "build_url": env.get("SEMAPHORE_ORGANIZATION_URL"),
+            "job_name": env.get("SEMAPHORE_JOB_NAME"),
+            "build_number": env.get("SEMAPHORE_JOB_ID")
+        }
+
+    # GitLab
+    if env.get("CI") == "true" and is_true(env.get("GITLAB_CI")):
+        return {
+            "name": "GitLab",
+            "build_url": env.get("CI_JOB_URL"),
+            "job_name": env.get("CI_JOB_NAME"),
+            "build_number": env.get("CI_JOB_ID")
+        }
+
+    # Buildkite
+    if env.get("CI") == "true" and is_true(env.get("BUILDKITE")):
+        return {
+            "name": "Buildkite",
+            "build_url": env.get("BUILDKITE_BUILD_URL"),
+            "job_name": env.get("BUILDKITE_LABEL") or env.get("BUILDKITE_PIPELINE_NAME"),
+            "build_number": env.get("BUILDKITE_BUILD_NUMBER")
+        }
+
+    # Visual Studio Team Services
+    if is_true(env.get("TF_BUILD")):
+        return {
+            "name": "Visual Studio Team Services",
+            "build_url": "{}{}".format(env.get('SYSTEM_TEAMFOUNDATIONSERVERURI'), env.get('SYSTEM_TEAMPROJECTID')),
+            "job_name": env.get("SYSTEM_DEFINITIONID"),
+            "build_number": env.get("BUILD_BUILDID")
+        }
+
+    # Appveyor
+    if is_true(env.get("APPVEYOR")):
+        return {
+            "name": "Appveyor",
+            "build_url": "{}/project/{}/{}/builds/{}".format(env.get('APPVEYOR_URL'), env.get('APPVEYOR_ACCOUNT_NAME'), env.get('APPVEYOR_PROJECT_SLUG'), env.get('APPVEYOR_BUILD_ID')),
+            "job_name": env.get("APPVEYOR_JOB_NAME"),
+            "build_number": env.get("APPVEYOR_BUILD_NUMBER")
+        }
+
+    # Azure CI
+    if env.get("AZURE_HTTP_USER_AGENT") and env.get("TF_BUILD"):
+        return {
+            "name": "Azure CI",
+            "build_url": "{}{}/_build/results?buildId={}".format(env.get('SYSTEM_TEAMFOUNDATIONSERVERURI'), env.get('SYSTEM_TEAMPROJECT'), env.get('BUILD_BUILDID')),
+            "job_name": env.get("BUILD_BUILDID"),
+            "build_number": env.get("BUILD_BUILDID")
+        }
+
+    # AWS CodeBuild
+    if any([env.get("CODEBUILD_BUILD_ID"), env.get("CODEBUILD_RESOLVED_SOURCE_VERSION"), env.get("CODEBUILD_SOURCE_VERSION")]):
+        return {
+            "name": "AWS CodeBuild",
+            "build_url": env.get("CODEBUILD_PUBLIC_BUILD_URL"),
+            "job_name": env.get("CODEBUILD_BUILD_ID"),
+            "build_number": env.get("CODEBUILD_BUILD_ID")
+        }
+
+    # Bamboo
+    if env.get("bamboo_buildNumber"):
+        return {
+            "name": "Bamboo",
+            "build_url": env.get("bamboo_buildResultsUrl"),
+            "job_name": env.get("bamboo_shortJobName"),
+            "build_number": env.get("bamboo_buildNumber")
+        }
+
+    # Wercker
+    if env.get("WERCKER") or env.get("WERCKER_MAIN_PIPELINE_STARTED"):
+        return {
+            "name": "Wercker",
+            "build_url": env.get("WERCKER_BUILD_URL"),
+            "job_name": "Main Pipeline" if env.get("WERCKER_MAIN_PIPELINE_STARTED") else None,
+            "build_number": env.get("WERCKER_GIT_COMMIT")
+        }
+
+    # Google Cloud
+    if any([env.get("GCP_PROJECT"), env.get("GCLOUD_PROJECT"), env.get("GOOGLE_CLOUD_PROJECT")]):
+        return {
+            "name": "Google Cloud",
+            "build_url": None,
+            "job_name": env.get("PROJECT_ID"),
+            "build_number": env.get("BUILD_ID")
+        }
+
+    # Shippable
+    if env.get("SHIPPABLE"):
+        return {
+            "name": "Shippable",
+            "build_url": env.get("SHIPPABLE_BUILD_URL"),
+            "job_name": "Job #{}".format(env.get('SHIPPABLE_JOB_ID')) if env.get("SHIPPABLE_JOB_ID") else None,
+            "build_number": env.get("SHIPPABLE_BUILD_NUMBER")
+        }
+
+    # Netlify
+    if is_true(env.get("NETLIFY")):
+        return {
+            "name": "Netlify",
+            "build_url": env.get("DEPLOY_URL"),
+            "job_name": env.get("SITE_NAME"),
+            "build_number": env.get("BUILD_ID")
+        }
+
+    # GitHub Actions
+    if is_true(env.get("GITHUB_ACTIONS")):
+        return {
+            "name": "GitHub Actions",
+            "build_url": "{}/{}/actions/runs/{}".format(env.get('GITHUB_SERVER_URL'), env.get('GITHUB_REPOSITORY'), env.get('GITHUB_RUN_ID')),
+            "job_name": env.get("GITHUB_WORKFLOW"),
+            "build_number": env.get("GITHUB_RUN_ID")
+        }
+
+    # Vercel
+    if env.get("CI") == "true" and env.get("VERCEL") == "1":
+        return {
+            "name": "Vercel",
+            "build_url": "http://{}".format(env.get('VERCEL_URL')),
+            "job_name": None,
+            "build_number": None,
+        }
+
+    # Teamcity
+    if env.get("TEAMCITY_VERSION"):
+        return {
+            "name": "Teamcity",
+            "build_url": None,
+            "job_name": env.get("TEAMCITY_PROJECT_NAME"),
+            "build_number": env.get("BUILD_NUMBER")
+        }
+
+    # Concourse
+    if any([env.get("CONCOURSE"), env.get("CONCOURSE_URL"), env.get("CONCOURSE_USERNAME"), env.get("CONCOURSE_TEAM")]):
+        return {
+            "name": "Concourse",
+            "build_url": None,
+            "job_name": env.get("BUILD_JOB_NAME") or None,
+            "build_number": env.get("BUILD_ID", 0)
+        }
+
+    # GoCD
+    if env.get("GO_JOB_NAME"):
+        return {
+            "name": "GoCD",
+            "build_url": None,
+            "job_name": env.get("GO_JOB_NAME"),
+            "build_number": env.get("GO_PIPELINE_COUNTER")
+        }
+
+    # CodeFresh
+    if env.get("CF_BUILD_ID"):
+        return {
+            "name": "CodeFresh",
+            "build_url": env.get("CF_BUILD_URL"),
+            "job_name": env.get("CF_PIPELINE_NAME"),
+            "build_number": env.get("CF_BUILD_ID")
+        }
+
+    # If no matches, return null
+    return {"build_number": None}
+
+
+def get_host_info():
+    return {
+        "hostname": platform.node(),
+        "platform": platform.system(),
+        "type": platform.machine(),
+        "version": platform.version(),
+        "arch": platform.architecture()[0]
+    }
+
+
+def is_selenium_installed():
+    try:
+        import selenium
+        return True
+    except ImportError:
+        return False
+
+
+def get_cloud_provider():
+    if global_config.get_property('bstack_session'):
+        return 'browserstack'
+    return 'unknown_grid'
+
+
+def session_info(driver):
+    info = {
+        'capabilities': driver.capabilities,
+        'session_id': driver.session_id,
+        'browser': driver.capabilities.get('browserName', None),
+        'browser_version': driver.capabilities.get('browserVersion', None),
+        'platform': driver.capabilities.get('platformName', None),
+        'platform_version':driver.capabilities.get('platformVersion', None),
+    }
+    
+    if get_cloud_provider() == 'browserstack':
+        # First check if it's an app automation
+        if is_app_automate():
+            info['product'] = 'app-automate'
+        # Then check for turbscale in bstack:options if it's not app-automate
+        elif driver.capabilities.get('bstack:options', {}).get('turboscale', False):
+            info['product'] = 'turboscale'
+        else:
+            info['product'] = 'automate'
+    return info
+
+
+def is_app_automate():
+    if global_config.get_property('app_automate'):
+        return True
+
+    if is_true(os.environ.get('BROWSERSTACK_IS_APP_AUTOMATE', None)):
+        return True
+
+    return False
+
+
+def fire_request(request_type, url, data, config):
+    headers = config.get('headers', None)
+    proxies = get_proxy_map(config, url)
+    auth = config.get('auth', None)
+
+    response = requests.request(
+            request_type,
+            url=url,
+            headers=headers,
+            auth=auth,
+            json=data,
+            proxies=proxies
+        )
+
+    return response
+
+
+def split_arr(arr, size):
+    arrs = []
+    while len(arr) > size:
+        pice = arr[:size]
+        arrs.append(pice)
+        arr = arr[size:]
+    arrs.append(arr)
+    return arrs
+
+
+def log_direct(message, write_to_file=False):
+    # As we patch console log, so any internal or debug log will also be sent to O11y.
+    # Use this method to log, if that log is not needed to be sent to O11y
+    os.write(1, bytes(message, 'utf-8'))
+    os.write(1, bytes('\n', 'utf-8'))
+    if write_to_file:
+        with open('bstack-o11y-' + os.environ['BS_TESTOPS_BUILD_HASHED_ID'] + '.log', 'a') as f:
+            f.write(message + '\n')
+
+
+def is_bstack_automation():
+    return os.environ['BROWSERSTACK_AUTOMATION'].lower() == 'true'
+
+
+def current_time():
+    return get_utcnow_wo_tzinfo().replace(tzinfo=None).isoformat() + 'Z'
+
+
+def time_diff(start, finish):
+    # Provides time difference between two ISO format time strings in milliseconds
+    return (datetime.datetime.fromisoformat(finish.rstrip('Z')) - datetime.datetime.fromisoformat(start.rstrip('Z'))).total_seconds() * 1000
+
+
+def iso_from_timestamp(timestamp):
+    return get_utcfromtimestamp_wo_tzinfo(timestamp).isoformat() + 'Z'
+
+
+def iso_from_date_string(date_string):
+    date_format = '%Y%m%d %H:%M:%S.%f'
+    date_obj = datetime.datetime.strptime(date_string, date_format)
+    return date_obj.isoformat() + 'Z'
+
+
+def get_outcome_status(outcome):
+    _, exception, _ = outcome.excinfo or (None, None, None)
+    if exception:
+        return 'failed'
+    else:
+        return 'passed'
+
+
+def is_true(val):
+    if val is None:
+        return False
+    return val.__str__().lower() == 'true'
+
+
+def is_false(val):
+    return val.__str__().lower() == 'false'
+
+
+def error_handler(error_type=Exception, class_method=False, default_value=None):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except error_type as e:
+                print("Exception in function {} -> {}: {}".format(func.__name__, error_type.__name__, str(e)))
+                return default_value
+
+        return wrapper
+
+    # This part is crucial to handle class methods correctly
+    def class_method_decorator(cls_method):
+        def wrapped(cls, *args, **kwargs):
+            try:
+                return cls_method(cls, *args, **kwargs)
+            except error_type as e:
+                print("Exception in function {} -> {}: {}".format(cls_method.__name__, error_type.__name__, str(e)))
+                return default_value
+
+        return wrapped
+
+    # Check if the decorator is being applied to a class method or a regular function
+    if class_method:
+        return class_method_decorator
+    else:
+        return decorator
+
+
+def is_browserstack_automation(bstack_config):
+    if os.getenv('BROWSERSTACK_AUTOMATION') is not None:
+        return is_true(os.getenv('BROWSERSTACK_AUTOMATION'))
+
+    if 'automation' in bstack_config and is_false(bstack_config['automation']):
+        return False
+
+    if 'browserstackAutomation' in bstack_config and is_false(bstack_config['browserstackAutomation']):
+        return False
+
+    return True
+
+
+def is_pytest_bdd():
+    try:
+        from pytest_bdd import reporting
+        user_framework = os.environ.get("BROWSERSTACK_USER_FRAMEWORK", None)
+        return user_framework is None or user_framework == "pytest-bdd"
+    except Exception as e:
+        return False
+
+
+def get_hub_url(hub_url, CONFIG):
+    if selenium_version_used() <= version.parse('3.13.0'):
+        if hub_url:
+            return "http://" + hub_url + ":80/wd/hub"
+        return HTTP_HUB
+    if hub_url:
+        return "https://" + hub_url + "/wd/hub"
+    return HTTPS_HUB
+
+
+def is_browserstack_session():
+    return isinstance(os.getenv('BROWSERSTACK_PYTEST_PLUGIN'), str)
+
+
+def get_url_hostname(url):
+    return urlparse(url).hostname
+
+
+def is_private_domain_or_ip(hostname):
+    for reg in PRIVATE_DOMAIN_OR_IP_REGEX:
+        regex = re.compile(reg)
+        if regex.match(hostname):
+            return True
+    return False
+
+
+def create_file_in_directory(directory_name, file_name, logger):
+    # storing it in ~/.browserstack folder
+    browserstack_folder_path = os.path.join(os.path.expanduser('~'), directory_name)
+    try:
+        if not os.path.exists(browserstack_folder_path):
+            # create empty browserstack folder if not present
+            os.makedirs(browserstack_folder_path)
+        file_path = os.path.join(os.path.expanduser('~'), directory_name, file_name)
+        if not os.path.isfile(file_path):
+            # create the file if not present
+            with open(file_path, 'w'):
+                pass
+            with open(file_path, "w+") as outfile:
+                json.dump({}, outfile)
+        return file_path
+    except Exception as e:
+        logger.debug(BUILD_ID_FAILURE.format(str(e)))
+
+
+def write_object_entry_in_file(file_name, key, value, logger):
+    file_path = create_file_in_directory('.browserstack', file_name, logger)
+    if file_path != None:
+        if os.path.exists(file_path):
+            json_content = json.load(open(file_path, 'rb'))
+        else:
+            json_content = {}
+        json_content[key] = value
+        with open(file_path, "w+") as outfile:
+            json.dump(json_content, outfile)
+
+
+def read_object_entry_in_file(file_name, logger):
+    file_path = create_file_in_directory('.browserstack', file_name, logger)
+    json_content = {}
+    # read file
+    if file_path != None and os.path.exists(file_path):
+        with open(file_path, 'r') as openfile:
+            json_content = json.load(openfile)
+    return json_content
+
+
+def remove_file_on_path(file_path, logger):
+    try:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+    except Exception as e:
+        logger.debug('Error in deleting file: ' + file_path + ' ' + str(e))
+
+
+def selenium_version_used():
+    from selenium import webdriver
+    return version.parse(webdriver.__version__)
+
+
+class Notset:
+    def __repr__(self):
+        return "<NOTSET>"
+
+
+def is_w3c_mode(config):
+    if 'isPlaywright' in config:
+        del (config['isPlaywright'])  # TODO: shouldn't modify
+        return False
+        # always jsonwp for PW..
+        # although W3C/Jsonwp not relevant to PW sessions, only jsonWP supported by us
+    if selenium_version_used() < version.parse('3.4.0'):
+        return False
+    if selenium_version_used() >= version.parse('4.1.5'):
+        return True
+    if 'useW3C' in config and config['useW3C'] is False:
+        return False
+    else:
+        return True
+
+
+def get_index_in_list(args_list, values_list):
+    index = -1
+    for value in values_list:
+        try:
+            index = args_list.index(value)
+            return index
+        except Exception as e:
+            return index
+    return index
+
+def merge_dicts(a, b):
+  for k, v in b.items():
+    if isinstance(v, dict) and k in a and isinstance(a[k], dict):
+        merge_dicts(a[k], v)
+    else:
+        a[k] = v
+class Result:
+    def __init__(self, result=None, duration=None, exception=None, custom_traceback=None):
+        self.result = result
+        self.duration = duration
+        self.exception = exception
+        self.exception_type = type(self.exception).__name__ if exception else None
+        self.custom_traceback = custom_traceback
+
+    @classmethod
+    def passed(cls):
+        return Result(result='passed')
+
+    @classmethod
+    def failed(cls, exception=None):
+        return Result(result='failed', exception=exception)
+
+    def failure_type(self):
+        if self.result != 'failed':
+            return None
+        if isinstance(self.exception_type, str) and "Assertion" in self.exception_type:
+            return "AssertionError"
+        return "UnhandledError"
+
+    def backtrace(self):
+        if self.result != 'failed':
+            return None
+        if self.custom_traceback:
+            return self.custom_traceback
+
+        return get_backtrace_from_exception(self.exception)
+
+
+def get_backtrace_from_exception(exc):
+    return [traceback.format_exception(exc)]
+
+
+def empty_log(message):
+    if isinstance(message, str):
+        return not bool(message and message.strip())
+
+    return True
+
+
+def get_thread_value_or_default(object, key, default_value):
+    if not object or not object.__dict__:
+        return default_value
+    if key in object.__dict__.keys():
+        return object.__dict__.get(key)
+    return default_value
+
+def configure_proxy_for_playwright(config, logger):
+    try:
+        import playwright
+        pw_path = playwright.__file__
+        splitfilepath = os.path.split(pw_path)
+        clipath = splitfilepath[0] + '/driver/package/lib/cli/cli.js'
+        os.environ['GLOBAL_AGENT_HTTP_PROXY'] = get_proxy_if_exists(config)
+        with open(clipath, 'r') as f:
+            file_content = f.read()
+            search_str_global_agent = 'global-agent'
+            check_for_global_agent = file_content.find(search_str_global_agent)
+            if check_for_global_agent == -1:
+              process = subprocess.Popen("npm install global-agent", shell=True, cwd=splitfilepath[0])
+              process.wait()
+              search_word = '"use strict";'
+              replace_content = """ \"use strict\"; const { bootstrap } = require('global-agent'); if (process.env.GLOBAL_AGENT_HTTP_PROXY) bootstrap(); """
+              updated_contents = file_content.replace(search_word, replace_content)
+              with open(clipath, 'w') as f:
+                f.write(updated_contents)
+    except Exception as e:
+        logger.error(PROXY_SETUP_ERROR.format(str(e)))
+
+def get_optimal_hub_urls():
+  try:
+    hub_url_path = os.path.join(tempfile.gettempdir(), 'optimal_hub_url.json')
+    optimal_hub_url_list = []
+    if os.path.exists(hub_url_path):
+      with open(hub_url_path) as f:
+        optimal_hub_url_list = json.load(f)
+      os.remove(hub_url_path)
+    return optimal_hub_url_list
+  except:
+    pass
+  return []
+
+def set_optimal_hub_urls(optimal_hub_url):
+  try:
+    optimal_hub_url_list = []
+    hub_url_path = os.path.join(tempfile.gettempdir(), 'optimal_hub_url.json')
+    if os.path.exists(hub_url_path):
+      with open(hub_url_path) as f:
+        optimal_hub_url_list = json.load(f)
+
+    optimal_hub_url_list.append(optimal_hub_url)
+    with open(hub_url_path, 'w') as f:
+        json.dump(optimal_hub_url_list, f)
+  except:
+    pass
+
+def store_pytest_error_list(logger, is_ppp = False):
+  try:
+    test_name = os.environ.get('PYTEST_TEST_NAME', '')
+    if test_name == '':
+        test_name = threading.current_thread().__dict__.get('pytestBdd_test_name', '')
+    error_message_list = ', '.join(threading.current_thread().bstackTestErrorMessages)
+    if is_ppp:
+        p_index = os.environ.get('BROWSERSTACK_PLATFORM_INDEX', '0')
+        current_test_errors = {'name': test_name, 'error': error_message_list, 'index': p_index}
+        pytest_ppp_error_list = []
+        pytest_ppp_error_list_path = os.path.join(tempfile.gettempdir(), 'pytest_ppp_error_list.json')
+        if os.path.exists(pytest_ppp_error_list_path):
+            with open(pytest_ppp_error_list_path) as f:
+                pytest_ppp_error_list = json.load(f)
+
+        pytest_ppp_error_list.append(current_test_errors)
+        with open(pytest_ppp_error_list_path, 'w') as f:
+            json.dump(pytest_ppp_error_list, f)
+
+    else:
+        current_test_errors = {'name': test_name, 'error': error_message_list, 'index': str(multiprocessing.current_process().name)}
+        if 'bstack_error_list' not in multiprocessing.current_process().__dict__.keys():
+            multiprocessing.current_process().bstack_error_list = []
+        multiprocessing.current_process().bstack_error_list.append(current_test_errors)
+  except Exception as e:
+      logger.warn("Unable to store pytest funnel data: {}".format(e))
+
+def store_robot_error_list(error_message, test_name, index, logger):
+  try:
+    from filelock import FileLock
+  except ImportError:
+    logger.debug('filelock not available, using basic file operations')
+    # Fallback without file locking
+    try:
+      robot_error_list = []
+      current_test_errors = {'name': test_name, 'error': error_message, 'index': index}
+      robot_error_list_path = os.path.join(tempfile.gettempdir(), 'robot_error_list.json')
+      
+      if os.path.exists(robot_error_list_path):
+          with open(robot_error_list_path) as f:
+              robot_error_list = json.load(f)
+
+      robot_error_list.append(current_test_errors)
+      with open(robot_error_list_path, 'w') as f:
+          json.dump(robot_error_list, f)
+    except Exception as e:
+      logger.warn("Unable to store robot funnel data: {}".format(e))
+    return
+    
+  robot_error_list = []
+  current_test_errors = {'name': test_name, 'error': error_message, 'index': index}
+  robot_error_list_path = os.path.join(tempfile.gettempdir(), 'robot_error_list.json')
+  lock_file = robot_error_list_path + '.lock'
+  
+  try:
+    # Use filelock for cross-platform file locking
+    with FileLock(lock_file, timeout=10):
+      if os.path.exists(robot_error_list_path):
+          with open(robot_error_list_path, 'r') as f:
+              content = f.read().strip()
+              if content:
+                  robot_error_list = json.load(open(robot_error_list_path))
+
+      robot_error_list.append(current_test_errors)
+      with open(robot_error_list_path, 'w') as f:
+          json.dump(robot_error_list, f)
+  except Exception as e:
+    logger.warn("Unable to store robot funnel data with file locking: {}".format(e))
+
+def store_behave_error_list(final_long_reason_longer, name, logger):
+  try:
+    current_test_errors = {'name': name, 'error': final_long_reason_longer, 'index': str(threading.current_thread()._name)}
+    return current_test_errors
+  except Exception as e:
+    logger.warn("Unable to store behave funnel data: {}".format(e))
+  return
+
+
+def is_windows():
+    return platform.system() == 'Windows'
+
+
+def filter_config_keys_by_regex(compiled_regex_pattern, config, logger):
+    key_array = {}
+    try:
+        return {key: config[key] for key in config if compiled_regex_pattern.match(key)}
+    except Exception as e:
+        logger.debug("Unable to filter config keys by regex match: {}".format(e))
+    return key_array
+
+
+def compare_version(ver_a, ver_b):
+    parsed_version_a = version.parse(ver_a)
+    parsed_version_b = version.parse(ver_b)
+    if parsed_version_a > parsed_version_b:
+        return 1
+    elif parsed_version_a < parsed_version_b:
+        return -1
+    else:
+        return 0
+
+def get_utcnow_wo_tzinfo():
+    return datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+
+def get_utcfromtimestamp_wo_tzinfo(timestamp):
+    return datetime.datetime.fromtimestamp(timestamp, datetime.timezone.utc).replace(tzinfo=None)
+
+
+def get_browserstackSDK_capability(framework):
+    from browserstack_sdk._version import __version__
+    return str(framework) + str(__version__)
+
+
+def set_browserstackSDK_caps(options, framework, config, product_map={}):
+    if options is None:
+        return
+    if getattr(options, 'get', None):
+        caps = options
+    else:
+        caps = options.to_capabilities()
+    bstack_options = caps.get('bstack:options')
+    use_w3c = True
+    testhub_build_uuid = os.environ['BROWSERSTACK_TESTHUB_UUID']
+    is_accessibility = config.get('accessibility', False)
+    if is_accessibility:
+        accessibility_options = config.get('accessibilityOptions', {})
+        accessibility_options['authToken'] = os.getenv('BS_A11Y_JWT')
+        scanner_version = json.loads(os.getenv('BROWSERSTACK_TEST_ACCESSIBILITY_CONFIGURATION_YML', '{}')).get('scannerVersion')
+    if is_false(caps.get('browserstack.useW3C')) or is_false(caps.get('browserstack.use_w3c')):
+        use_w3c = False
+
+    if is_w3c_mode({"useW3C": use_w3c}):
+        bstack_options = bstack_options or {}
+        bstack_options['browserstackSDK'] = get_browserstackSDK_capability(framework)
+        bstack_options['browserstackAutomation'] = is_bstack_automation()
+        bstack_options['testhubBuildUuid'] = testhub_build_uuid
+        bstack_options['buildProductMap'] = product_map
+        if is_accessibility:
+            bstack_options['accessibility'] = is_accessibility
+            bstack_options['accessibilityOptions'] = accessibility_options
+            bstack_options['accessibilityOptions']['scannerVersion'] = scanner_version
+        if getattr(options, 'set_capability', None):
+            options.set_capability('bstack:options', bstack_options)
+        else:
+            options['bstack:options'] = bstack_options
+    else:
+        if getattr(options, 'set_capability', None):
+            options.set_capability('browserstack.browserstackSDK', get_browserstackSDK_capability(framework))
+            options.set_capability('browserstack.browserstackAutomation', is_bstack_automation())
+            options.set_capability('browserstack.testhubBuildUuid', testhub_build_uuid)
+            options.set_capability('browserstack.buildProductMap', product_map)
+            if is_accessibility:
+                options.set_capability('browserstack.accessibility', is_accessibility)
+                options.set_capability('browserstack.accessibilityOptions', accessibility_options)
+                options.set_capability('browserstack.accessibilityOptions.scannerVersion', scanner_version)
+        else:
+            options['browserstack.browserstackSDK'] = get_browserstackSDK_capability(framework)
+            options['browserstack.browserstackAutomation'] = is_bstack_automation()
+            options['browserstack.testhubBuildUuid'] = testhub_build_uuid
+            options['browserstack.buildProductMap'] = product_map
+            if is_accessibility:
+                options['browserstack.accessibility'] = is_accessibility
+                options['browserstack.accessibilityOptions'] = accessibility_options
+                options['browserstack.accessibilityOptions']['scannerVersion'] = scanner_version
+                
+    return options
+
+def set_playwright_browserstackSDK_caps(ws_endpoint, framework):
+    product_map = global_config.get_property("PLAYWRIGHT_PRODUCT_MAP")
+    if ws_endpoint and len(ws_endpoint.split('caps=')) > 1:
+        ws_url = ws_endpoint.split('caps=')[0]
+        if 'browserstack.com' in ws_url:
+            from browserstack_sdk._version import __version__
+            user_caps = json.loads(urllib.parse.unquote(ws_endpoint.split('caps=')[1]))
+            user_caps = user_caps or {}
+            testhub_build_uuid = os.environ['BROWSERSTACK_TESTHUB_UUID']
+            user_caps['browserstack.browserstackSDK'] = str(framework) + str(__version__)
+            user_caps['browserstack.browserstackAutomation'] = is_bstack_automation()
+            user_caps['browserstack.testhubBuildUuid'] = testhub_build_uuid
+            user_caps['browserstack.buildProductMap'] = product_map
+            ws_endpoint = ws_endpoint.split('caps=')[0] + 'caps=' + urllib.parse.quote(json.dumps(user_caps))
+    return ws_endpoint
+
+
+def set_playwright_orig_connect():
+    global orig_connect
+    from playwright._impl._browser_type import BrowserType
+    orig_connect = BrowserType.connect
+    return orig_connect
+
+
+def set_global_playwright_framework_name(framework_name):
+    global FRAMEWORK_NAME
+    FRAMEWORK_NAME = framework_name
+    return framework_name
+
+def mod_playwright_connect(self, *args, **kwargs):
+    global orig_connect
+    try:
+        global FRAMEWORK_NAME
+
+        if 'wsEndpoint' in kwargs:
+            kwargs['wsEndpoint'] = set_playwright_browserstackSDK_caps(
+                kwargs.get('wsEndpoint', None),
+                FRAMEWORK_NAME
+            )
+    except Exception as e:
+        logger.error("Error when processing SDK caps: {}".format(str(e)))
+    return orig_connect(self, *args, **kwargs)
+
+def parse_proxy_config(browserstack_config, proxies):
+    proxy_settings = {}
+
+    try:
+        if not proxies:
+            proxies = get_proxy_map(browserstack_config, "")
+        if proxies and proxies.get("https"):
+            parsed_url = urlparse(proxies.get("https"))
+            if parsed_url and parsed_url.hostname: proxy_settings['proxyHost'] = str(parsed_url.hostname)
+            if parsed_url and parsed_url.port: proxy_settings['proxyPort'] = str(parsed_url.port)
+            if parsed_url and parsed_url.username: proxy_settings['proxyUser'] = str(parsed_url.username)
+            if parsed_url and parsed_url.password: proxy_settings['proxyPass'] = str(parsed_url.password)
+
+        return proxy_settings
+    except:
+        return proxy_settings
+
+def sanitize_browserstack_config(browserstack_config):
+    browserstack_config_copy = {
+        SDK_INSTRUMENTATION_CONFIG[instr_key]: browserstack_config[instr_key]
+        for instr_key in browserstack_config
+        if instr_key in SDK_INSTRUMENTATION_CONFIG
+    }
+    browserstack_config_copy["proxySettings"] = parse_proxy_config(browserstack_config, global_config.get_property("proxySettings"))
+    keys_to_remove = [element.lower() for element in REDACT_KEYS]
+    remove_keys_from_dict(browserstack_config_copy, keys_to_remove)
+    return browserstack_config_copy
+
+
+def remove_keys_from_dict(d, keys):
+    # Iterate through the dictionary keys
+    for key in list(d.keys()):
+        if key.lower() in keys:
+            d[key] = "****"
+    
+    # Iterate through the dictionary values to handle nested dictionaries
+    for value in d.values():
+        if isinstance(value, dict):
+            remove_keys_from_dict(value, keys)
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict):
+                    remove_keys_from_dict(item, keys)
+
+def get_writable_dir():
+    # Better name for paths to try
+    writable_dir_options = [os.environ.get("BROWSERSTACK_FILES_DIR"), os.path.join(os.path.expanduser("~"), '.browserstack'), os.path.join('/tmp', '.browserstack')]
+    for path in writable_dir_options:
+        if path is None:
+            continue
+        try:
+            if os.path.exists(path):
+                logger.debug(f"File '{path}' exists.")
+                if not os.access(path, os.W_OK):
+                    logger.debug(f"Giving permissions for '{path}'")
+                    os.chmod(path, 0o777)
+                else:
+                    logger.debug(f"File '{path}' already has the required permissions.")
+            else:
+                # File does not exist, so create it with the given permission
+                logger.debug(f"Creating file '{path}' with write permission.")
+                os.makedirs(path, exist_ok=True)
+                os.chmod(path, 0o777)
+            
+            # Exit once operation succeeds
+            logger.debug(f"Operation succeeded for '{path}'.")
+            return path
+        except Exception as e:
+            logger.debug(f"Failed to set up file '{path}': {e}")
+    
+    # If all paths fail
+    logger.debug("All paths failed.")
+    return None
+
+@measure(event_name=EVENTS.SDK_CLI_CHECK_UPDATE, stage=STAGE.SINGLE)
+def check_and_update_binary(binary_path, cli_dir, bs_config):
+    logger.debug("Current CLI Path found: {}".format(binary_path))
+    final_binary_path = ''
+    query_params = {
+        'sdk_version': __version__,
+        "os": platform.system(),
+        "os_arch": platform.machine(),
+        "cli_version": '0',
+        "sdk_language": 'python'
+    }
+    update_linux_distro(query_params)
+
+    try:
+        if binary_path:
+            query_params['cli_version'] = subprocess.check_output([binary_path, "version"]).strip().decode('utf-8')
+
+        response = requests.request(
+            'GET',
+            url=bstack_api_url(UPDATED_CLI_ENDPOINT),
+            headers=None,
+            auth=(bs_config['userName'], bs_config['accessKey']),
+            json=None,
+            params=query_params
+        )
+
+        data = response.json()
+        if response.status_code == 200 and 'url' in data.keys() and 'updated_cli_version' in data.keys():
+            logger.debug("Need to update binary, current binary version: {}".format(query_params['cli_version']))
+
+            if 'BROWSERSTACK_BINARY_URL' in os.environ:
+                logger.debug("Skipping binary download as BROWSERSTACK_BINARY_URL is set")
+                data['url'] = os.environ['BROWSERSTACK_BINARY_URL']
+            binary_name = download_sdk_binary(data['url'], cli_dir)
+            final_binary_path = os.path.join(cli_dir, binary_name)
+            os.chmod(final_binary_path, 0o777) # Provide permission
+            return final_binary_path
+    except Exception as e:
+        logger.debug("Error while downloading new SDK {}".format(e))
+    return binary_path
+
+def update_linux_distro(query_params):
+    try:
+        if 'linux' not in query_params['os'].lower():
+            return
+
+        if os.path.exists("/etc/os-release"):
+            with open("/etc/os-release", "r") as f:
+                os_release = {}
+                for line in f:
+                    if "=" in line:
+                        key, value = line.rstrip().split("=", 1)
+                        os_release[key] = value.strip('"\'')
+                query_params['distro'] = os_release.get("ID", "")
+        elif os.path.exists("/etc/alpine-release"):
+            query_params['distro'] = 'alpine'
+    except Exception as e:
+        logger.debug("Unable to get distro of linux" + e)
+
+@measure(event_name=EVENTS.SDK_CLI_DOWNLOAD, stage=STAGE.SINGLE)
+def download_sdk_binary(bin_download_url, cli_directory):
+    logger.debug(f"Downloading SDK binary from: {bin_download_url}")
+
+    zip_path = os.path.join(cli_directory, "downloaded_file.zip")
+    binary_name = ''
+
+    # Download the zip file in chunks
+    with requests.get(bin_download_url, stream=True) as response:
+        response.raise_for_status()  # Check if the request was successful
+        with open(zip_path, "wb") as file:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    file.write(chunk)
+        logger.debug("File downloaded successfully.")
+
+    # Extract the zip file
+    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+        all_files = zip_ref.namelist()
+        if len(all_files) > 0:
+            binary_name = all_files[0] # Assuming there will be only 1 file i.e. the binary in the zip
+        zip_ref.extractall(cli_directory)
+        logger.debug(f"Files successfully extracted to '{cli_directory}'")
+
+    os.remove(zip_path)
+    return binary_name
+
+def get_cli_dir():
+    writable_dir = get_writable_dir()
+    if writable_dir:
+        cli_dir = os.path.join(writable_dir, "cli")
+        if not os.path.exists(cli_dir):
+            os.makedirs(cli_dir, mode=0o777, exist_ok=True)
+        return cli_dir
+    else:
+        raise FileNotFoundError("No writable directory available for the SDK binary.")
+
+def get_browserstack_sdk_cli_path(cli_dir):
+    """Get the path for the BrowserStack SDK binary in a writable directory."""
+    all_binaries = [
+        os.path.join(cli_dir, f)
+        for f in os.listdir(cli_dir)
+        if os.path.isfile(os.path.join(cli_dir, f)) and f.startswith("binary-")
+    ]
+
+    # Path exist with multiple binaries
+    if len(all_binaries) > 0:
+        return max(all_binaries, key=os.path.getmtime) # get latest binary
+    return ""
+
+def get_selenium_version():
+  from selenium import webdriver
+  return version.parse(webdriver.__version__)
+
+# merge_object nested dicts
+def merge_object(d, u):
+  for k, v in u.items():
+    if isinstance(v, collections.abc.Mapping):
+      # recursively call update in case of dict
+      d[k] = merge_object(d.get(k, {}), v)
+    else:
+      if isinstance(v, list):
+        # merge if array
+        d[k] = d.get(k, []) + v
+      else:
+        # normal update
+        d[k] = v
+  return d
+
+def get_nested_value(data, keys, default=None):
+    """
+    Safely get a nested value from a dictionary or list.
+    
+    :param data: The dictionary or list to traverse.
+    :param keys: A list of keys/indices representing the path.
+    :param default: Value to return if the path does not exist.
+    :return: The value at the nested path, or default if not found.
+    """
+    if not data:
+        return default
+
+    current = data
+    try:
+        for key in keys:
+            if isinstance(current, dict):
+                current = current[key]
+            elif isinstance(current, list) and isinstance(key, int):
+                current = current[key]
+            else:
+                return default
+        return current
+    except (KeyError, IndexError, TypeError):
+        return default

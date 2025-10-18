@@ -1,0 +1,75 @@
+import os
+import json
+from bstack_utils.logger_utils import get_logger
+logger = get_logger(__name__)
+
+class Accessibility_Scripts(object):
+  browserstack_folder_path = os.path.join(os.path.expanduser('~'), '.browserstack')
+  commands_path = os.path.join(browserstack_folder_path, 'commands.json')
+  commands_to_wrap = None
+  perform_scan = None
+  get_results = None
+  get_results_summary = None
+  save_test_results = None
+  non_bstack_infra_a11y_chrome_options = None
+
+  def __new__(cls):
+    if not hasattr(cls, 'instance'):
+      cls.instance = super(Accessibility_Scripts, cls).__new__(cls)
+      cls.instance.read_from_dir()
+    return cls.instance
+
+  def read_from_dir(self):
+    try:
+      with open(self.commands_path, 'r') as openfile:
+        file_contents = openfile.read()
+        data = json.loads(file_contents)
+        if 'commands' in data:
+          self.update_commands(data['commands'])
+        if 'scripts' in data:
+          self.update_scripts(data['scripts'])
+        if 'nonBStackInfraA11yChromeOptions' in data:
+          self.update_non_bstack_infra_a11y_chrome_options(data['nonBStackInfraA11yChromeOptions'])
+    except:
+      pass
+  
+  def update_non_bstack_infra_a11y_chrome_options(self, non_bstack_infra_a11y_chrome_options):
+    if non_bstack_infra_a11y_chrome_options != None:
+      self.non_bstack_infra_a11y_chrome_options = non_bstack_infra_a11y_chrome_options
+
+  def update_scripts(self, scripts):
+    if scripts != None:
+      self.perform_scan = scripts.get('scan','')
+      self.get_results = scripts.get('getResults','')
+      self.get_results_summary = scripts.get('getResultsSummary','')
+      self.save_test_results = scripts.get('saveResults','')
+    
+  def update_commands(self, commands_to_wrap):
+    if commands_to_wrap != None and len(commands_to_wrap) != 0:
+      self.commands_to_wrap = commands_to_wrap
+
+  def store(self):
+    try:
+      with open(self.commands_path, 'w') as file:
+        json.dump({
+          "commands": self.commands_to_wrap,
+          "scripts": {
+            "scan": self.perform_scan,
+            "getResults": self.get_results,
+            "getResultsSummary": self.get_results_summary,
+            "saveResults": self.save_test_results
+          },
+          "nonBStackInfraA11yChromeOptions": self.non_bstack_infra_a11y_chrome_options
+        }, file)
+    except Exception as e:
+      logger.error("Error while storing commands: {}".format(e))
+      pass
+
+  def should_wrap_command(self, command_name):
+    try:
+      return any(command.get('name') == command_name for command in self.commands_to_wrap)
+    except:
+      return False
+    
+
+accessibility_scripts = Accessibility_Scripts()

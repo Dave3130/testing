@@ -1,0 +1,121 @@
+from _pytest import fixtures
+from _pytest.python import _call_with_optional_argument
+from pytest import Module, Class
+
+from bstack_utils.helper import Result, compare_version
+from browserstack_sdk.pytest_handler import PytestHandler
+
+def _call_method_with_optional_arg(method, this, arg):
+    arg_count = method.__code__.co_argcount
+    if arg_count > 1:
+        method(this, arg)
+    else:
+        method(this)
+
+
+class HooksPatch:
+    def __init__(self, handler):
+        self._orig_fixture_functions = {}
+        self._orig_functions = {}
+        self.handler = handler
+        self.patch()
+        pass
+
+    def patch(self):
+        pytest_version = PytestHandler.version()
+        if compare_version(pytest_version, "8.1.1") >= 0:
+            self._orig_fixture_functions['function_fixture'] = Module._register_setup_function_fixture
+            self._orig_fixture_functions['module_fixture'] = Module._register_setup_module_fixture
+            self._orig_fixture_functions['class_fixture'] = Class._register_setup_class_fixture
+            self._orig_fixture_functions['method_fixture'] = Class._register_setup_method_fixture
+
+            Module._register_setup_function_fixture = self.get_patch_method('function_fixture')
+            Module._register_setup_module_fixture = self.get_patch_method('module_fixture')
+            Class._register_setup_class_fixture = self.get_patch_method('class_fixture')
+            Class._register_setup_method_fixture = self.get_patch_method('method_fixture')
+        else:
+            self._orig_fixture_functions['function_fixture'] = Module._inject_setup_function_fixture
+            self._orig_fixture_functions['module_fixture'] = Module._inject_setup_module_fixture
+            self._orig_fixture_functions['class_fixture'] = Class._inject_setup_class_fixture
+            self._orig_fixture_functions['method_fixture'] = Class._inject_setup_method_fixture
+
+            Module._inject_setup_function_fixture = self.get_patch_method('function_fixture')
+            Module._inject_setup_module_fixture = self.get_patch_method('module_fixture')
+            Class._inject_setup_class_fixture = self.get_patch_method('class_fixture')
+            Class._inject_setup_method_fixture = self.get_patch_method('method_fixture')
+
+    def store_and_patch_hooks(self, instance_object, hook_type):
+        class_id = id(instance_object.__class__) 
+
+        if (class_id, hook_type) in self._orig_functions:
+            return
+
+        meth = getattr(instance_object, hook_type, None)
+        if meth is not None and fixtures.getfixturemarker(meth) is None:
+            self._orig_functions[(class_id, hook_type)] = meth 
+            setattr(instance_object, hook_type, self.get_bstack_functions(hook_type, class_id))
+
+    def set_bstack_hooks(self, instance, patch_type):
+        if patch_type == "function_fixture":
+            self.store_and_patch_hooks(instance.obj, "setup_function")
+            self.store_and_patch_hooks(instance.obj, "teardown_function")
+        if patch_type == "module_fixture":
+            self.store_and_patch_hooks(instance.obj, "setup_module")
+            self.store_and_patch_hooks(instance.obj, "teardown_module")
+        if patch_type == "class_fixture":
+            self.store_and_patch_hooks(instance.obj, "setup_class")
+            self.store_and_patch_hooks(instance.obj, "teardown_class")
+        if patch_type == "method_fixture":
+            self.store_and_patch_hooks(instance.obj, "setup_method")
+            self.store_and_patch_hooks(instance.obj, "teardown_method")
+
+    @staticmethod
+    def call_orig_function(hook_type, func, args):
+        if hook_type in ['setup_method', 'teardown_method']:
+            _call_method_with_optional_arg(func, args[0], args[1])
+            return
+
+        _call_with_optional_argument(func, args[0])
+
+    def get_bstack_functions(self, hook_type, class_id):
+        def hook_function(arg=None):
+            self.handler(hook_type, 'before')
+            result = None
+            try:
+                orig_func = self._orig_functions[(class_id, hook_type)]
+                self.call_orig_function(hook_type, orig_func, (arg,))
+                result = Result(result='passed')
+            except Exception as e:
+                result = Result(result='failed', exception=e)
+                self.handler(hook_type, 'after', result)
+                raise e.with_traceback(e.__traceback__)
+
+            self.handler(hook_type, 'after', result)
+
+        def hook_method(this, arg=None):
+            self.handler(hook_type, 'before')
+
+            result = None
+            exception = None
+            try:
+                self.call_orig_function(hook_type, self._orig_functions[hook_type], (this, arg))
+                result = Result(result='passed')
+            except Exception as e:
+                result = Result(result='failed', exception=e)
+                self.handler(hook_type, 'after', result)
+                raise e.with_traceback(e.__traceback__)
+
+            self.handler(hook_type, 'after', result)
+
+        if hook_type in ['setup_method', 'teardown_method']:
+            return hook_method
+
+        return hook_function
+
+    def get_patch_method(self, patch_type):
+        def patch_method(this, *args, **kwargs):
+            self.set_bstack_hooks(this, patch_type)
+            self._orig_fixture_functions[patch_type](this, *args, **kwargs)
+
+        return patch_method
+

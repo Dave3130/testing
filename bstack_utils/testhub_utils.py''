@@ -1,0 +1,150 @@
+import os
+import json
+import logging
+import datetime
+import threading
+
+from bstack_utils.helper import get_git_metadata, get_ci_info, get_host_info, get_custom_tags, \
+ is_browserstack_automation, get_thread_value_or_default, error_handler, log_direct, current_time
+
+import bstack_utils.accessibility as a11y
+from bstack_utils.orchestration_utils import OrchestrationUtils
+from bstack_utils.to_handler import TOHandler
+from bstack_utils.percy import Percy
+from bstack_utils.config import Config
+
+global_config = Config.get_instance()
+logger = logging.getLogger(__name__)
+percy = Percy()
+
+@error_handler(class_method=False)
+def get_common_request_payload(bs_config, framework_details):
+  try:
+    data = {
+        'format': 'json',
+        'project_name': bs_config.get('projectName', ''),
+        'name': bs_config.get('buildName', os.path.basename(os.path.abspath(os.getcwd()))),
+        'build_identifier': bs_config.get('buildIdentifier'),
+        'description': bs_config.get('buildDescription', ''),
+        'started_at': current_time(),
+        'tags': get_custom_tags(bs_config),
+        'host_info': get_host_info(),
+        'ci_info': get_ci_info(),
+        'build_run_identifier': os.environ.get('BROWSERSTACK_BUILD_RUN_IDENTIFIER'),
+        'failed_tests_rerun': os.environ.get('BROWSERSTACK_RERUN', False),
+        'version_control': get_git_metadata(),
+        'accessibility': get_accessibility_settings(bs_config),
+        'framework_details': get_framework_details(framework_details),
+        'product_map': get_product_map_for_build_start_call(bs_config, framework_details.get('framework_used', '')),
+        'browserstackAutomation': is_browserstack_automation(bs_config),
+        'test_orchestration': get_test_orchestration_build_start_data(bs_config)
+    }
+    return data
+  except Exception as error:
+    logger.error("Exception while creating payload for TestHub:  {}".format(str(error)))
+    return None
+
+def get_framework_details(framework):
+  return {
+    'frameworkName': framework.get('framework_name', 'Pytest'),
+    'frameworkVersion': framework.get('framework_version'),
+    'sdkVersion': framework.get('sdk_version'),
+    'language': 'python',
+    'testFramework': framework.get('testFramework')
+  }
+
+def get_test_orchestration_build_start_data(bs_config):
+  """
+  Returns the test orchestration data for build start.
+  """
+  if not bs_config:
+    return {}
+
+  orchestration_data = OrchestrationUtils(bs_config).get_build_start_data(bs_config)
+  return orchestration_data
+
+def get_product_map(bs_config, framework):
+  app_automate = False
+  automate = False
+  turboScale = False
+  if 'turboScale' in bs_config:
+    turboScale = True
+  elif 'app' in bs_config:
+    app_automate = True
+  else: 
+    automate = True
+  product_map = {
+    'observability': TOHandler.enabled_in_config(bs_config, framework),
+    'accessibility': a11y.is_enabled_root(bs_config),
+    'percy': bs_config.get('percy', False),
+    'automate': automate,
+    'app_automate': app_automate,
+    'turboscale': turboScale
+  }
+  return product_map
+
+@error_handler(class_method=False)
+def get_accessibility_settings(bs_config):
+  try:
+    accessibility_settings = json.loads(os.getenv('BROWSERSTACK_TEST_ACCESSIBILITY_CONFIGURATION_YML', '{}'))
+    accessibility_settings = add_non_bstack_infra_a11y_settings(bs_config, accessibility_settings)
+    return {
+        'settings': accessibility_settings
+    }
+  except Exception as error:
+    logger.error("Exception while creating get_accessibility_settings for TestHub:  {}".format(str(error)))
+    return {}
+    
+def add_non_bstack_infra_a11y_settings(bs_config, accessibility_settings):
+  if (('turboScale' in bs_config or not is_browserstack_automation(bs_config)) and a11y.is_enabled_root(bs_config)):
+    accessibility_settings["includeEncodedExtension"] = True
+  return accessibility_settings
+
+# Following method is taking a list of dictionaries and converting it to dictionary
+def convert_array_to_dict(array, key_field, value_field):
+  result = {}
+  for o in array:
+    key = o[key_field]
+    result[key] = o[value_field]
+  return result
+
+def should_send_event_for_testhub(event_type=''):
+  is_a11y_enabled = a11y.on()
+  is_o11y_enabled = TOHandler.on()
+  is_percy_enabled = percy.is_percy()
+
+  if is_percy_enabled and not is_o11y_enabled and not is_a11y_enabled:
+    return event_type not in ['CBTSessionCreated', 'LogCreated']
+  elif is_a11y_enabled and not is_o11y_enabled:
+    return event_type not in ['HookRunStarted', 'HookRunFinished', 'LogCreated']
+
+  return is_a11y_enabled or is_o11y_enabled or is_percy_enabled
+
+@error_handler(class_method=False)
+def get_product_map_for_event(event_type, test=None):
+  a11y_on = a11y.on()
+  if not a11y_on or event_type not in ['TestRunFinished'] or test == None:
+    return None
+  return {
+    'accessibility': a11y_on and get_thread_value_or_default(threading.current_thread(), 'a11yPlatform', None) == True and a11y.is_enabled_testcase(test['tags'])
+  }
+
+def get_product_map_for_build_start_call(bs_config, framework):
+  app_automate = False
+  automate = False
+  turboScale = False
+  if 'turboScale' in bs_config:
+    turboScale = True
+  elif 'app' in bs_config:
+    app_automate = True
+  else: 
+    automate = True
+  product_map = {
+    'observability': TOHandler.enabled_in_config(bs_config, framework),
+    'accessibility': a11y.get_accessibility_value_from_yml(bs_config),
+    'percy': bs_config.get('percy', False),
+    'automate': automate,
+    'app_automate': app_automate,
+    'turboscale': turboScale
+  }
+  return product_map

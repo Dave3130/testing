@@ -1,0 +1,43 @@
+import logging
+from functools import wraps
+from typing import Optional
+
+from bstack_utils.constants import EVENTS, STAGE
+from bstack_utils.logger_utils import get_logger
+from bstack_utils.performance_tester import PerformanceTester
+
+performance_tester = PerformanceTester()
+logger = get_logger(__name__)
+
+def measure(event_name: EVENTS, stage: STAGE, hook_type: Optional[str] = None, session_name: Optional[str] = None):
+    """
+    Decorator to log the start time of a function execution
+    along with event name and stage.
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            label: str = event_name.value
+            random_label: str = performance_tester.get_randomized_label(label)
+            start_mark: str = label + ":start"
+            end_mark: str = label + ":end"
+            result = None
+            try:
+                if stage.value == STAGE.START.value:
+                    performance_tester.mark(start_mark)
+                    result = func(*args, **kwargs)
+                elif stage.value == STAGE.END.value:
+                    result = func(*args, **kwargs)
+                    performance_tester.end(label, start_mark, end_mark, status=True, failure=None,hook_type=hook_type,test_name=session_name)
+                elif stage.value == STAGE.SINGLE.value:
+                    start_mark: str = random_label + ":start"
+                    end_mark: str = random_label + ":end"
+                    performance_tester.mark(start_mark)
+                    result = func(*args, **kwargs)
+                    performance_tester.end(label, start_mark, end_mark, status=True, failure=None, hook_type=hook_type,test_name=session_name)
+            except Exception as e:
+                performance_tester.end(label, start_mark, end_mark, status=False, failure=str(e), hook_type=hook_type,
+                                       test_name=session_name)
+            return result
+        return wrapper
+    return decorator

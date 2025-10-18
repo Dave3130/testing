@@ -1,0 +1,35 @@
+from browserstack_sdk.pytest_handler import PytestHandler
+from browserstack_sdk.robot_handler import RobotHandler
+
+
+def get_framework_version(framework):
+    if framework.lower() == 'pytest':
+        return PytestHandler.version()
+    elif framework.lower() == 'robot':
+        return RobotHandler.version()
+    elif framework.lower() == 'behave':
+        import behave
+        return behave.__version__
+    else:
+        return 'unknown'
+
+def get_test_framework_details():
+    import importlib.metadata
+    framework_name = []
+    framework_version = []
+    try:
+        from selenium import webdriver
+        framework_name.append('selenium')
+        framework_version.append(importlib.metadata.version("selenium"))
+    except:
+        pass
+    try:
+        import playwright
+        framework_name.append('playwright')
+        framework_version.append(importlib.metadata.version("playwright"))
+    except:
+        pass
+    return {
+        'name': '_'.join(framework_name),
+        'version': '_'.join(framework_version)
+    }
