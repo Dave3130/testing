@@ -1,278 +1,278 @@
 # coding: UTF-8
 import sys
-bstack1l111_opy_ = sys.version_info [0] == 2
-bstack11l111_opy_ = 2048
-bstack1l1l_opy_ = 7
-def bstack1l111ll_opy_ (bstack1llllll1_opy_):
-    global bstack111l1l1_opy_
-    bstack1lll111_opy_ = ord (bstack1llllll1_opy_ [-1])
-    bstack1ll11l1_opy_ = bstack1llllll1_opy_ [:-1]
-    bstack1l11lll_opy_ = bstack1lll111_opy_ % len (bstack1ll11l1_opy_)
-    bstack11l1l1_opy_ = bstack1ll11l1_opy_ [:bstack1l11lll_opy_] + bstack1ll11l1_opy_ [bstack1l11lll_opy_:]
-    if bstack1l111_opy_:
-        bstack11l11l_opy_ = unicode () .join ([unichr (ord (char) - bstack11l111_opy_ - (bstack11l1l1l_opy_ + bstack1lll111_opy_) % bstack1l1l_opy_) for bstack11l1l1l_opy_, char in enumerate (bstack11l1l1_opy_)])
+bstack111111l_opy_ = sys.version_info [0] == 2
+bstack111lll_opy_ = 2048
+bstack11ll111_opy_ = 7
+def bstack11l1l11_opy_ (bstack1l11111_opy_):
+    global bstack11l1ll1_opy_
+    bstack1l1l111_opy_ = ord (bstack1l11111_opy_ [-1])
+    bstack1lll11_opy_ = bstack1l11111_opy_ [:-1]
+    bstack1ll11l_opy_ = bstack1l1l111_opy_ % len (bstack1lll11_opy_)
+    bstack1ll1l_opy_ = bstack1lll11_opy_ [:bstack1ll11l_opy_] + bstack1lll11_opy_ [bstack1ll11l_opy_:]
+    if bstack111111l_opy_:
+        bstack1ll1_opy_ = unicode () .join ([unichr (ord (char) - bstack111lll_opy_ - (bstack1l1l1l_opy_ + bstack1l1l111_opy_) % bstack11ll111_opy_) for bstack1l1l1l_opy_, char in enumerate (bstack1ll1l_opy_)])
     else:
-        bstack11l11l_opy_ = str () .join ([chr (ord (char) - bstack11l111_opy_ - (bstack11l1l1l_opy_ + bstack1lll111_opy_) % bstack1l1l_opy_) for bstack11l1l1l_opy_, char in enumerate (bstack11l1l1_opy_)])
-    return eval (bstack11l11l_opy_)
+        bstack1ll1_opy_ = str () .join ([chr (ord (char) - bstack111lll_opy_ - (bstack1l1l1l_opy_ + bstack1l1l111_opy_) % bstack11ll111_opy_) for bstack1l1l1l_opy_, char in enumerate (bstack1ll1l_opy_)])
+    return eval (bstack1ll1_opy_)
 import json
 import time
 import os
 import threading
 import asyncio
-from browserstack_sdk.sdk_cli.bstack1llll1l1lll_opy_ import (
-    bstack1llllll1111_opy_,
-    bstack1lllll11l11_opy_,
-    bstack1llll1ll111_opy_,
-    bstack1llll111l1l_opy_,
+from browserstack_sdk.sdk_cli.bstack1lllll1l1ll_opy_ import (
+    bstack1llll1l1l1l_opy_,
+    bstack1lllllll111_opy_,
+    bstack1llll11l1ll_opy_,
+    bstack1lll1l1111l_opy_,
 )
 from typing import Tuple, Dict, Any, List, Union
-from bstack_utils.helper import bstack1lll1ll1lll_opy_, bstack1ll1l1ll1_opy_
-from browserstack_sdk.sdk_cli.bstack1llllll11ll_opy_ import bstack1lllllll1l1_opy_
-from browserstack_sdk.sdk_cli.test_framework import TestFramework, bstack1lll1llllll_opy_, bstack1lll1l1lll1_opy_, bstack1lll1l1llll_opy_
-from browserstack_sdk.sdk_cli.bstack1lll1l1l111_opy_ import bstack1lll1ll11ll_opy_
-from browserstack_sdk.sdk_cli.bstack1lll1ll1111_opy_ import bstack1lll11l1lll_opy_
+from bstack_utils.helper import bstack1lll1ll1lll_opy_, bstack111lllll1_opy_
+from browserstack_sdk.sdk_cli.bstack1llll1l11ll_opy_ import bstack1lllllll11l_opy_
+from browserstack_sdk.sdk_cli.test_framework import TestFramework, bstack1lll1l1llll_opy_, bstack1lll11lll1l_opy_, bstack1lll1l1ll11_opy_
+from browserstack_sdk.sdk_cli.bstack1lll1l11lll_opy_ import bstack1lll1llllll_opy_
+from browserstack_sdk.sdk_cli.bstack1llll111111_opy_ import bstack1lll1l1lll1_opy_
 from typing import Tuple, List, Any
-from bstack_utils.bstack1l1ll1lll1_opy_ import bstack1l11lll11_opy_, bstack11lllll11_opy_, bstack11111lll1l_opy_
+from bstack_utils.bstack1l111ll11l_opy_ import bstack1llll1ll11_opy_, bstack1l1111ll1_opy_, bstack1l11l111ll_opy_
 from browserstack_sdk import sdk_pb2 as structs
-class bstack1lll1l11ll1_opy_(bstack1lll11l1lll_opy_):
-    bstack1lll1ll1ll1_opy_ = bstack1l111ll_opy_ (u"ࠣࡶࡨࡷࡹࡥࡤࡳ࡫ࡹࡩࡷࡹࠢᄟ")
-    bstack1lll11llll1_opy_ = bstack1l111ll_opy_ (u"ࠤࡤࡹࡹࡵ࡭ࡢࡶ࡬ࡳࡳࡥࡳࡦࡵࡶ࡭ࡴࡴࡳࠣᄠ")
-    bstack1lll1ll11l1_opy_ = bstack1l111ll_opy_ (u"ࠥࡲࡴࡴ࡟ࡣࡴࡲࡻࡸ࡫ࡲࡴࡶࡤࡧࡰࡥࡡࡶࡶࡲࡱࡦࡺࡩࡰࡰࡢࡷࡪࡹࡳࡪࡱࡱࡷࠧᄡ")
-    bstack1lll1l111ll_opy_ = bstack1l111ll_opy_ (u"ࠦࡹ࡫ࡳࡵࡡࡶࡩࡸࡹࡩࡰࡰࡶࠦᄢ")
-    bstack1lll11l1l1l_opy_ = bstack1l111ll_opy_ (u"ࠧࡧࡵࡵࡱࡰࡥࡹ࡯࡯࡯ࡡ࡬ࡲࡸࡺࡡ࡯ࡥࡨࡣࡷ࡫ࡦࡴࠤᄣ")
-    bstack1llll111lll_opy_ = bstack1l111ll_opy_ (u"ࠨࡣࡣࡶࡢࡷࡪࡹࡳࡪࡱࡱࡣࡨࡸࡥࡢࡶࡨࡨࠧᄤ")
-    bstack1lll1lllll1_opy_ = bstack1l111ll_opy_ (u"ࠢࡤࡤࡷࡣࡸ࡫ࡳࡴ࡫ࡲࡲࡤࡴࡡ࡮ࡧࠥᄥ")
-    bstack1lll1llll11_opy_ = bstack1l111ll_opy_ (u"ࠣࡥࡥࡸࡤࡹࡥࡴࡵ࡬ࡳࡳࡥࡳࡵࡣࡷࡹࡸࠨᄦ")
+class bstack1llll1111ll_opy_(bstack1lll1l1lll1_opy_):
+    bstack1llll111l1l_opy_ = bstack11l1l11_opy_ (u"ࠢࡵࡧࡶࡸࡤࡪࡲࡪࡸࡨࡶࡸࠨᄞ")
+    bstack1lll1ll1l1l_opy_ = bstack11l1l11_opy_ (u"ࠣࡣࡸࡸࡴࡳࡡࡵ࡫ࡲࡲࡤࡹࡥࡴࡵ࡬ࡳࡳࡹࠢᄟ")
+    bstack1lll1l11ll1_opy_ = bstack11l1l11_opy_ (u"ࠤࡱࡳࡳࡥࡢࡳࡱࡺࡷࡪࡸࡳࡵࡣࡦ࡯ࡤࡧࡵࡵࡱࡰࡥࡹ࡯࡯࡯ࡡࡶࡩࡸࡹࡩࡰࡰࡶࠦᄠ")
+    bstack1lll11ll1l1_opy_ = bstack11l1l11_opy_ (u"ࠥࡸࡪࡹࡴࡠࡵࡨࡷࡸ࡯࡯࡯ࡵࠥᄡ")
+    bstack1lll1ll1ll1_opy_ = bstack11l1l11_opy_ (u"ࠦࡦࡻࡴࡰ࡯ࡤࡸ࡮ࡵ࡮ࡠ࡫ࡱࡷࡹࡧ࡮ࡤࡧࡢࡶࡪ࡬ࡳࠣᄢ")
+    bstack1lll1lll11l_opy_ = bstack11l1l11_opy_ (u"ࠧࡩࡢࡵࡡࡶࡩࡸࡹࡩࡰࡰࡢࡧࡷ࡫ࡡࡵࡧࡧࠦᄣ")
+    bstack1lll1l111ll_opy_ = bstack11l1l11_opy_ (u"ࠨࡣࡣࡶࡢࡷࡪࡹࡳࡪࡱࡱࡣࡳࡧ࡭ࡦࠤᄤ")
+    bstack1lll1ll11ll_opy_ = bstack11l1l11_opy_ (u"ࠢࡤࡤࡷࡣࡸ࡫ࡳࡴ࡫ࡲࡲࡤࡹࡴࡢࡶࡸࡷࠧᄥ")
     def __init__(self):
-        super().__init__(bstack1lll1l1l11l_opy_=self.bstack1lll1ll1ll1_opy_, frameworks=[bstack1lllllll1l1_opy_.NAME])
+        super().__init__(bstack1lll1l1l1l1_opy_=self.bstack1llll111l1l_opy_, frameworks=[bstack1lllllll11l_opy_.NAME])
         if not self.is_enabled():
             return
-        TestFramework.bstack1lllll1l111_opy_((bstack1lll1llllll_opy_.BEFORE_EACH, bstack1lll1l1lll1_opy_.POST), self.bstack1lll11ll111_opy_)
-        if bstack1ll1l1ll1_opy_():
-            TestFramework.bstack1lllll1l111_opy_((bstack1lll1llllll_opy_.TEST, bstack1lll1l1lll1_opy_.POST), self.bstack1lll1lll11l_opy_)
+        TestFramework.bstack1llll1ll1ll_opy_((bstack1lll1l1llll_opy_.BEFORE_EACH, bstack1lll11lll1l_opy_.POST), self.bstack1lll1llll1l_opy_)
+        if bstack111lllll1_opy_():
+            TestFramework.bstack1llll1ll1ll_opy_((bstack1lll1l1llll_opy_.TEST, bstack1lll11lll1l_opy_.POST), self.bstack1lll11l1ll1_opy_)
         else:
-            TestFramework.bstack1lllll1l111_opy_((bstack1lll1llllll_opy_.TEST, bstack1lll1l1lll1_opy_.PRE), self.bstack1lll1lll11l_opy_)
-        TestFramework.bstack1lllll1l111_opy_((bstack1lll1llllll_opy_.TEST, bstack1lll1l1lll1_opy_.POST), self.bstack1lll1l1ll1l_opy_)
+            TestFramework.bstack1llll1ll1ll_opy_((bstack1lll1l1llll_opy_.TEST, bstack1lll11lll1l_opy_.PRE), self.bstack1lll11l1ll1_opy_)
+        TestFramework.bstack1llll1ll1ll_opy_((bstack1lll1l1llll_opy_.TEST, bstack1lll11lll1l_opy_.POST), self.bstack1llll111lll_opy_)
     def is_enabled(self) -> bool:
         return True
-    def bstack1lll11ll111_opy_(
+    def bstack1lll1llll1l_opy_(
         self,
         f: TestFramework,
-        instance: bstack1lll1l1llll_opy_,
-        bstack1lllll1l1l1_opy_: Tuple[bstack1lll1llllll_opy_, bstack1lll1l1lll1_opy_],
+        instance: bstack1lll1l1ll11_opy_,
+        bstack1llllll11l1_opy_: Tuple[bstack1lll1l1llll_opy_, bstack1lll11lll1l_opy_],
         *args,
         **kwargs,
     ):
-        bstack1lll11l1ll1_opy_ = self.bstack1lll1llll1l_opy_(instance.context)
-        if not bstack1lll11l1ll1_opy_:
-            self.logger.debug(bstack1l111ll_opy_ (u"ࠤࡶࡩࡹࡥࡡࡤࡶ࡬ࡺࡪࡥࡰࡢࡩࡨ࠾ࠥࡴ࡯ࠡࡲࡤ࡫ࡪࠦࡦࡰࡴࠣ࡬ࡴࡵ࡫ࡠ࡫ࡱࡪࡴࡃࠢᄧ") + str(bstack1lllll1l1l1_opy_) + bstack1l111ll_opy_ (u"ࠥࠦᄨ"))
+        bstack1lll1ll11l1_opy_ = self.bstack1lll1l1l11l_opy_(instance.context)
+        if not bstack1lll1ll11l1_opy_:
+            self.logger.debug(bstack11l1l11_opy_ (u"ࠣࡵࡨࡸࡤࡧࡣࡵ࡫ࡹࡩࡤࡶࡡࡨࡧ࠽ࠤࡳࡵࠠࡱࡣࡪࡩࠥ࡬࡯ࡳࠢ࡫ࡳࡴࡱ࡟ࡪࡰࡩࡳࡂࠨᄦ") + str(bstack1llllll11l1_opy_) + bstack11l1l11_opy_ (u"ࠤࠥᄧ"))
             return
-        f.bstack1lllll1ll1l_opy_(instance, bstack1lll1l11ll1_opy_.bstack1lll11llll1_opy_, bstack1lll11l1ll1_opy_)
-    def bstack1lll1llll1l_opy_(self, context: bstack1llll111l1l_opy_, bstack1lll1l11l1l_opy_= True):
-        if bstack1lll1l11l1l_opy_:
-            bstack1lll11l1ll1_opy_ = self.bstack1lll11lll11_opy_(context, reverse=True)
+        f.bstack1llllll1l11_opy_(instance, bstack1llll1111ll_opy_.bstack1lll1ll1l1l_opy_, bstack1lll1ll11l1_opy_)
+    def bstack1lll1l1l11l_opy_(self, context: bstack1lll1l1111l_opy_, bstack1lll1l1l1ll_opy_= True):
+        if bstack1lll1l1l1ll_opy_:
+            bstack1lll1ll11l1_opy_ = self.bstack1lll11lll11_opy_(context, reverse=True)
         else:
-            bstack1lll11l1ll1_opy_ = self.bstack1lll1lll1ll_opy_(context, reverse=True)
-        return [f for f in bstack1lll11l1ll1_opy_ if f[1].state != bstack1llllll1111_opy_.QUIT]
-    def bstack1lll1lll11l_opy_(
+            bstack1lll1ll11l1_opy_ = self.bstack1lll11llll1_opy_(context, reverse=True)
+        return [f for f in bstack1lll1ll11l1_opy_ if f[1].state != bstack1llll1l1l1l_opy_.QUIT]
+    def bstack1lll11l1ll1_opy_(
         self,
         f: TestFramework,
-        instance: bstack1lll1l1llll_opy_,
-        bstack1lllll1l1l1_opy_: Tuple[bstack1lll1llllll_opy_, bstack1lll1l1lll1_opy_],
+        instance: bstack1lll1l1ll11_opy_,
+        bstack1llllll11l1_opy_: Tuple[bstack1lll1l1llll_opy_, bstack1lll11lll1l_opy_],
         *args,
         **kwargs,
     ):
-        self.bstack1lll11ll111_opy_(f, instance, bstack1lllll1l1l1_opy_, *args, **kwargs)
+        self.bstack1lll1llll1l_opy_(f, instance, bstack1llllll11l1_opy_, *args, **kwargs)
         if not bstack1lll1ll1lll_opy_:
-            self.logger.debug(bstack1l111ll_opy_ (u"ࠦࡴࡴ࡟ࡣࡧࡩࡳࡷ࡫࡟ࡵࡧࡶࡸ࠿ࠦ࡮ࡰࡶࠣࡦࡷࡵࡷࡴࡧࡵࡷࡹࡧࡣ࡬ࠢࡶࡩࡸࡹࡩࡰࡰࠣࡪࡴࡸࠠࡩࡱࡲ࡯ࡤ࡯࡮ࡧࡱࡀࡿ࡭ࡵ࡯࡬ࡡ࡬ࡲ࡫ࡵࡽࠡࡣࡵ࡫ࡸࡃࡻࡢࡴࡪࡷࢂࠦ࡫ࡸࡣࡵ࡫ࡸࡃࠢᄩ") + str(kwargs) + bstack1l111ll_opy_ (u"ࠧࠨᄪ"))
+            self.logger.debug(bstack11l1l11_opy_ (u"ࠥࡳࡳࡥࡢࡦࡨࡲࡶࡪࡥࡴࡦࡵࡷ࠾ࠥࡴ࡯ࡵࠢࡥࡶࡴࡽࡳࡦࡴࡶࡸࡦࡩ࡫ࠡࡵࡨࡷࡸ࡯࡯࡯ࠢࡩࡳࡷࠦࡨࡰࡱ࡮ࡣ࡮ࡴࡦࡰ࠿ࡾ࡬ࡴࡵ࡫ࡠ࡫ࡱࡪࡴࢃࠠࡢࡴࡪࡷࡂࢁࡡࡳࡩࡶࢁࠥࡱࡷࡢࡴࡪࡷࡂࠨᄨ") + str(kwargs) + bstack11l1l11_opy_ (u"ࠦࠧᄩ"))
             return
-        bstack1lll11l1ll1_opy_ = f.get_state(instance, bstack1lll1l11ll1_opy_.bstack1lll11llll1_opy_, [])
-        if not bstack1lll11l1ll1_opy_:
-            self.logger.debug(bstack1l111ll_opy_ (u"ࠨ࡯࡯ࡡࡥࡩ࡫ࡵࡲࡦࡡࡷࡩࡸࡺ࠺ࠡࡰࡲࠤࡩࡸࡩࡷࡧࡵࡷࠥ࡬࡯ࡳࠢ࡫ࡳࡴࡱ࡟ࡪࡰࡩࡳࡂࢁࡨࡰࡱ࡮ࡣ࡮ࡴࡦࡰࡿࠣࡥࡷ࡭ࡳ࠾ࡽࡤࡶ࡬ࡹࡽࠡ࡭ࡺࡥࡷ࡭ࡳ࠾ࠤᄫ") + str(kwargs) + bstack1l111ll_opy_ (u"ࠢࠣᄬ"))
+        bstack1lll1ll11l1_opy_ = f.get_state(instance, bstack1llll1111ll_opy_.bstack1lll1ll1l1l_opy_, [])
+        if not bstack1lll1ll11l1_opy_:
+            self.logger.debug(bstack11l1l11_opy_ (u"ࠧࡵ࡮ࡠࡤࡨࡪࡴࡸࡥࡠࡶࡨࡷࡹࡀࠠ࡯ࡱࠣࡨࡷ࡯ࡶࡦࡴࡶࠤ࡫ࡵࡲࠡࡪࡲࡳࡰࡥࡩ࡯ࡨࡲࡁࢀ࡮࡯ࡰ࡭ࡢ࡭ࡳ࡬࡯ࡾࠢࡤࡶ࡬ࡹ࠽ࡼࡣࡵ࡫ࡸࢃࠠ࡬ࡹࡤࡶ࡬ࡹ࠽ࠣᄪ") + str(kwargs) + bstack11l1l11_opy_ (u"ࠨࠢᄫ"))
             return
-        if len(bstack1lll11l1ll1_opy_) > 1:
+        if len(bstack1lll1ll11l1_opy_) > 1:
             self.logger.debug(
-                bstack1lll11lllll_opy_ (u"ࠣࡱࡱࡣࡧ࡫ࡦࡰࡴࡨࡣࡹ࡫ࡳࡵ࠼ࠣࡿࡱ࡫࡮ࠩࡲࡤ࡫ࡪࡥࡩ࡯ࡵࡷࡥࡳࡩࡥࡴࠫࢀࠤࡩࡸࡩࡷࡧࡵࡷࠥ࡬࡯ࡳࠢ࡫ࡳࡴࡱ࡟ࡪࡰࡩࡳࡂࢁࡨࡰࡱ࡮ࡣ࡮ࡴࡦࡰࡿࠣࡥࡷ࡭ࡳ࠾ࡽࡤࡶ࡬ࡹࡽࠡ࡭ࡺࡥࡷ࡭ࡳ࠾ࡽ࡮ࡻࡦࡸࡧࡴࡿࠥᄭ"))
-        bstack1llll111111_opy_, bstack1llll11111l_opy_ = bstack1lll11l1ll1_opy_[0]
-        page = bstack1llll111111_opy_()
+                bstack1lll11ll111_opy_ (u"ࠢࡰࡰࡢࡦࡪ࡬࡯ࡳࡧࡢࡸࡪࡹࡴ࠻ࠢࡾࡰࡪࡴࠨࡱࡣࡪࡩࡤ࡯࡮ࡴࡶࡤࡲࡨ࡫ࡳࠪࡿࠣࡨࡷ࡯ࡶࡦࡴࡶࠤ࡫ࡵࡲࠡࡪࡲࡳࡰࡥࡩ࡯ࡨࡲࡁࢀ࡮࡯ࡰ࡭ࡢ࡭ࡳ࡬࡯ࡾࠢࡤࡶ࡬ࡹ࠽ࡼࡣࡵ࡫ࡸࢃࠠ࡬ࡹࡤࡶ࡬ࡹ࠽ࡼ࡭ࡺࡥࡷ࡭ࡳࡾࠤᄬ"))
+        bstack1lll1l11l11_opy_, bstack1lll11ll1ll_opy_ = bstack1lll1ll11l1_opy_[0]
+        page = bstack1lll1l11l11_opy_()
         if not page:
-            self.logger.debug(bstack1l111ll_opy_ (u"ࠤࡲࡲࡤࡨࡥࡧࡱࡵࡩࡤࡺࡥࡴࡶ࠽ࠤࡳࡵࠠࡱࡣࡪࡩࠥ࡬࡯ࡳࠢ࡫ࡳࡴࡱ࡟ࡪࡰࡩࡳࡂࢁࡨࡰࡱ࡮ࡣ࡮ࡴࡦࡰࡿࠣࡥࡷ࡭ࡳ࠾ࡽࡤࡶ࡬ࡹࡽࠡ࡭ࡺࡥࡷ࡭ࡳ࠾ࠤᄮ") + str(kwargs) + bstack1l111ll_opy_ (u"ࠥࠦᄯ"))
+            self.logger.debug(bstack11l1l11_opy_ (u"ࠣࡱࡱࡣࡧ࡫ࡦࡰࡴࡨࡣࡹ࡫ࡳࡵ࠼ࠣࡲࡴࠦࡰࡢࡩࡨࠤ࡫ࡵࡲࠡࡪࡲࡳࡰࡥࡩ࡯ࡨࡲࡁࢀ࡮࡯ࡰ࡭ࡢ࡭ࡳ࡬࡯ࡾࠢࡤࡶ࡬ࡹ࠽ࡼࡣࡵ࡫ࡸࢃࠠ࡬ࡹࡤࡶ࡬ࡹ࠽ࠣᄭ") + str(kwargs) + bstack11l1l11_opy_ (u"ࠤࠥᄮ"))
             return
-        bstack11ll11l111_opy_ = getattr(args[0], bstack1l111ll_opy_ (u"ࠦࡳࡵࡤࡦ࡫ࡧࠦᄰ"), None)
+        bstack1111lll111_opy_ = getattr(args[0], bstack11l1l11_opy_ (u"ࠥࡲࡴࡪࡥࡪࡦࠥᄯ"), None)
         from browserstack_sdk.sdk_cli.cli import cli
-        if not cli.config.get(bstack1l111ll_opy_ (u"ࠧࡺࡥࡴࡶࡆࡳࡳࡺࡥࡹࡶࡒࡴࡹ࡯࡯࡯ࡵࠥᄱ")).get(bstack1l111ll_opy_ (u"ࠨࡳ࡬࡫ࡳࡗࡪࡹࡳࡪࡱࡱࡒࡦࡳࡥࠣᄲ")):
+        if not cli.config.get(bstack11l1l11_opy_ (u"ࠦࡹ࡫ࡳࡵࡅࡲࡲࡹ࡫ࡸࡵࡑࡳࡸ࡮ࡵ࡮ࡴࠤᄰ")).get(bstack11l1l11_opy_ (u"ࠧࡹ࡫ࡪࡲࡖࡩࡸࡹࡩࡰࡰࡑࡥࡲ࡫ࠢᄱ")):
             try:
-                page.evaluate(bstack1l111ll_opy_ (u"ࠢࡠࠢࡀࡂࠥࢁࡽࠣᄳ"),
-                            bstack1l111ll_opy_ (u"ࠨࡤࡵࡳࡼࡹࡥࡳࡵࡷࡥࡨࡱ࡟ࡦࡺࡨࡧࡺࡺ࡯ࡳ࠼ࠣࡿࠧࡧࡣࡵ࡫ࡲࡲࠧࡀࠠࠣࡵࡨࡸࡘ࡫ࡳࡴ࡫ࡲࡲࡓࡧ࡭ࡦࠤ࠯ࠤࠧࡧࡲࡨࡷࡰࡩࡳࡺࡳࠣ࠼ࠣࡿࠧࡴࡡ࡮ࡧࠥ࠾ࠬᄴ") + json.dumps(
-                                bstack11ll11l111_opy_) + bstack1l111ll_opy_ (u"ࠤࢀࢁࠧᄵ"))
+                page.evaluate(bstack11l1l11_opy_ (u"ࠨ࡟ࠡ࠿ࡁࠤࢀࢃࠢᄲ"),
+                            bstack11l1l11_opy_ (u"ࠧࡣࡴࡲࡻࡸ࡫ࡲࡴࡶࡤࡧࡰࡥࡥࡹࡧࡦࡹࡹࡵࡲ࠻ࠢࡾࠦࡦࡩࡴࡪࡱࡱࠦ࠿ࠦࠢࡴࡧࡷࡗࡪࡹࡳࡪࡱࡱࡒࡦࡳࡥࠣ࠮ࠣࠦࡦࡸࡧࡶ࡯ࡨࡲࡹࡹࠢ࠻ࠢࡾࠦࡳࡧ࡭ࡦࠤ࠽ࠫᄳ") + json.dumps(
+                                bstack1111lll111_opy_) + bstack11l1l11_opy_ (u"ࠣࡿࢀࠦᄴ"))
             except Exception as e:
-                self.logger.debug(bstack1l111ll_opy_ (u"ࠥࡩࡽࡩࡥࡱࡶ࡬ࡳࡳࠦࡩ࡯ࠢࡳࡰࡦࡿࡷࡳ࡫ࡪ࡬ࡹࠦࡳࡦࡵࡶ࡭ࡴࡴࠠ࡯ࡣࡰࡩࠥࢁࡽࠣᄶ"), e)
-    def bstack1lll1l1ll1l_opy_(
+                self.logger.debug(bstack11l1l11_opy_ (u"ࠤࡨࡼࡨ࡫ࡰࡵ࡫ࡲࡲࠥ࡯࡮ࠡࡲ࡯ࡥࡾࡽࡲࡪࡩ࡫ࡸࠥࡹࡥࡴࡵ࡬ࡳࡳࠦ࡮ࡢ࡯ࡨࠤࢀࢃࠢᄵ"), e)
+    def bstack1llll111lll_opy_(
         self,
         f: TestFramework,
-        instance: bstack1lll1l1llll_opy_,
-        bstack1lllll1l1l1_opy_: Tuple[bstack1lll1llllll_opy_, bstack1lll1l1lll1_opy_],
+        instance: bstack1lll1l1ll11_opy_,
+        bstack1llllll11l1_opy_: Tuple[bstack1lll1l1llll_opy_, bstack1lll11lll1l_opy_],
         *args,
         **kwargs,
     ):
-        self.bstack1lll11ll111_opy_(f, instance, bstack1lllll1l1l1_opy_, *args, **kwargs)
+        self.bstack1lll1llll1l_opy_(f, instance, bstack1llllll11l1_opy_, *args, **kwargs)
         if not bstack1lll1ll1lll_opy_:
-            self.logger.debug(bstack1l111ll_opy_ (u"ࠦࡴࡴ࡟ࡣࡧࡩࡳࡷ࡫࡟ࡵࡧࡶࡸ࠿ࠦ࡮ࡰࡶࠣࡦࡷࡵࡷࡴࡧࡵࡷࡹࡧࡣ࡬ࠢࡶࡩࡸࡹࡩࡰࡰࠣࡪࡴࡸࠠࡩࡱࡲ࡯ࡤ࡯࡮ࡧࡱࡀࡿ࡭ࡵ࡯࡬ࡡ࡬ࡲ࡫ࡵࡽࠡࡣࡵ࡫ࡸࡃࡻࡢࡴࡪࡷࢂࠦ࡫ࡸࡣࡵ࡫ࡸࡃࠢᄷ") + str(kwargs) + bstack1l111ll_opy_ (u"ࠧࠨᄸ"))
+            self.logger.debug(bstack11l1l11_opy_ (u"ࠥࡳࡳࡥࡢࡦࡨࡲࡶࡪࡥࡴࡦࡵࡷ࠾ࠥࡴ࡯ࡵࠢࡥࡶࡴࡽࡳࡦࡴࡶࡸࡦࡩ࡫ࠡࡵࡨࡷࡸ࡯࡯࡯ࠢࡩࡳࡷࠦࡨࡰࡱ࡮ࡣ࡮ࡴࡦࡰ࠿ࡾ࡬ࡴࡵ࡫ࡠ࡫ࡱࡪࡴࢃࠠࡢࡴࡪࡷࡂࢁࡡࡳࡩࡶࢁࠥࡱࡷࡢࡴࡪࡷࡂࠨᄶ") + str(kwargs) + bstack11l1l11_opy_ (u"ࠦࠧᄷ"))
             return
-        bstack1lll11l1ll1_opy_ = f.get_state(instance, bstack1lll1l11ll1_opy_.bstack1lll11llll1_opy_, [])
-        if not bstack1lll11l1ll1_opy_:
-            self.logger.debug(bstack1l111ll_opy_ (u"ࠨ࡯࡯ࡡࡥࡩ࡫ࡵࡲࡦࡡࡷࡩࡸࡺ࠺ࠡࡰࡲࠤࡩࡸࡩࡷࡧࡵࡷࠥ࡬࡯ࡳࠢ࡫ࡳࡴࡱ࡟ࡪࡰࡩࡳࡂࢁࡨࡰࡱ࡮ࡣ࡮ࡴࡦࡰࡿࠣࡥࡷ࡭ࡳ࠾ࡽࡤࡶ࡬ࡹࡽࠡ࡭ࡺࡥࡷ࡭ࡳ࠾ࠤᄹ") + str(kwargs) + bstack1l111ll_opy_ (u"ࠢࠣᄺ"))
+        bstack1lll1ll11l1_opy_ = f.get_state(instance, bstack1llll1111ll_opy_.bstack1lll1ll1l1l_opy_, [])
+        if not bstack1lll1ll11l1_opy_:
+            self.logger.debug(bstack11l1l11_opy_ (u"ࠧࡵ࡮ࡠࡤࡨࡪࡴࡸࡥࡠࡶࡨࡷࡹࡀࠠ࡯ࡱࠣࡨࡷ࡯ࡶࡦࡴࡶࠤ࡫ࡵࡲࠡࡪࡲࡳࡰࡥࡩ࡯ࡨࡲࡁࢀ࡮࡯ࡰ࡭ࡢ࡭ࡳ࡬࡯ࡾࠢࡤࡶ࡬ࡹ࠽ࡼࡣࡵ࡫ࡸࢃࠠ࡬ࡹࡤࡶ࡬ࡹ࠽ࠣᄸ") + str(kwargs) + bstack11l1l11_opy_ (u"ࠨࠢᄹ"))
             return
-        if len(bstack1lll11l1ll1_opy_) > 1:
+        if len(bstack1lll1ll11l1_opy_) > 1:
             self.logger.debug(
-                bstack1lll11lllll_opy_ (u"ࠣࡱࡱࡣࡧ࡫ࡦࡰࡴࡨࡣࡹ࡫ࡳࡵ࠼ࠣࡿࡱ࡫࡮ࠩࡲࡤ࡫ࡪࡥࡩ࡯ࡵࡷࡥࡳࡩࡥࡴࠫࢀࠤࡩࡸࡩࡷࡧࡵࡷࠥ࡬࡯ࡳࠢ࡫ࡳࡴࡱ࡟ࡪࡰࡩࡳࡂࢁࡨࡰࡱ࡮ࡣ࡮ࡴࡦࡰࡿࠣࡥࡷ࡭ࡳ࠾ࡽࡤࡶ࡬ࡹࡽࠡ࡭ࡺࡥࡷ࡭ࡳ࠾ࡽ࡮ࡻࡦࡸࡧࡴࡿࠥᄻ"))
-        bstack1llll111111_opy_, bstack1llll11111l_opy_ = bstack1lll11l1ll1_opy_[0]
-        page = bstack1llll111111_opy_()
+                bstack1lll11ll111_opy_ (u"ࠢࡰࡰࡢࡦࡪ࡬࡯ࡳࡧࡢࡸࡪࡹࡴ࠻ࠢࡾࡰࡪࡴࠨࡱࡣࡪࡩࡤ࡯࡮ࡴࡶࡤࡲࡨ࡫ࡳࠪࡿࠣࡨࡷ࡯ࡶࡦࡴࡶࠤ࡫ࡵࡲࠡࡪࡲࡳࡰࡥࡩ࡯ࡨࡲࡁࢀ࡮࡯ࡰ࡭ࡢ࡭ࡳ࡬࡯ࡾࠢࡤࡶ࡬ࡹ࠽ࡼࡣࡵ࡫ࡸࢃࠠ࡬ࡹࡤࡶ࡬ࡹ࠽ࡼ࡭ࡺࡥࡷ࡭ࡳࡾࠤᄺ"))
+        bstack1lll1l11l11_opy_, bstack1lll11ll1ll_opy_ = bstack1lll1ll11l1_opy_[0]
+        page = bstack1lll1l11l11_opy_()
         if not page:
-            self.logger.debug(bstack1l111ll_opy_ (u"ࠤࡲࡲࡤࡨࡥࡧࡱࡵࡩࡤࡺࡥࡴࡶ࠽ࠤࡳࡵࠠࡱࡣࡪࡩࠥ࡬࡯ࡳࠢ࡫ࡳࡴࡱ࡟ࡪࡰࡩࡳࡂࢁࡨࡰࡱ࡮ࡣ࡮ࡴࡦࡰࡿࠣࡥࡷ࡭ࡳ࠾ࡽࡤࡶ࡬ࡹࡽࠡ࡭ࡺࡥࡷ࡭ࡳ࠾ࠤᄼ") + str(kwargs) + bstack1l111ll_opy_ (u"ࠥࠦᄽ"))
+            self.logger.debug(bstack11l1l11_opy_ (u"ࠣࡱࡱࡣࡧ࡫ࡦࡰࡴࡨࡣࡹ࡫ࡳࡵ࠼ࠣࡲࡴࠦࡰࡢࡩࡨࠤ࡫ࡵࡲࠡࡪࡲࡳࡰࡥࡩ࡯ࡨࡲࡁࢀ࡮࡯ࡰ࡭ࡢ࡭ࡳ࡬࡯ࡾࠢࡤࡶ࡬ࡹ࠽ࡼࡣࡵ࡫ࡸࢃࠠ࡬ࡹࡤࡶ࡬ࡹ࠽ࠣᄻ") + str(kwargs) + bstack11l1l11_opy_ (u"ࠤࠥᄼ"))
             return
-        status = f.get_state(instance, TestFramework.bstack1lll1l111l1_opy_, None)
+        status = f.get_state(instance, TestFramework.bstack1lll11l1l1l_opy_, None)
         if not status:
-            self.logger.debug(bstack1l111ll_opy_ (u"ࠦࡳࡵࠠࡴࡶࡤࡸࡺࡹࠠࡧࡱࡵࠤࡹ࡫ࡳࡵ࠮ࠣ࡬ࡴࡵ࡫ࡠ࡫ࡱࡪࡴࡃࠢᄾ") + str(bstack1lllll1l1l1_opy_) + bstack1l111ll_opy_ (u"ࠧࠨᄿ"))
+            self.logger.debug(bstack11l1l11_opy_ (u"ࠥࡲࡴࠦࡳࡵࡣࡷࡹࡸࠦࡦࡰࡴࠣࡸࡪࡹࡴ࠭ࠢ࡫ࡳࡴࡱ࡟ࡪࡰࡩࡳࡂࠨᄽ") + str(bstack1llllll11l1_opy_) + bstack11l1l11_opy_ (u"ࠦࠧᄾ"))
             return
-        bstack1lll1ll1l11_opy_ = {bstack1l111ll_opy_ (u"ࠨࡳࡵࡣࡷࡹࡸࠨᅀ"): status.lower()}
-        bstack1lll1ll1l1l_opy_ = f.get_state(instance, TestFramework.bstack1llll111ll1_opy_, None)
-        if status.lower() == bstack1l111ll_opy_ (u"ࠧࡧࡣ࡬ࡰࡪࡪࠧᅁ") and bstack1lll1ll1l1l_opy_ is not None:
-            bstack1lll1ll1l11_opy_[bstack1l111ll_opy_ (u"ࠨࡴࡨࡥࡸࡵ࡮ࠨᅂ")] = bstack1lll1ll1l1l_opy_[0][bstack1l111ll_opy_ (u"ࠩࡥࡥࡨࡱࡴࡳࡣࡦࡩࠬᅃ")][0] if isinstance(bstack1lll1ll1l1l_opy_, list) else str(bstack1lll1ll1l1l_opy_)
+        bstack1llll111l11_opy_ = {bstack11l1l11_opy_ (u"ࠧࡹࡴࡢࡶࡸࡷࠧᄿ"): status.lower()}
+        bstack1llll11111l_opy_ = f.get_state(instance, TestFramework.bstack1lll1llll11_opy_, None)
+        if status.lower() == bstack11l1l11_opy_ (u"࠭ࡦࡢ࡫࡯ࡩࡩ࠭ᅀ") and bstack1llll11111l_opy_ is not None:
+            bstack1llll111l11_opy_[bstack11l1l11_opy_ (u"ࠧࡳࡧࡤࡷࡴࡴࠧᅁ")] = bstack1llll11111l_opy_[0][bstack11l1l11_opy_ (u"ࠨࡤࡤࡧࡰࡺࡲࡢࡥࡨࠫᅂ")][0] if isinstance(bstack1llll11111l_opy_, list) else str(bstack1llll11111l_opy_)
         from browserstack_sdk.sdk_cli.cli import cli
-        if not cli.config.get(bstack1l111ll_opy_ (u"ࠥࡸࡪࡹࡴࡄࡱࡱࡸࡪࡾࡴࡐࡲࡷ࡭ࡴࡴࡳࠣᅄ")).get(bstack1l111ll_opy_ (u"ࠦࡸࡱࡩࡱࡕࡨࡷࡸ࡯࡯࡯ࡕࡷࡥࡹࡻࡳࠣᅅ")):
+        if not cli.config.get(bstack11l1l11_opy_ (u"ࠤࡷࡩࡸࡺࡃࡰࡰࡷࡩࡽࡺࡏࡱࡶ࡬ࡳࡳࡹࠢᅃ")).get(bstack11l1l11_opy_ (u"ࠥࡷࡰ࡯ࡰࡔࡧࡶࡷ࡮ࡵ࡮ࡔࡶࡤࡸࡺࡹࠢᅄ")):
             try:
                 page.evaluate(
-                        bstack1l111ll_opy_ (u"ࠧࡥࠠ࠾ࡀࠣࡿࢂࠨᅆ"),
-                        bstack1l111ll_opy_ (u"࠭ࡢࡳࡱࡺࡷࡪࡸࡳࡵࡣࡦ࡯ࡤ࡫ࡸࡦࡥࡸࡸࡴࡸ࠺ࠡࡽࠥࡥࡨࡺࡩࡰࡰࠥ࠾ࠥࠨࡳࡦࡶࡖࡩࡸࡹࡩࡰࡰࡖࡸࡦࡺࡵࡴࠤ࠯ࠤࠧࡧࡲࡨࡷࡰࡩࡳࡺࡳࠣ࠼ࠣࠫᅇ")
-                        + json.dumps(bstack1lll1ll1l11_opy_)
-                        + bstack1l111ll_opy_ (u"ࠢࡾࠤᅈ")
+                        bstack11l1l11_opy_ (u"ࠦࡤࠦ࠽࠿ࠢࡾࢁࠧᅅ"),
+                        bstack11l1l11_opy_ (u"ࠬࡨࡲࡰࡹࡶࡩࡷࡹࡴࡢࡥ࡮ࡣࡪࡾࡥࡤࡷࡷࡳࡷࡀࠠࡼࠤࡤࡧࡹ࡯࡯࡯ࠤ࠽ࠤࠧࡹࡥࡵࡕࡨࡷࡸ࡯࡯࡯ࡕࡷࡥࡹࡻࡳࠣ࠮ࠣࠦࡦࡸࡧࡶ࡯ࡨࡲࡹࡹࠢ࠻ࠢࠪᅆ")
+                        + json.dumps(bstack1llll111l11_opy_)
+                        + bstack11l1l11_opy_ (u"ࠨࡽࠣᅇ")
                     )
             except Exception as e:
-                self.logger.debug(bstack1l111ll_opy_ (u"ࠣࡧࡻࡧࡪࡶࡴࡪࡱࡱࠤ࡮ࡴࠠࡱ࡮ࡤࡽࡼࡸࡩࡨࡪࡷࠤࡸ࡫ࡳࡴ࡫ࡲࡲࠥࡹࡴࡢࡶࡸࡷࠥࢁࡽࠣᅉ"), e)
-    def bstack1lll1l1ll11_opy_(
+                self.logger.debug(bstack11l1l11_opy_ (u"ࠢࡦࡺࡦࡩࡵࡺࡩࡰࡰࠣ࡭ࡳࠦࡰ࡭ࡣࡼࡻࡷ࡯ࡧࡩࡶࠣࡷࡪࡹࡳࡪࡱࡱࠤࡸࡺࡡࡵࡷࡶࠤࢀࢃࠢᅈ"), e)
+    def bstack1lll1l1ll1l_opy_(
         self,
-        instance: bstack1lll1l1llll_opy_,
+        instance: bstack1lll1l1ll11_opy_,
         f: TestFramework,
-        bstack1lllll1l1l1_opy_: Tuple[bstack1lll1llllll_opy_, bstack1lll1l1lll1_opy_],
+        bstack1llllll11l1_opy_: Tuple[bstack1lll1l1llll_opy_, bstack1lll11lll1l_opy_],
         *args,
         **kwargs,
     ):
-        self.bstack1lll11ll111_opy_(f, instance, bstack1lllll1l1l1_opy_, *args, **kwargs)
+        self.bstack1lll1llll1l_opy_(f, instance, bstack1llllll11l1_opy_, *args, **kwargs)
         if not bstack1lll1ll1lll_opy_:
             self.logger.debug(
-                bstack1lll11lllll_opy_ (u"ࠤࡰࡥࡷࡱ࡟ࡰ࠳࠴ࡽࡤࡹࡹ࡯ࡥ࠽ࠤࡳࡵࡴࠡࡤࡵࡳࡼࡹࡥࡳࡵࡷࡥࡨࡱࠠࡴࡧࡶࡷ࡮ࡵ࡮࠭ࠢ࡫ࡳࡴࡱ࡟ࡪࡰࡩࡳࡂࢁࡨࡰࡱ࡮ࡣ࡮ࡴࡦࡰࡿࠣࡥࡷ࡭ࡳ࠾ࡽࡤࡶ࡬ࡹࡽࠡ࡭ࡺࡥࡷ࡭ࡳ࠾ࡽ࡮ࡻࡦࡸࡧࡴࡿࠥᅊ"))
+                bstack1lll11ll111_opy_ (u"ࠣ࡯ࡤࡶࡰࡥ࡯࠲࠳ࡼࡣࡸࡿ࡮ࡤ࠼ࠣࡲࡴࡺࠠࡣࡴࡲࡻࡸ࡫ࡲࡴࡶࡤࡧࡰࠦࡳࡦࡵࡶ࡭ࡴࡴࠬࠡࡪࡲࡳࡰࡥࡩ࡯ࡨࡲࡁࢀ࡮࡯ࡰ࡭ࡢ࡭ࡳ࡬࡯ࡾࠢࡤࡶ࡬ࡹ࠽ࡼࡣࡵ࡫ࡸࢃࠠ࡬ࡹࡤࡶ࡬ࡹ࠽ࡼ࡭ࡺࡥࡷ࡭ࡳࡾࠤᅉ"))
             return
-        bstack1lll11l1ll1_opy_ = f.get_state(instance, bstack1lll1l11ll1_opy_.bstack1lll11llll1_opy_, [])
-        if not bstack1lll11l1ll1_opy_:
-            self.logger.debug(bstack1l111ll_opy_ (u"ࠥࡳࡳࡥࡢࡦࡨࡲࡶࡪࡥࡴࡦࡵࡷ࠾ࠥࡴ࡯ࠡࡦࡵ࡭ࡻ࡫ࡲࡴࠢࡩࡳࡷࠦࡨࡰࡱ࡮ࡣ࡮ࡴࡦࡰ࠿ࡾ࡬ࡴࡵ࡫ࡠ࡫ࡱࡪࡴࢃࠠࡢࡴࡪࡷࡂࢁࡡࡳࡩࡶࢁࠥࡱࡷࡢࡴࡪࡷࡂࠨᅋ") + str(kwargs) + bstack1l111ll_opy_ (u"ࠦࠧᅌ"))
+        bstack1lll1ll11l1_opy_ = f.get_state(instance, bstack1llll1111ll_opy_.bstack1lll1ll1l1l_opy_, [])
+        if not bstack1lll1ll11l1_opy_:
+            self.logger.debug(bstack11l1l11_opy_ (u"ࠤࡲࡲࡤࡨࡥࡧࡱࡵࡩࡤࡺࡥࡴࡶ࠽ࠤࡳࡵࠠࡥࡴ࡬ࡺࡪࡸࡳࠡࡨࡲࡶࠥ࡮࡯ࡰ࡭ࡢ࡭ࡳ࡬࡯࠾ࡽ࡫ࡳࡴࡱ࡟ࡪࡰࡩࡳࢂࠦࡡࡳࡩࡶࡁࢀࡧࡲࡨࡵࢀࠤࡰࡽࡡࡳࡩࡶࡁࠧᅊ") + str(kwargs) + bstack11l1l11_opy_ (u"ࠥࠦᅋ"))
             return
-        if len(bstack1lll11l1ll1_opy_) > 1:
+        if len(bstack1lll1ll11l1_opy_) > 1:
             self.logger.debug(
-                bstack1lll11lllll_opy_ (u"ࠧࡵ࡮ࡠࡤࡨࡪࡴࡸࡥࡠࡶࡨࡷࡹࡀࠠࡼ࡮ࡨࡲ࠭ࡶࡡࡨࡧࡢ࡭ࡳࡹࡴࡢࡰࡦࡩࡸ࠯ࡽࠡࡦࡵ࡭ࡻ࡫ࡲࡴࠢࡩࡳࡷࠦࡨࡰࡱ࡮ࡣ࡮ࡴࡦࡰ࠿ࡾ࡬ࡴࡵ࡫ࡠ࡫ࡱࡪࡴࢃࠠࡢࡴࡪࡷࡂࢁࡡࡳࡩࡶࢁࠥࡱࡷࡢࡴࡪࡷࡂࢁ࡫ࡸࡣࡵ࡫ࡸࢃࠢᅍ"))
-        bstack1llll111111_opy_, bstack1llll11111l_opy_ = bstack1lll11l1ll1_opy_[0]
-        page = bstack1llll111111_opy_()
+                bstack1lll11ll111_opy_ (u"ࠦࡴࡴ࡟ࡣࡧࡩࡳࡷ࡫࡟ࡵࡧࡶࡸ࠿ࠦࡻ࡭ࡧࡱࠬࡵࡧࡧࡦࡡ࡬ࡲࡸࡺࡡ࡯ࡥࡨࡷ࠮ࢃࠠࡥࡴ࡬ࡺࡪࡸࡳࠡࡨࡲࡶࠥ࡮࡯ࡰ࡭ࡢ࡭ࡳ࡬࡯࠾ࡽ࡫ࡳࡴࡱ࡟ࡪࡰࡩࡳࢂࠦࡡࡳࡩࡶࡁࢀࡧࡲࡨࡵࢀࠤࡰࡽࡡࡳࡩࡶࡁࢀࡱࡷࡢࡴࡪࡷࢂࠨᅌ"))
+        bstack1lll1l11l11_opy_, bstack1lll11ll1ll_opy_ = bstack1lll1ll11l1_opy_[0]
+        page = bstack1lll1l11l11_opy_()
         if not page:
-            self.logger.debug(bstack1l111ll_opy_ (u"ࠨ࡭ࡢࡴ࡮ࡣࡴ࠷࠱ࡺࡡࡶࡽࡳࡩ࠺ࠡࡰࡲࠤࡵࡧࡧࡦࠢࡩࡳࡷࠦࡨࡰࡱ࡮ࡣ࡮ࡴࡦࡰ࠿ࡾ࡬ࡴࡵ࡫ࡠ࡫ࡱࡪࡴࢃࠠࡢࡴࡪࡷࡂࢁࡡࡳࡩࡶࢁࠥࡱࡷࡢࡴࡪࡷࡂࠨᅎ") + str(kwargs) + bstack1l111ll_opy_ (u"ࠢࠣᅏ"))
+            self.logger.debug(bstack11l1l11_opy_ (u"ࠧࡳࡡࡳ࡭ࡢࡳ࠶࠷ࡹࡠࡵࡼࡲࡨࡀࠠ࡯ࡱࠣࡴࡦ࡭ࡥࠡࡨࡲࡶࠥ࡮࡯ࡰ࡭ࡢ࡭ࡳ࡬࡯࠾ࡽ࡫ࡳࡴࡱ࡟ࡪࡰࡩࡳࢂࠦࡡࡳࡩࡶࡁࢀࡧࡲࡨࡵࢀࠤࡰࡽࡡࡳࡩࡶࡁࠧᅍ") + str(kwargs) + bstack11l1l11_opy_ (u"ࠨࠢᅎ"))
             return
         timestamp = int(time.time() * 1000)
-        data = bstack1l111ll_opy_ (u"ࠣࡑࡥࡷࡪࡸࡶࡢࡤ࡬ࡰ࡮ࡺࡹࡔࡻࡱࡧ࠿ࠨᅐ") + str(timestamp)
+        data = bstack11l1l11_opy_ (u"ࠢࡐࡤࡶࡩࡷࡼࡡࡣ࡫࡯࡭ࡹࡿࡓࡺࡰࡦ࠾ࠧᅏ") + str(timestamp)
         try:
             page.evaluate(
-                bstack1l111ll_opy_ (u"ࠤࡢࠤࡂࡄࠠࡼࡿࠥᅑ"),
-                bstack1l111ll_opy_ (u"ࠪࡦࡷࡵࡷࡴࡧࡵࡷࡹࡧࡣ࡬ࡡࡨࡼࡪࡩࡵࡵࡱࡵ࠾ࠥࢁࡽࠨᅒ").format(
+                bstack11l1l11_opy_ (u"ࠣࡡࠣࡁࡃࠦࡻࡾࠤᅐ"),
+                bstack11l1l11_opy_ (u"ࠩࡥࡶࡴࡽࡳࡦࡴࡶࡸࡦࡩ࡫ࡠࡧࡻࡩࡨࡻࡴࡰࡴ࠽ࠤࢀࢃࠧᅑ").format(
                     json.dumps(
                         {
-                            bstack1l111ll_opy_ (u"ࠦࡦࡩࡴࡪࡱࡱࠦᅓ"): bstack1l111ll_opy_ (u"ࠧࡧ࡮࡯ࡱࡷࡥࡹ࡫ࠢᅔ"),
-                            bstack1l111ll_opy_ (u"ࠨࡡࡳࡩࡸࡱࡪࡴࡴࡴࠤᅕ"): {
-                                bstack1l111ll_opy_ (u"ࠢࡵࡻࡳࡩࠧᅖ"): bstack1l111ll_opy_ (u"ࠣࡃࡱࡲࡴࡺࡡࡵ࡫ࡲࡲࠧᅗ"),
-                                bstack1l111ll_opy_ (u"ࠤࡧࡥࡹࡧࠢᅘ"): data,
-                                bstack1l111ll_opy_ (u"ࠥࡰࡪࡼࡥ࡭ࠤᅙ"): bstack1l111ll_opy_ (u"ࠦࡩ࡫ࡢࡶࡩࠥᅚ")
+                            bstack11l1l11_opy_ (u"ࠥࡥࡨࡺࡩࡰࡰࠥᅒ"): bstack11l1l11_opy_ (u"ࠦࡦࡴ࡮ࡰࡶࡤࡸࡪࠨᅓ"),
+                            bstack11l1l11_opy_ (u"ࠧࡧࡲࡨࡷࡰࡩࡳࡺࡳࠣᅔ"): {
+                                bstack11l1l11_opy_ (u"ࠨࡴࡺࡲࡨࠦᅕ"): bstack11l1l11_opy_ (u"ࠢࡂࡰࡱࡳࡹࡧࡴࡪࡱࡱࠦᅖ"),
+                                bstack11l1l11_opy_ (u"ࠣࡦࡤࡸࡦࠨᅗ"): data,
+                                bstack11l1l11_opy_ (u"ࠤ࡯ࡩࡻ࡫࡬ࠣᅘ"): bstack11l1l11_opy_ (u"ࠥࡨࡪࡨࡵࡨࠤᅙ")
                             }
                         }
                     )
                 )
             )
         except Exception as e:
-            self.logger.debug(bstack1l111ll_opy_ (u"ࠧ࡫ࡸࡤࡧࡳࡸ࡮ࡵ࡮ࠡ࡫ࡱࠤࡵࡲࡡࡺࡹࡵ࡭࡬࡮ࡴࠡࡱ࠴࠵ࡾࠦࡡ࡯ࡰࡲࡸࡦࡺࡩࡰࡰࠣࡱࡦࡸ࡫ࡪࡰࡪࠤࢀࢃࠢᅛ"), e)
-    def bstack1llll111l11_opy_(
+            self.logger.debug(bstack11l1l11_opy_ (u"ࠦࡪࡾࡣࡦࡲࡷ࡭ࡴࡴࠠࡪࡰࠣࡴࡱࡧࡹࡸࡴ࡬࡫࡭ࡺࠠࡰ࠳࠴ࡽࠥࡧ࡮࡯ࡱࡷࡥࡹ࡯࡯࡯ࠢࡰࡥࡷࡱࡩ࡯ࡩࠣࡿࢂࠨᅚ"), e)
+    def bstack1lll1ll111l_opy_(
         self,
-        instance: bstack1lll1l1llll_opy_,
+        instance: bstack1lll1l1ll11_opy_,
         f: TestFramework,
-        bstack1lllll1l1l1_opy_: Tuple[bstack1lll1llllll_opy_, bstack1lll1l1lll1_opy_],
+        bstack1llllll11l1_opy_: Tuple[bstack1lll1l1llll_opy_, bstack1lll11lll1l_opy_],
         *args,
         **kwargs,
     ):
-        self.bstack1lll11ll111_opy_(f, instance, bstack1lllll1l1l1_opy_, *args, **kwargs)
-        if f.get_state(instance, bstack1lll1l11ll1_opy_.bstack1llll111lll_opy_, False):
+        self.bstack1lll1llll1l_opy_(f, instance, bstack1llllll11l1_opy_, *args, **kwargs)
+        if f.get_state(instance, bstack1llll1111ll_opy_.bstack1lll1lll11l_opy_, False):
             return
-        self.bstack1lllll1111l_opy_()
+        self.bstack1lllll1l111_opy_()
         req = structs.TestSessionEventRequest()
         req.bin_session_id = self.bin_session_id
-        req.platform_index = TestFramework.get_state(instance, TestFramework.bstack1llll1l1l11_opy_)
-        req.test_framework_name = TestFramework.get_state(instance, TestFramework.bstack1lll11ll1l1_opy_)
-        req.test_framework_version = TestFramework.get_state(instance, TestFramework.bstack1lll1l11111_opy_)
-        req.test_framework_state = bstack1lllll1l1l1_opy_[0].name
-        req.test_hook_state = bstack1lllll1l1l1_opy_[1].name
-        req.test_uuid = TestFramework.get_state(instance, TestFramework.bstack1llll1111ll_opy_)
-        for bstack1lll1l1l1ll_opy_ in bstack1lll1ll11ll_opy_.bstack1lll1l1111l_opy_.values():
+        req.platform_index = TestFramework.get_state(instance, TestFramework.bstack1llll1lll11_opy_)
+        req.test_framework_name = TestFramework.get_state(instance, TestFramework.bstack1lll1lll1l1_opy_)
+        req.test_framework_version = TestFramework.get_state(instance, TestFramework.bstack1lll11lllll_opy_)
+        req.test_framework_state = bstack1llllll11l1_opy_[0].name
+        req.test_hook_state = bstack1llllll11l1_opy_[1].name
+        req.test_uuid = TestFramework.get_state(instance, TestFramework.bstack1llll111ll1_opy_)
+        for bstack1lll1ll1l11_opy_ in bstack1lll1llllll_opy_.bstack1lll1lll1ll_opy_.values():
             session = req.automation_sessions.add()
             session.provider = (
-                bstack1l111ll_opy_ (u"ࠨࡢࡳࡱࡺࡷࡪࡸࡳࡵࡣࡦ࡯ࠧᅜ")
+                bstack11l1l11_opy_ (u"ࠧࡨࡲࡰࡹࡶࡩࡷࡹࡴࡢࡥ࡮ࠦᅛ")
                 if bstack1lll1ll1lll_opy_
-                else bstack1l111ll_opy_ (u"ࠢࡶࡰ࡮ࡲࡴࡽ࡮ࡠࡩࡵ࡭ࡩࠨᅝ")
+                else bstack11l1l11_opy_ (u"ࠨࡵ࡯࡭ࡱࡳࡼࡴ࡟ࡨࡴ࡬ࡨࠧᅜ")
             )
-            session.ref = bstack1lll1l1l1ll_opy_.ref()
-            session.hub_url = bstack1lll1ll11ll_opy_.get_state(bstack1lll1l1l1ll_opy_, bstack1lll1ll11ll_opy_.bstack1lll1lll1l1_opy_, bstack1l111ll_opy_ (u"ࠣࠤᅞ"))
-            session.framework_name = bstack1lll1l1l1ll_opy_.framework_name
-            session.framework_version = bstack1lll1l1l1ll_opy_.framework_version
-            session.framework_session_id = bstack1lll1ll11ll_opy_.get_state(bstack1lll1l1l1ll_opy_, bstack1lll1ll11ll_opy_.bstack1llll1111l1_opy_, bstack1l111ll_opy_ (u"ࠤࠥᅟ"))
+            session.ref = bstack1lll1ll1l11_opy_.ref()
+            session.hub_url = bstack1lll1llllll_opy_.get_state(bstack1lll1ll1l11_opy_, bstack1lll1llllll_opy_.bstack1lll11l1lll_opy_, bstack11l1l11_opy_ (u"ࠢࠣᅝ"))
+            session.framework_name = bstack1lll1ll1l11_opy_.framework_name
+            session.framework_version = bstack1lll1ll1l11_opy_.framework_version
+            session.framework_session_id = bstack1lll1llllll_opy_.get_state(bstack1lll1ll1l11_opy_, bstack1lll1llllll_opy_.bstack1lll1l1l111_opy_, bstack11l1l11_opy_ (u"ࠣࠤᅞ"))
         req.execution_context.hash = str(instance.context.hash)
         req.execution_context.thread_id = str(instance.context.thread_id)
         req.execution_context.process_id = str(instance.context.process_id)
         return req
-    def bstack1lll1ll111l_opy_(
+    def bstack1lll1ll1111_opy_(
         self,
         f: TestFramework,
-        instance: bstack1lll1l1llll_opy_,
-        bstack1lllll1l1l1_opy_: Tuple[bstack1lll1llllll_opy_, bstack1lll1l1lll1_opy_],
+        instance: bstack1lll1l1ll11_opy_,
+        bstack1llllll11l1_opy_: Tuple[bstack1lll1l1llll_opy_, bstack1lll11lll1l_opy_],
         *args,
         **kwargs
     ):
-        bstack1lll11l1ll1_opy_ = f.get_state(instance, bstack1lll1l11ll1_opy_.bstack1lll11llll1_opy_, [])
-        if not bstack1lll11l1ll1_opy_:
-            self.logger.debug(bstack1l111ll_opy_ (u"ࠥ࡫ࡪࡺ࡟ࡢࡷࡷࡳࡲࡧࡴࡪࡱࡱࡣࡩࡸࡩࡷࡧࡵ࠾ࠥࡴ࡯ࠡࡲࡤ࡫ࡪࡹࠠࡧࡱࡵࠤ࡭ࡵ࡯࡬ࡡ࡬ࡲ࡫ࡵ࠽ࡼࡪࡲࡳࡰࡥࡩ࡯ࡨࡲࢁࠥࡧࡲࡨࡵࡀࡿࡦࡸࡧࡴࡿࠣ࡯ࡼࡧࡲࡨࡵࡀࠦᅠ") + str(kwargs) + bstack1l111ll_opy_ (u"ࠦࠧᅡ"))
+        bstack1lll1ll11l1_opy_ = f.get_state(instance, bstack1llll1111ll_opy_.bstack1lll1ll1l1l_opy_, [])
+        if not bstack1lll1ll11l1_opy_:
+            self.logger.debug(bstack11l1l11_opy_ (u"ࠤࡪࡩࡹࡥࡡࡶࡶࡲࡱࡦࡺࡩࡰࡰࡢࡨࡷ࡯ࡶࡦࡴ࠽ࠤࡳࡵࠠࡱࡣࡪࡩࡸࠦࡦࡰࡴࠣ࡬ࡴࡵ࡫ࡠ࡫ࡱࡪࡴࡃࡻࡩࡱࡲ࡯ࡤ࡯࡮ࡧࡱࢀࠤࡦࡸࡧࡴ࠿ࡾࡥࡷ࡭ࡳࡾࠢ࡮ࡻࡦࡸࡧࡴ࠿ࠥᅟ") + str(kwargs) + bstack11l1l11_opy_ (u"ࠥࠦᅠ"))
             return
-        if len(bstack1lll11l1ll1_opy_) > 1:
-            self.logger.debug(bstack1l111ll_opy_ (u"ࠧ࡭ࡥࡵࡡࡤࡹࡹࡵ࡭ࡢࡶ࡬ࡳࡳࡥࡤࡳ࡫ࡹࡩࡷࡀࠠࡼ࡮ࡨࡲ࠭ࡶࡡࡨࡧࡢ࡭ࡳࡹࡴࡢࡰࡦࡩࡸ࠯ࡽࠡࡦࡵ࡭ࡻ࡫ࡲࡴࠢࡩࡳࡷࠦࡨࡰࡱ࡮ࡣ࡮ࡴࡦࡰ࠿ࡾ࡬ࡴࡵ࡫ࡠ࡫ࡱࡪࡴࢃࠠࡢࡴࡪࡷࡂࢁࡡࡳࡩࡶࢁࠥࡱࡷࡢࡴࡪࡷࡂࠨᅢ") + str(kwargs) + bstack1l111ll_opy_ (u"ࠨࠢᅣ"))
-        bstack1llll111111_opy_, bstack1llll11111l_opy_ = bstack1lll11l1ll1_opy_[0]
-        page = bstack1llll111111_opy_()
+        if len(bstack1lll1ll11l1_opy_) > 1:
+            self.logger.debug(bstack11l1l11_opy_ (u"ࠦ࡬࡫ࡴࡠࡣࡸࡸࡴࡳࡡࡵ࡫ࡲࡲࡤࡪࡲࡪࡸࡨࡶ࠿ࠦࡻ࡭ࡧࡱࠬࡵࡧࡧࡦࡡ࡬ࡲࡸࡺࡡ࡯ࡥࡨࡷ࠮ࢃࠠࡥࡴ࡬ࡺࡪࡸࡳࠡࡨࡲࡶࠥ࡮࡯ࡰ࡭ࡢ࡭ࡳ࡬࡯࠾ࡽ࡫ࡳࡴࡱ࡟ࡪࡰࡩࡳࢂࠦࡡࡳࡩࡶࡁࢀࡧࡲࡨࡵࢀࠤࡰࡽࡡࡳࡩࡶࡁࠧᅡ") + str(kwargs) + bstack11l1l11_opy_ (u"ࠧࠨᅢ"))
+        bstack1lll1l11l11_opy_, bstack1lll11ll1ll_opy_ = bstack1lll1ll11l1_opy_[0]
+        page = bstack1lll1l11l11_opy_()
         if not page:
-            self.logger.debug(bstack1l111ll_opy_ (u"ࠢࡨࡧࡷࡣࡦࡻࡴࡰ࡯ࡤࡸ࡮ࡵ࡮ࡠࡦࡵ࡭ࡻ࡫ࡲ࠻ࠢࡱࡳࠥࡶࡡࡨࡧࠣࡪࡴࡸࠠࡩࡱࡲ࡯ࡤ࡯࡮ࡧࡱࡀࡿ࡭ࡵ࡯࡬ࡡ࡬ࡲ࡫ࡵࡽࠡࡣࡵ࡫ࡸࡃࡻࡢࡴࡪࡷࢂࠦ࡫ࡸࡣࡵ࡫ࡸࡃࠢᅤ") + str(kwargs) + bstack1l111ll_opy_ (u"ࠣࠤᅥ"))
+            self.logger.debug(bstack11l1l11_opy_ (u"ࠨࡧࡦࡶࡢࡥࡺࡺ࡯࡮ࡣࡷ࡭ࡴࡴ࡟ࡥࡴ࡬ࡺࡪࡸ࠺ࠡࡰࡲࠤࡵࡧࡧࡦࠢࡩࡳࡷࠦࡨࡰࡱ࡮ࡣ࡮ࡴࡦࡰ࠿ࡾ࡬ࡴࡵ࡫ࡠ࡫ࡱࡪࡴࢃࠠࡢࡴࡪࡷࡂࢁࡡࡳࡩࡶࢁࠥࡱࡷࡢࡴࡪࡷࡂࠨᅣ") + str(kwargs) + bstack11l1l11_opy_ (u"ࠢࠣᅤ"))
             return
         return page
-    def bstack1lll1l11l11_opy_(
+    def bstack1lll1l11l1l_opy_(
         self,
         f: TestFramework,
-        instance: bstack1lll1l1llll_opy_,
-        bstack1lllll1l1l1_opy_: Tuple[bstack1lll1llllll_opy_, bstack1lll1l1lll1_opy_],
+        instance: bstack1lll1l1ll11_opy_,
+        bstack1llllll11l1_opy_: Tuple[bstack1lll1l1llll_opy_, bstack1lll11lll1l_opy_],
         *args,
         **kwargs
     ):
         caps = {}
-        bstack1lll11ll1ll_opy_ = {}
-        for bstack1lll1l1l1ll_opy_ in bstack1lll1ll11ll_opy_.bstack1lll1l1111l_opy_.values():
-            caps = bstack1lll1ll11ll_opy_.get_state(bstack1lll1l1l1ll_opy_, bstack1lll1ll11ll_opy_.bstack1lll1lll111_opy_, bstack1l111ll_opy_ (u"ࠤࠥᅦ"))
-        bstack1lll11ll1ll_opy_[bstack1l111ll_opy_ (u"ࠥࡦࡷࡵࡷࡴࡧࡵࡒࡦࡳࡥࠣᅧ")] = caps.get(bstack1l111ll_opy_ (u"ࠦࡧࡸ࡯ࡸࡵࡨࡶࠧᅨ"), bstack1l111ll_opy_ (u"ࠧࠨᅩ"))
-        bstack1lll11ll1ll_opy_[bstack1l111ll_opy_ (u"ࠨࡰ࡭ࡣࡷࡪࡴࡸ࡭ࡏࡣࡰࡩࠧᅪ")] = caps.get(bstack1l111ll_opy_ (u"ࠢࡰࡵࠥᅫ"), bstack1l111ll_opy_ (u"ࠣࠤᅬ"))
-        bstack1lll11ll1ll_opy_[bstack1l111ll_opy_ (u"ࠤࡳࡰࡦࡺࡦࡰࡴࡰ࡚ࡪࡸࡳࡪࡱࡱࠦᅭ")] = caps.get(bstack1l111ll_opy_ (u"ࠥࡳࡸࡥࡶࡦࡴࡶ࡭ࡴࡴࠢᅮ"), bstack1l111ll_opy_ (u"ࠦࠧᅯ"))
-        bstack1lll11ll1ll_opy_[bstack1l111ll_opy_ (u"ࠧࡨࡲࡰࡹࡶࡩࡷ࡜ࡥࡳࡵ࡬ࡳࡳࠨᅰ")] = caps.get(bstack1l111ll_opy_ (u"ࠨࡢࡳࡱࡺࡷࡪࡸ࡟ࡷࡧࡵࡷ࡮ࡵ࡮ࠣᅱ"), bstack1l111ll_opy_ (u"ࠢࠣᅲ"))
-        return bstack1lll11ll1ll_opy_
-    def bstack1lll1l11lll_opy_(self, page: object, bstack1lll11lll1l_opy_, args={}):
+        bstack1lll1l11111_opy_ = {}
+        for bstack1lll1ll1l11_opy_ in bstack1lll1llllll_opy_.bstack1lll1lll1ll_opy_.values():
+            caps = bstack1lll1llllll_opy_.get_state(bstack1lll1ll1l11_opy_, bstack1lll1llllll_opy_.bstack1lll1lllll1_opy_, bstack11l1l11_opy_ (u"ࠣࠤᅥ"))
+        bstack1lll1l11111_opy_[bstack11l1l11_opy_ (u"ࠤࡥࡶࡴࡽࡳࡦࡴࡑࡥࡲ࡫ࠢᅦ")] = caps.get(bstack11l1l11_opy_ (u"ࠥࡦࡷࡵࡷࡴࡧࡵࠦᅧ"), bstack11l1l11_opy_ (u"ࠦࠧᅨ"))
+        bstack1lll1l11111_opy_[bstack11l1l11_opy_ (u"ࠧࡶ࡬ࡢࡶࡩࡳࡷࡳࡎࡢ࡯ࡨࠦᅩ")] = caps.get(bstack11l1l11_opy_ (u"ࠨ࡯ࡴࠤᅪ"), bstack11l1l11_opy_ (u"ࠢࠣᅫ"))
+        bstack1lll1l11111_opy_[bstack11l1l11_opy_ (u"ࠣࡲ࡯ࡥࡹ࡬࡯ࡳ࡯࡙ࡩࡷࡹࡩࡰࡰࠥᅬ")] = caps.get(bstack11l1l11_opy_ (u"ࠤࡲࡷࡤࡼࡥࡳࡵ࡬ࡳࡳࠨᅭ"), bstack11l1l11_opy_ (u"ࠥࠦᅮ"))
+        bstack1lll1l11111_opy_[bstack11l1l11_opy_ (u"ࠦࡧࡸ࡯ࡸࡵࡨࡶ࡛࡫ࡲࡴ࡫ࡲࡲࠧᅯ")] = caps.get(bstack11l1l11_opy_ (u"ࠧࡨࡲࡰࡹࡶࡩࡷࡥࡶࡦࡴࡶ࡭ࡴࡴࠢᅰ"), bstack11l1l11_opy_ (u"ࠨࠢᅱ"))
+        return bstack1lll1l11111_opy_
+    def bstack1llll1111l1_opy_(self, page: object, bstack1lll1lll111_opy_, args={}):
         try:
-            bstack1lll1l1l1l1_opy_ = bstack1l111ll_opy_ (u"ࠣࠤࠥࠬ࡫ࡻ࡮ࡤࡶ࡬ࡳࡳࠦࠨ࠯࠰࠱ࡦࡸࡺࡡࡤ࡭ࡖࡨࡰࡇࡲࡨࡵࠬࠤࢀࢁࠊࠡࠢࠣࠤࠥࠦࠠࠡࠢࠣࠤࠥࠦࠠࠡࠢࡵࡩࡹࡻࡲ࡯ࠢࡱࡩࡼࠦࡐࡳࡱࡰ࡭ࡸ࡫ࠨࠩࡴࡨࡷࡴࡲࡶࡦ࠮ࠣࡶࡪࡰࡥࡤࡶࠬࠤࡂࡄࠠࡼࡽࠍࠤࠥࠦࠠࠡࠢࠣࠤࠥࠦࠠࠡࠢࠣࠤࠥࠦࠠࠡࠢࡥࡷࡹࡧࡣ࡬ࡕࡧ࡯ࡆࡸࡧࡴ࠰ࡳࡹࡸ࡮ࠨࡳࡧࡶࡳࡱࡼࡥࠪ࠽ࠍࠤࠥࠦࠠࠡࠢࠣࠤࠥࠦࠠࠡࠢࠣࠤࠥࠦࠠࠡࠢࡾࡪࡳࡥࡢࡰࡦࡼࢁࠏࠦࠠࠡࠢࠣࠤࠥࠦࠠࠡࠢࠣࠤࠥࠦࠠࡾࡿࠬ࠿ࠏࠦࠠࠡࠢࠣࠤࠥࠦࠠࠡࠢࠣࢁࢂ࠯ࠨࡼࡣࡵ࡫ࡤࡰࡳࡰࡰࢀ࠭ࠧࠨࠢᅳ")
-            bstack1lll11lll1l_opy_ = bstack1lll11lll1l_opy_.replace(bstack1l111ll_opy_ (u"ࠤࡤࡶ࡬ࡻ࡭ࡦࡰࡷࡷࠧᅴ"), bstack1l111ll_opy_ (u"ࠥࡦࡸࡺࡡࡤ࡭ࡖࡨࡰࡇࡲࡨࡵࠥᅵ"))
-            script = bstack1lll1l1l1l1_opy_.format(fn_body=bstack1lll11lll1l_opy_, arg_json=json.dumps(args))
+            bstack1lll1l111l1_opy_ = bstack11l1l11_opy_ (u"ࠢࠣࠤࠫࡪࡺࡴࡣࡵ࡫ࡲࡲࠥ࠮࠮࠯࠰ࡥࡷࡹࡧࡣ࡬ࡕࡧ࡯ࡆࡸࡧࡴࠫࠣࡿࢀࠐࠠࠡࠢࠣࠤࠥࠦࠠࠡࠢࠣࠤࠥࠦࠠࠡࡴࡨࡸࡺࡸ࡮ࠡࡰࡨࡻࠥࡖࡲࡰ࡯࡬ࡷࡪ࠮ࠨࡳࡧࡶࡳࡱࡼࡥ࠭ࠢࡵࡩ࡯࡫ࡣࡵࠫࠣࡁࡃࠦࡻࡼࠌࠣࠤࠥࠦࠠࠡࠢࠣࠤࠥࠦࠠࠡࠢࠣࠤࠥࠦࠠࠡࡤࡶࡸࡦࡩ࡫ࡔࡦ࡮ࡅࡷ࡭ࡳ࠯ࡲࡸࡷ࡭࠮ࡲࡦࡵࡲࡰࡻ࡫ࠩ࠼ࠌࠣࠤࠥࠦࠠࠡࠢࠣࠤࠥࠦࠠࠡࠢࠣࠤࠥࠦࠠࠡࡽࡩࡲࡤࡨ࡯ࡥࡻࢀࠎࠥࠦࠠࠡࠢࠣࠤࠥࠦࠠࠡࠢࠣࠤࠥࠦࡽࡾࠫ࠾ࠎࠥࠦࠠࠡࠢࠣࠤࠥࠦࠠࠡࠢࢀࢁ࠮࠮ࡻࡢࡴࡪࡣ࡯ࡹ࡯࡯ࡿࠬࠦࠧࠨᅲ")
+            bstack1lll1lll111_opy_ = bstack1lll1lll111_opy_.replace(bstack11l1l11_opy_ (u"ࠣࡣࡵ࡫ࡺࡳࡥ࡯ࡶࡶࠦᅳ"), bstack11l1l11_opy_ (u"ࠤࡥࡷࡹࡧࡣ࡬ࡕࡧ࡯ࡆࡸࡧࡴࠤᅴ"))
+            script = bstack1lll1l111l1_opy_.format(fn_body=bstack1lll1lll111_opy_, arg_json=json.dumps(args))
             return page.evaluate(script)
         except Exception as e:
-            self.logger.error(bstack1l111ll_opy_ (u"ࠦࡦ࠷࠱ࡺࡡࡶࡧࡷ࡯ࡰࡵࡡࡨࡼࡪࡩࡵࡵࡧ࠽ࠤࡊࡸࡲࡰࡴࠣࡩࡽ࡫ࡣࡶࡶ࡬ࡲ࡬ࠦࡴࡩࡧࠣࡥ࠶࠷ࡹࠡࡵࡦࡶ࡮ࡶࡴ࠭ࠢࠥᅶ") + str(e) + bstack1l111ll_opy_ (u"ࠧࠨᅷ"))
+            self.logger.error(bstack11l1l11_opy_ (u"ࠥࡥ࠶࠷ࡹࡠࡵࡦࡶ࡮ࡶࡴࡠࡧࡻࡩࡨࡻࡴࡦ࠼ࠣࡉࡷࡸ࡯ࡳࠢࡨࡼࡪࡩࡵࡵ࡫ࡱ࡫ࠥࡺࡨࡦࠢࡤ࠵࠶ࡿࠠࡴࡥࡵ࡭ࡵࡺࠬࠡࠤᅵ") + str(e) + bstack11l1l11_opy_ (u"ࠦࠧᅶ"))
