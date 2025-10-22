@@ -1574,57 +1574,6 @@ def set_framework_for_o11y():
     else:
         FRAMEWORK = 'pytest'
 
-def pytest_collection_modifyitems(session, config, items):
-    """
-    Filters collected pytest items based on orchestrated selectors from orchestration server.
-    """
-    import os
-    orchestrated_selectors_json = os.environ.get('BROWSERSTACK_ORCHESTRATED_SELECTORS')
-    logger.info("[pytest_collection_modifyitems] Orchestrated selectors json received: {}".format(orchestrated_selectors_json))
-    if not orchestrated_selectors_json:
-        # No orchestration, run all tests
-        return
-    try:
-        orchestrated_selectors = json.loads(orchestrated_selectors_json)
-        if not isinstance(orchestrated_selectors, (list, set)) or not orchestrated_selectors:
-            # Malformed or empty selectors, run all
-            return
-    except Exception as e:
-        # Malformed JSON, log and run all
-        logger.debug(f"Could not parse BROWSERSTACK_ORCHESTRATED_SELECTORS: {e}")
-        return
-
-    selected = []
-    deselected = []
-    logger.info("[pytest_collection_modifyitems] Orchestrated selectors received: {}".format(orchestrated_selectors))
-    # Normalize selectors for matching
-    normalized_selectors = set()
-    for selector in orchestrated_selectors:
-        if not selector or not isinstance(selector, str):
-            continue
-        normalized_selectors.add(selector)
-        # Optionally, add logic to expand file names to all nodeids in those files
-
-    for item in items:
-        nodeid = getattr(item, 'nodeid', None)
-        if not nodeid:
-            deselected.append(item)
-            continue
-        # Match nodeid exactly, or by substring for partial selectors
-        if (
-            nodeid in normalized_selectors or
-            any(sel in nodeid for sel in normalized_selectors)
-        ):
-            selected.append(item)
-        else:
-            deselected.append(item)
-
-    if deselected:
-        logger.info("[pytest_collection_modifyitems] Deselected tests: {}".format(deselected))
-        config.hook.pytest_deselected(items=deselected)
-        items[:] = selected
-
-
 @TestHubHandler.need_th
 def patch_class():
     set_framework_for_o11y()
