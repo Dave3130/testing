@@ -1,16 +1,16 @@
 # coding: UTF-8
 import sys
-bstack1ll1111_opy_ = sys.version_info [0] == 2
-bstack1ll_opy_ = 2048
-bstack1ll1l1_opy_ = 7
-def bstack11l111_opy_ (bstack1ll1_opy_):
-    global bstack11l1l_opy_
-    bstack11l1l1_opy_ = ord (bstack1ll1_opy_ [-1])
-    bstack111ll_opy_ = bstack1ll1_opy_ [:-1]
-    bstack11111ll_opy_ = bstack11l1l1_opy_ % len (bstack111ll_opy_)
-    bstack1l1lll_opy_ = bstack111ll_opy_ [:bstack11111ll_opy_] + bstack111ll_opy_ [bstack11111ll_opy_:]
-    if bstack1ll1111_opy_:
-        bstack1lll1ll_opy_ = unicode () .join ([unichr (ord (char) - bstack1ll_opy_ - (bstack1l111_opy_ + bstack11l1l1_opy_) % bstack1ll1l1_opy_) for bstack1l111_opy_, char in enumerate (bstack1l1lll_opy_)])
+bstack1l11l_opy_ = sys.version_info [0] == 2
+bstack1111_opy_ = 2048
+bstack1lll1_opy_ = 7
+def bstack1lllll1l_opy_ (bstack1ll1l11_opy_):
+    global bstack11l1ll_opy_
+    bstack111lll_opy_ = ord (bstack1ll1l11_opy_ [-1])
+    bstack1l111l1_opy_ = bstack1ll1l11_opy_ [:-1]
+    bstack1111l_opy_ = bstack111lll_opy_ % len (bstack1l111l1_opy_)
+    bstack1111ll_opy_ = bstack1l111l1_opy_ [:bstack1111l_opy_] + bstack1l111l1_opy_ [bstack1111l_opy_:]
+    if bstack1l11l_opy_:
+        bstack1l1l1_opy_ = unicode () .join ([unichr (ord (char) - bstack1111_opy_ - (bstack1ll1111_opy_ + bstack111lll_opy_) % bstack1lll1_opy_) for bstack1ll1111_opy_, char in enumerate (bstack1111ll_opy_)])
     else:
-        bstack1lll1ll_opy_ = str () .join ([chr (ord (char) - bstack1ll_opy_ - (bstack1l111_opy_ + bstack11l1l1_opy_) % bstack1ll1l1_opy_) for bstack1l111_opy_, char in enumerate (bstack1l1lll_opy_)])
-    return eval (bstack1lll1ll_opy_)
+        bstack1l1l1_opy_ = str () .join ([chr (ord (char) - bstack1111_opy_ - (bstack1ll1111_opy_ + bstack111lll_opy_) % bstack1lll1_opy_) for bstack1ll1111_opy_, char in enumerate (bstack1111ll_opy_)])
+    return eval (bstack1l1l1_opy_)

@@ -1,47 +1,47 @@
 # coding: UTF-8
 import sys
-bstack1ll1111_opy_ = sys.version_info [0] == 2
-bstack1ll_opy_ = 2048
-bstack1ll1l1_opy_ = 7
-def bstack11l111_opy_ (bstack1ll1_opy_):
-    global bstack11l1l_opy_
-    bstack11l1l1_opy_ = ord (bstack1ll1_opy_ [-1])
-    bstack111ll_opy_ = bstack1ll1_opy_ [:-1]
-    bstack11111ll_opy_ = bstack11l1l1_opy_ % len (bstack111ll_opy_)
-    bstack1l1lll_opy_ = bstack111ll_opy_ [:bstack11111ll_opy_] + bstack111ll_opy_ [bstack11111ll_opy_:]
-    if bstack1ll1111_opy_:
-        bstack1lll1ll_opy_ = unicode () .join ([unichr (ord (char) - bstack1ll_opy_ - (bstack1l111_opy_ + bstack11l1l1_opy_) % bstack1ll1l1_opy_) for bstack1l111_opy_, char in enumerate (bstack1l1lll_opy_)])
+bstack1l11l_opy_ = sys.version_info [0] == 2
+bstack1111_opy_ = 2048
+bstack1lll1_opy_ = 7
+def bstack1lllll1l_opy_ (bstack1ll1l11_opy_):
+    global bstack11l1ll_opy_
+    bstack111lll_opy_ = ord (bstack1ll1l11_opy_ [-1])
+    bstack1l111l1_opy_ = bstack1ll1l11_opy_ [:-1]
+    bstack1111l_opy_ = bstack111lll_opy_ % len (bstack1l111l1_opy_)
+    bstack1111ll_opy_ = bstack1l111l1_opy_ [:bstack1111l_opy_] + bstack1l111l1_opy_ [bstack1111l_opy_:]
+    if bstack1l11l_opy_:
+        bstack1l1l1_opy_ = unicode () .join ([unichr (ord (char) - bstack1111_opy_ - (bstack1ll1111_opy_ + bstack111lll_opy_) % bstack1lll1_opy_) for bstack1ll1111_opy_, char in enumerate (bstack1111ll_opy_)])
     else:
-        bstack1lll1ll_opy_ = str () .join ([chr (ord (char) - bstack1ll_opy_ - (bstack1l111_opy_ + bstack11l1l1_opy_) % bstack1ll1l1_opy_) for bstack1l111_opy_, char in enumerate (bstack1l1lll_opy_)])
-    return eval (bstack1lll1ll_opy_)
+        bstack1l1l1_opy_ = str () .join ([chr (ord (char) - bstack1111_opy_ - (bstack1ll1111_opy_ + bstack111lll_opy_) % bstack1lll1_opy_) for bstack1ll1111_opy_, char in enumerate (bstack1111ll_opy_)])
+    return eval (bstack1l1l1_opy_)
 import os
 import json
 import logging
 logger = logging.getLogger(__name__)
 class BrowserStackSdk:
     def get_current_platform():
-        bstack1ll1llll1_opy_ = {}
-        bstack1lll1111l_opy_ = os.environ.get(bstack11l111_opy_ (u"ࠫࡈ࡛ࡒࡓࡇࡑࡘࡤࡖࡌࡂࡖࡉࡓࡗࡓ࡟ࡅࡃࡗࡅࠬ৿"), bstack11l111_opy_ (u"ࠬ࠭਀"))
-        if not bstack1lll1111l_opy_:
-            return bstack1ll1llll1_opy_
+        bstack1lll1111l_opy_ = {}
+        bstack1ll1llll1_opy_ = os.environ.get(bstack1lllll1l_opy_ (u"ࠩࡆ࡙ࡗࡘࡅࡏࡖࡢࡔࡑࡇࡔࡇࡑࡕࡑࡤࡊࡁࡕࡃࠪ৽"), bstack1lllll1l_opy_ (u"ࠪࠫ৾"))
+        if not bstack1ll1llll1_opy_:
+            return bstack1lll1111l_opy_
         try:
-            bstack1ll1lllll_opy_ = json.loads(bstack1lll1111l_opy_)
-            if bstack11l111_opy_ (u"ࠨ࡯ࡴࠤਁ") in bstack1ll1lllll_opy_:
-                bstack1ll1llll1_opy_[bstack11l111_opy_ (u"ࠢࡰࡵࠥਂ")] = bstack1ll1lllll_opy_[bstack11l111_opy_ (u"ࠣࡱࡶࠦਃ")]
-            if bstack11l111_opy_ (u"ࠤࡲࡷࡤࡼࡥࡳࡵ࡬ࡳࡳࠨ਄") in bstack1ll1lllll_opy_ or bstack11l111_opy_ (u"ࠥࡳࡸ࡜ࡥࡳࡵ࡬ࡳࡳࠨਅ") in bstack1ll1lllll_opy_:
-                bstack1ll1llll1_opy_[bstack11l111_opy_ (u"ࠦࡴࡹࡖࡦࡴࡶ࡭ࡴࡴࠢਆ")] = bstack1ll1lllll_opy_.get(bstack11l111_opy_ (u"ࠧࡵࡳࡠࡸࡨࡶࡸ࡯࡯࡯ࠤਇ"), bstack1ll1lllll_opy_.get(bstack11l111_opy_ (u"ࠨ࡯ࡴࡘࡨࡶࡸ࡯࡯࡯ࠤਈ")))
-            if bstack11l111_opy_ (u"ࠢࡣࡴࡲࡻࡸ࡫ࡲࠣਉ") in bstack1ll1lllll_opy_ or bstack11l111_opy_ (u"ࠣࡤࡵࡳࡼࡹࡥࡳࡐࡤࡱࡪࠨਊ") in bstack1ll1lllll_opy_:
-                bstack1ll1llll1_opy_[bstack11l111_opy_ (u"ࠤࡥࡶࡴࡽࡳࡦࡴࡑࡥࡲ࡫ࠢ਋")] = bstack1ll1lllll_opy_.get(bstack11l111_opy_ (u"ࠥࡦࡷࡵࡷࡴࡧࡵࠦ਌"), bstack1ll1lllll_opy_.get(bstack11l111_opy_ (u"ࠦࡧࡸ࡯ࡸࡵࡨࡶࡓࡧ࡭ࡦࠤ਍")))
-            if bstack11l111_opy_ (u"ࠧࡨࡲࡰࡹࡶࡩࡷࡥࡶࡦࡴࡶ࡭ࡴࡴࠢ਎") in bstack1ll1lllll_opy_ or bstack11l111_opy_ (u"ࠨࡢࡳࡱࡺࡷࡪࡸࡖࡦࡴࡶ࡭ࡴࡴࠢਏ") in bstack1ll1lllll_opy_:
-                bstack1ll1llll1_opy_[bstack11l111_opy_ (u"ࠢࡣࡴࡲࡻࡸ࡫ࡲࡗࡧࡵࡷ࡮ࡵ࡮ࠣਐ")] = bstack1ll1lllll_opy_.get(bstack11l111_opy_ (u"ࠣࡤࡵࡳࡼࡹࡥࡳࡡࡹࡩࡷࡹࡩࡰࡰࠥ਑"), bstack1ll1lllll_opy_.get(bstack11l111_opy_ (u"ࠤࡥࡶࡴࡽࡳࡦࡴ࡙ࡩࡷࡹࡩࡰࡰࠥ਒")))
-            if bstack11l111_opy_ (u"ࠥࡨࡪࡼࡩࡤࡧࠥਓ") in bstack1ll1lllll_opy_ or bstack11l111_opy_ (u"ࠦࡩ࡫ࡶࡪࡥࡨࡒࡦࡳࡥࠣਔ") in bstack1ll1lllll_opy_:
-                bstack1ll1llll1_opy_[bstack11l111_opy_ (u"ࠧࡪࡥࡷ࡫ࡦࡩࡓࡧ࡭ࡦࠤਕ")] = bstack1ll1lllll_opy_.get(bstack11l111_opy_ (u"ࠨࡤࡦࡸ࡬ࡧࡪࠨਖ"), bstack1ll1lllll_opy_.get(bstack11l111_opy_ (u"ࠢࡥࡧࡹ࡭ࡨ࡫ࡎࡢ࡯ࡨࠦਗ")))
-            if bstack11l111_opy_ (u"ࠣࡲ࡯ࡥࡹ࡬࡯ࡳ࡯ࠥਘ") in bstack1ll1lllll_opy_ or bstack11l111_opy_ (u"ࠤࡳࡰࡦࡺࡦࡰࡴࡰࡒࡦࡳࡥࠣਙ") in bstack1ll1lllll_opy_:
-                bstack1ll1llll1_opy_[bstack11l111_opy_ (u"ࠥࡴࡱࡧࡴࡧࡱࡵࡱࡓࡧ࡭ࡦࠤਚ")] = bstack1ll1lllll_opy_.get(bstack11l111_opy_ (u"ࠦࡵࡲࡡࡵࡨࡲࡶࡲࠨਛ"), bstack1ll1lllll_opy_.get(bstack11l111_opy_ (u"ࠧࡶ࡬ࡢࡶࡩࡳࡷࡳࡎࡢ࡯ࡨࠦਜ")))
-            if bstack11l111_opy_ (u"ࠨࡰ࡭ࡣࡷࡪࡴࡸ࡭ࡠࡸࡨࡶࡸ࡯࡯࡯ࠤਝ") in bstack1ll1lllll_opy_ or bstack11l111_opy_ (u"ࠢࡱ࡮ࡤࡸ࡫ࡵࡲ࡮ࡘࡨࡶࡸ࡯࡯࡯ࠤਞ") in bstack1ll1lllll_opy_:
-                bstack1ll1llll1_opy_[bstack11l111_opy_ (u"ࠣࡲ࡯ࡥࡹ࡬࡯ࡳ࡯࡙ࡩࡷࡹࡩࡰࡰࠥਟ")] = bstack1ll1lllll_opy_.get(bstack11l111_opy_ (u"ࠤࡳࡰࡦࡺࡦࡰࡴࡰࡣࡻ࡫ࡲࡴ࡫ࡲࡲࠧਠ"), bstack1ll1lllll_opy_.get(bstack11l111_opy_ (u"ࠥࡴࡱࡧࡴࡧࡱࡵࡱ࡛࡫ࡲࡴ࡫ࡲࡲࠧਡ")))
-            if bstack11l111_opy_ (u"ࠦࡨࡻࡳࡵࡱࡰ࡚ࡦࡸࡩࡢࡤ࡯ࡩࡸࠨਢ") in bstack1ll1lllll_opy_:
-                bstack1ll1llll1_opy_[bstack11l111_opy_ (u"ࠧࡩࡵࡴࡶࡲࡱ࡛ࡧࡲࡪࡣࡥࡰࡪࡹࠢਣ")] = bstack1ll1lllll_opy_[bstack11l111_opy_ (u"ࠨࡣࡶࡵࡷࡳࡲ࡜ࡡࡳ࡫ࡤࡦࡱ࡫ࡳࠣਤ")]
+            bstack1ll1lllll_opy_ = json.loads(bstack1ll1llll1_opy_)
+            if bstack1lllll1l_opy_ (u"ࠦࡴࡹࠢ৿") in bstack1ll1lllll_opy_:
+                bstack1lll1111l_opy_[bstack1lllll1l_opy_ (u"ࠧࡵࡳࠣ਀")] = bstack1ll1lllll_opy_[bstack1lllll1l_opy_ (u"ࠨ࡯ࡴࠤਁ")]
+            if bstack1lllll1l_opy_ (u"ࠢࡰࡵࡢࡺࡪࡸࡳࡪࡱࡱࠦਂ") in bstack1ll1lllll_opy_ or bstack1lllll1l_opy_ (u"ࠣࡱࡶ࡚ࡪࡸࡳࡪࡱࡱࠦਃ") in bstack1ll1lllll_opy_:
+                bstack1lll1111l_opy_[bstack1lllll1l_opy_ (u"ࠤࡲࡷ࡛࡫ࡲࡴ࡫ࡲࡲࠧ਄")] = bstack1ll1lllll_opy_.get(bstack1lllll1l_opy_ (u"ࠥࡳࡸࡥࡶࡦࡴࡶ࡭ࡴࡴࠢਅ"), bstack1ll1lllll_opy_.get(bstack1lllll1l_opy_ (u"ࠦࡴࡹࡖࡦࡴࡶ࡭ࡴࡴࠢਆ")))
+            if bstack1lllll1l_opy_ (u"ࠧࡨࡲࡰࡹࡶࡩࡷࠨਇ") in bstack1ll1lllll_opy_ or bstack1lllll1l_opy_ (u"ࠨࡢࡳࡱࡺࡷࡪࡸࡎࡢ࡯ࡨࠦਈ") in bstack1ll1lllll_opy_:
+                bstack1lll1111l_opy_[bstack1lllll1l_opy_ (u"ࠢࡣࡴࡲࡻࡸ࡫ࡲࡏࡣࡰࡩࠧਉ")] = bstack1ll1lllll_opy_.get(bstack1lllll1l_opy_ (u"ࠣࡤࡵࡳࡼࡹࡥࡳࠤਊ"), bstack1ll1lllll_opy_.get(bstack1lllll1l_opy_ (u"ࠤࡥࡶࡴࡽࡳࡦࡴࡑࡥࡲ࡫ࠢ਋")))
+            if bstack1lllll1l_opy_ (u"ࠥࡦࡷࡵࡷࡴࡧࡵࡣࡻ࡫ࡲࡴ࡫ࡲࡲࠧ਌") in bstack1ll1lllll_opy_ or bstack1lllll1l_opy_ (u"ࠦࡧࡸ࡯ࡸࡵࡨࡶ࡛࡫ࡲࡴ࡫ࡲࡲࠧ਍") in bstack1ll1lllll_opy_:
+                bstack1lll1111l_opy_[bstack1lllll1l_opy_ (u"ࠧࡨࡲࡰࡹࡶࡩࡷ࡜ࡥࡳࡵ࡬ࡳࡳࠨ਎")] = bstack1ll1lllll_opy_.get(bstack1lllll1l_opy_ (u"ࠨࡢࡳࡱࡺࡷࡪࡸ࡟ࡷࡧࡵࡷ࡮ࡵ࡮ࠣਏ"), bstack1ll1lllll_opy_.get(bstack1lllll1l_opy_ (u"ࠢࡣࡴࡲࡻࡸ࡫ࡲࡗࡧࡵࡷ࡮ࡵ࡮ࠣਐ")))
+            if bstack1lllll1l_opy_ (u"ࠣࡦࡨࡺ࡮ࡩࡥࠣ਑") in bstack1ll1lllll_opy_ or bstack1lllll1l_opy_ (u"ࠤࡧࡩࡻ࡯ࡣࡦࡐࡤࡱࡪࠨ਒") in bstack1ll1lllll_opy_:
+                bstack1lll1111l_opy_[bstack1lllll1l_opy_ (u"ࠥࡨࡪࡼࡩࡤࡧࡑࡥࡲ࡫ࠢਓ")] = bstack1ll1lllll_opy_.get(bstack1lllll1l_opy_ (u"ࠦࡩ࡫ࡶࡪࡥࡨࠦਔ"), bstack1ll1lllll_opy_.get(bstack1lllll1l_opy_ (u"ࠧࡪࡥࡷ࡫ࡦࡩࡓࡧ࡭ࡦࠤਕ")))
+            if bstack1lllll1l_opy_ (u"ࠨࡰ࡭ࡣࡷࡪࡴࡸ࡭ࠣਖ") in bstack1ll1lllll_opy_ or bstack1lllll1l_opy_ (u"ࠢࡱ࡮ࡤࡸ࡫ࡵࡲ࡮ࡐࡤࡱࡪࠨਗ") in bstack1ll1lllll_opy_:
+                bstack1lll1111l_opy_[bstack1lllll1l_opy_ (u"ࠣࡲ࡯ࡥࡹ࡬࡯ࡳ࡯ࡑࡥࡲ࡫ࠢਘ")] = bstack1ll1lllll_opy_.get(bstack1lllll1l_opy_ (u"ࠤࡳࡰࡦࡺࡦࡰࡴࡰࠦਙ"), bstack1ll1lllll_opy_.get(bstack1lllll1l_opy_ (u"ࠥࡴࡱࡧࡴࡧࡱࡵࡱࡓࡧ࡭ࡦࠤਚ")))
+            if bstack1lllll1l_opy_ (u"ࠦࡵࡲࡡࡵࡨࡲࡶࡲࡥࡶࡦࡴࡶ࡭ࡴࡴࠢਛ") in bstack1ll1lllll_opy_ or bstack1lllll1l_opy_ (u"ࠧࡶ࡬ࡢࡶࡩࡳࡷࡳࡖࡦࡴࡶ࡭ࡴࡴࠢਜ") in bstack1ll1lllll_opy_:
+                bstack1lll1111l_opy_[bstack1lllll1l_opy_ (u"ࠨࡰ࡭ࡣࡷࡪࡴࡸ࡭ࡗࡧࡵࡷ࡮ࡵ࡮ࠣਝ")] = bstack1ll1lllll_opy_.get(bstack1lllll1l_opy_ (u"ࠢࡱ࡮ࡤࡸ࡫ࡵࡲ࡮ࡡࡹࡩࡷࡹࡩࡰࡰࠥਞ"), bstack1ll1lllll_opy_.get(bstack1lllll1l_opy_ (u"ࠣࡲ࡯ࡥࡹ࡬࡯ࡳ࡯࡙ࡩࡷࡹࡩࡰࡰࠥਟ")))
+            if bstack1lllll1l_opy_ (u"ࠤࡦࡹࡸࡺ࡯࡮ࡘࡤࡶ࡮ࡧࡢ࡭ࡧࡶࠦਠ") in bstack1ll1lllll_opy_:
+                bstack1lll1111l_opy_[bstack1lllll1l_opy_ (u"ࠥࡧࡺࡹࡴࡰ࡯࡙ࡥࡷ࡯ࡡࡣ࡮ࡨࡷࠧਡ")] = bstack1ll1lllll_opy_[bstack1lllll1l_opy_ (u"ࠦࡨࡻࡳࡵࡱࡰ࡚ࡦࡸࡩࡢࡤ࡯ࡩࡸࠨਢ")]
         except Exception as error:
-            logger.error(bstack11l111_opy_ (u"ࠢࡆࡺࡦࡩࡵࡺࡩࡰࡰࠣࡻ࡭࡯࡬ࡦࠢࡪࡩࡹࡺࡩ࡯ࡩࠣࡧࡺࡸࡲࡦࡰࡷࠤࡵࡲࡡࡵࡨࡲࡶࡲࠦࡤࡢࡶࡤ࠾ࠥࠨਥ") +  str(error))
-        return bstack1ll1llll1_opy_
+            logger.error(bstack1lllll1l_opy_ (u"ࠧࡋࡸࡤࡧࡳࡸ࡮ࡵ࡮ࠡࡹ࡫࡭ࡱ࡫ࠠࡨࡧࡷࡸ࡮ࡴࡧࠡࡥࡸࡶࡷ࡫࡮ࡵࠢࡳࡰࡦࡺࡦࡰࡴࡰࠤࡩࡧࡴࡢ࠼ࠣࠦਣ") +  str(error))
+        return bstack1lll1111l_opy_

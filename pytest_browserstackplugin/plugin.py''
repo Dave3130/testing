@@ -1580,6 +1580,7 @@ def pytest_collection_modifyitems(session, config, items):
     """
     import os
     orchestrated_selectors_json = os.environ.get('BROWSERSTACK_ORCHESTRATED_SELECTORS')
+    logger.info("[pytest_collection_modifyitems] Orchestrated selectors json received: {}".format(orchestrated_selectors_json))
     if not orchestrated_selectors_json:
         # No orchestration, run all tests
         return
@@ -1595,7 +1596,7 @@ def pytest_collection_modifyitems(session, config, items):
 
     selected = []
     deselected = []
-
+    logger.info("[pytest_collection_modifyitems] Orchestrated selectors received: {}".format(orchestrated_selectors))
     # Normalize selectors for matching
     normalized_selectors = set()
     for selector in orchestrated_selectors:
@@ -1619,6 +1620,7 @@ def pytest_collection_modifyitems(session, config, items):
             deselected.append(item)
 
     if deselected:
+        logger.info("[pytest_collection_modifyitems] Deselected tests: {}".format(deselected))
         config.hook.pytest_deselected(items=deselected)
         items[:] = selected
 
