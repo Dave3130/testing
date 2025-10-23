@@ -1,435 +1,435 @@
 # coding: UTF-8
 import sys
-bstack111111l_opy_ = sys.version_info [0] == 2
-bstack111lll_opy_ = 2048
-bstack11ll111_opy_ = 7
-def bstack11l1l11_opy_ (bstack1l11111_opy_):
-    global bstack11l1ll1_opy_
-    bstack1l1l111_opy_ = ord (bstack1l11111_opy_ [-1])
-    bstack1lll11_opy_ = bstack1l11111_opy_ [:-1]
-    bstack1ll11l_opy_ = bstack1l1l111_opy_ % len (bstack1lll11_opy_)
-    bstack1ll1l_opy_ = bstack1lll11_opy_ [:bstack1ll11l_opy_] + bstack1lll11_opy_ [bstack1ll11l_opy_:]
-    if bstack111111l_opy_:
-        bstack1ll1_opy_ = unicode () .join ([unichr (ord (char) - bstack111lll_opy_ - (bstack1l1l1l_opy_ + bstack1l1l111_opy_) % bstack11ll111_opy_) for bstack1l1l1l_opy_, char in enumerate (bstack1ll1l_opy_)])
+bstack1lll1l_opy_ = sys.version_info [0] == 2
+bstack111l11l_opy_ = 2048
+bstack1l1llll_opy_ = 7
+def bstack111111l_opy_ (bstack1ll1_opy_):
+    global bstack11l1ll_opy_
+    bstack11ll1l_opy_ = ord (bstack1ll1_opy_ [-1])
+    bstack11ll_opy_ = bstack1ll1_opy_ [:-1]
+    bstack1lllll1_opy_ = bstack11ll1l_opy_ % len (bstack11ll_opy_)
+    bstack111l1l1_opy_ = bstack11ll_opy_ [:bstack1lllll1_opy_] + bstack11ll_opy_ [bstack1lllll1_opy_:]
+    if bstack1lll1l_opy_:
+        bstack1111_opy_ = unicode () .join ([unichr (ord (char) - bstack111l11l_opy_ - (bstack1l1l1l_opy_ + bstack11ll1l_opy_) % bstack1l1llll_opy_) for bstack1l1l1l_opy_, char in enumerate (bstack111l1l1_opy_)])
     else:
-        bstack1ll1_opy_ = str () .join ([chr (ord (char) - bstack111lll_opy_ - (bstack1l1l1l_opy_ + bstack1l1l111_opy_) % bstack11ll111_opy_) for bstack1l1l1l_opy_, char in enumerate (bstack1ll1l_opy_)])
-    return eval (bstack1ll1_opy_)
+        bstack1111_opy_ = str () .join ([chr (ord (char) - bstack111l11l_opy_ - (bstack1l1l1l_opy_ + bstack11ll1l_opy_) % bstack1l1llll_opy_) for bstack1l1l1l_opy_, char in enumerate (bstack111l1l1_opy_)])
+    return eval (bstack1111_opy_)
 import os
 from datetime import datetime, timezone
 from uuid import uuid4
 from typing import Dict, List, Any, Tuple
-from browserstack_sdk.sdk_cli.bstack1ll1lllll1l_opy_ import bstack1ll1ll111ll_opy_
-from browserstack_sdk.sdk_cli.utils.bstack111l1111ll_opy_ import bstack1l1lllll1l1_opy_
+from browserstack_sdk.sdk_cli.bstack1lll1111111_opy_ import bstack1ll1lll1111_opy_
+from browserstack_sdk.sdk_cli.utils.bstack1ll1lll1ll_opy_ import bstack1ll1111l1l1_opy_
 from pathlib import Path
 import grpc
 from browserstack_sdk import sdk_pb2 as structs
 from browserstack_sdk.sdk_cli.test_framework import (
     TestFramework,
-    bstack1lll1l1llll_opy_,
-    bstack1lll1l1ll11_opy_,
-    bstack1lll11lll1l_opy_,
-    bstack1ll111l1111_opy_,
-    bstack1ll1l1111l1_opy_,
+    bstack1llll111lll_opy_,
+    bstack1lll1lll1l1_opy_,
+    bstack1lll1lll11l_opy_,
+    bstack1l1llllllll_opy_,
+    bstack1ll111lll11_opy_,
 )
 import traceback
-from bstack_utils.helper import bstack1ll11111111_opy_
-from bstack_utils.bstack1111ll11ll_opy_ import bstack1llllll1ll1_opy_
+from bstack_utils.helper import bstack1ll11llllll_opy_
+from bstack_utils.bstack1l11ll11l1_opy_ import bstack1llllll1lll_opy_
 from bstack_utils.constants import EVENTS
-from browserstack_sdk.sdk_cli.utils.bstack1ll1l1l1ll1_opy_ import bstack1ll11llll11_opy_
-from browserstack_sdk.sdk_cli.bstack1lll11l11ll_opy_ import bstack1lll11l11l1_opy_
-bstack1ll11111l1l_opy_ = bstack1ll11111111_opy_()
-bstack1ll11l111l1_opy_ = bstack11l1l11_opy_ (u"ࠤࡘࡴࡱࡵࡡࡥࡧࡧࡅࡹࡺࡡࡤࡪࡰࡩࡳࡺࡳ࠮ࠤሕ")
-bstack1ll11l111ll_opy_ = bstack11l1l11_opy_ (u"ࠥࡌࡴࡵ࡫ࡍࡧࡹࡩࡱࠨሖ")
-bstack1ll1l111111_opy_ = bstack11l1l11_opy_ (u"ࠦࡇࡻࡩ࡭ࡦࡏࡩࡻ࡫࡬ࡉࡱࡲ࡯ࡊࡼࡥ࡯ࡶࠥሗ")
-bstack1ll11llll1l_opy_ = 1.0
-_1ll1l111ll1_opy_ = set()
+from browserstack_sdk.sdk_cli.utils.bstack1ll11l1ll1l_opy_ import bstack1ll1l1ll111_opy_
+from browserstack_sdk.sdk_cli.bstack1lll11lllll_opy_ import bstack1lll11llll1_opy_
+bstack1ll111l1l1l_opy_ = bstack1ll11llllll_opy_()
+bstack1ll1l1l1lll_opy_ = bstack111111l_opy_ (u"࡛ࠧࡰ࡭ࡱࡤࡨࡪࡪࡁࡵࡶࡤࡧ࡭ࡳࡥ࡯ࡶࡶ࠱ࠧᇮ")
+bstack1ll11l11111_opy_ = bstack111111l_opy_ (u"ࠨࡈࡰࡱ࡮ࡐࡪࡼࡥ࡭ࠤᇯ")
+bstack1ll11l1l11l_opy_ = bstack111111l_opy_ (u"ࠢࡃࡷ࡬ࡰࡩࡒࡥࡷࡧ࡯ࡌࡴࡵ࡫ࡆࡸࡨࡲࡹࠨᇰ")
+bstack1ll111111l1_opy_ = 1.0
+_1ll111l1ll1_opy_ = set()
 class PytestBDDFramework(TestFramework):
-    bstack1ll1111ll1l_opy_ = bstack11l1l11_opy_ (u"ࠧࡺࡥࡴࡶࡢࡪ࡮ࡾࡴࡶࡴࡨࡷࠧመ")
-    bstack1ll1l1111ll_opy_ = bstack11l1l11_opy_ (u"ࠨࡴࡦࡵࡷࡣ࡭ࡵ࡯࡬ࡵࡢࡷࡹࡧࡲࡵࡧࡧࠦሙ")
-    bstack1ll11111l11_opy_ = bstack11l1l11_opy_ (u"ࠢࡵࡧࡶࡸࡤ࡮࡯ࡰ࡭ࡶࡣ࡫࡯࡮ࡪࡵ࡫ࡩࡩࠨሚ")
-    bstack1ll1l1l111l_opy_ = bstack11l1l11_opy_ (u"ࠣࡶࡨࡷࡹࡥࡨࡰࡱ࡮ࡣࡱࡧࡳࡵࡡࡶࡸࡦࡸࡴࡦࡦࠥማ")
-    bstack1ll111ll1ll_opy_ = bstack11l1l11_opy_ (u"ࠤࡷࡩࡸࡺ࡟ࡩࡱࡲ࡯ࡤࡲࡡࡴࡶࡢࡪ࡮ࡴࡩࡴࡪࡨࡨࠧሜ")
-    bstack1ll11l1l1ll_opy_: bool
-    bstack1lll11l11ll_opy_: bstack1lll11l11l1_opy_  = None
-    bstack1ll11l11111_opy_ = [
-        bstack1lll1l1llll_opy_.BEFORE_ALL,
-        bstack1lll1l1llll_opy_.AFTER_ALL,
-        bstack1lll1l1llll_opy_.BEFORE_EACH,
-        bstack1lll1l1llll_opy_.AFTER_EACH,
+    bstack1ll1l1lll1l_opy_ = bstack111111l_opy_ (u"ࠣࡶࡨࡷࡹࡥࡦࡪࡺࡷࡹࡷ࡫ࡳࠣᇱ")
+    bstack1ll1l11ll11_opy_ = bstack111111l_opy_ (u"ࠤࡷࡩࡸࡺ࡟ࡩࡱࡲ࡯ࡸࡥࡳࡵࡣࡵࡸࡪࡪࠢᇲ")
+    bstack1ll111l11l1_opy_ = bstack111111l_opy_ (u"ࠥࡸࡪࡹࡴࡠࡪࡲࡳࡰࡹ࡟ࡧ࡫ࡱ࡭ࡸ࡮ࡥࡥࠤᇳ")
+    bstack1ll11l1111l_opy_ = bstack111111l_opy_ (u"ࠦࡹ࡫ࡳࡵࡡ࡫ࡳࡴࡱ࡟࡭ࡣࡶࡸࡤࡹࡴࡢࡴࡷࡩࡩࠨᇴ")
+    bstack1ll1l111lll_opy_ = bstack111111l_opy_ (u"ࠧࡺࡥࡴࡶࡢ࡬ࡴࡵ࡫ࡠ࡮ࡤࡷࡹࡥࡦࡪࡰ࡬ࡷ࡭࡫ࡤࠣᇵ")
+    bstack1ll1111lll1_opy_: bool
+    bstack1lll11lllll_opy_: bstack1lll11llll1_opy_  = None
+    bstack1ll1111ll1l_opy_ = [
+        bstack1llll111lll_opy_.BEFORE_ALL,
+        bstack1llll111lll_opy_.AFTER_ALL,
+        bstack1llll111lll_opy_.BEFORE_EACH,
+        bstack1llll111lll_opy_.AFTER_EACH,
     ]
     def __init__(
         self,
-        bstack1l1lll1l1ll_opy_: Dict[str, str],
-        bstack1l1lll1ll11_opy_: List[str]=[bstack11l1l11_opy_ (u"ࠥࡴࡾࡺࡥࡴࡶ࠰ࡦࡩࡪࠢም")],
-        bstack1lll11l11ll_opy_: bstack1lll11l11l1_opy_ = None,
-        bstack1llllllll11_opy_=None
+        bstack1ll11lll11l_opy_: Dict[str, str],
+        bstack1ll11l11ll1_opy_: List[str]=[bstack111111l_opy_ (u"ࠨࡰࡺࡶࡨࡷࡹ࠳ࡢࡥࡦࠥᇶ")],
+        bstack1lll11lllll_opy_: bstack1lll11llll1_opy_ = None,
+        bstack111111111l_opy_=None
     ):
-        super().__init__(bstack1l1lll1ll11_opy_, bstack1l1lll1l1ll_opy_, bstack1lll11l11ll_opy_)
-        self.bstack1ll11l1l1ll_opy_ = any(bstack11l1l11_opy_ (u"ࠦࡵࡿࡴࡦࡵࡷ࠱ࡧࡪࡤࠣሞ") in item.lower() for item in bstack1l1lll1ll11_opy_)
-        self.bstack1llllllll11_opy_ = bstack1llllllll11_opy_
+        super().__init__(bstack1ll11l11ll1_opy_, bstack1ll11lll11l_opy_, bstack1lll11lllll_opy_)
+        self.bstack1ll1111lll1_opy_ = any(bstack111111l_opy_ (u"ࠢࡱࡻࡷࡩࡸࡺ࠭ࡣࡦࡧࠦᇷ") in item.lower() for item in bstack1ll11l11ll1_opy_)
+        self.bstack111111111l_opy_ = bstack111111111l_opy_
     def track_event(
         self,
-        context: bstack1ll111l1111_opy_,
-        test_framework_state: bstack1lll1l1llll_opy_,
-        test_hook_state: bstack1lll11lll1l_opy_,
+        context: bstack1l1llllllll_opy_,
+        test_framework_state: bstack1llll111lll_opy_,
+        test_hook_state: bstack1lll1lll11l_opy_,
         *args,
         **kwargs,
     ):
         super().track_event(self, context, test_framework_state, test_hook_state, *args, **kwargs)
-        if test_framework_state == bstack1lll1l1llll_opy_.TEST or test_framework_state in PytestBDDFramework.bstack1ll11l11111_opy_:
-            bstack1l1lllll1l1_opy_(test_framework_state, test_hook_state)
-        if test_framework_state == bstack1lll1l1llll_opy_.NONE:
-            self.logger.warning(bstack11l1l11_opy_ (u"ࠧ࡯ࡧ࡯ࡱࡵࡩࡩࠦࡣࡢ࡮࡯ࡦࡦࡩ࡫ࠡࡶࡨࡷࡹࡥࡦࡳࡣࡰࡩࡼࡵࡲ࡬ࡡࡶࡸࡦࡺࡥ࠾ࡽࡷࡩࡸࡺ࡟ࡧࡴࡤࡱࡪࡽ࡯ࡳ࡭ࡢࡷࡹࡧࡴࡦࡿࠣࡸࡪࡹࡴࡠࡪࡲࡳࡰࡥࡳࡵࡣࡷࡩࡂࠨሟ") + str(test_hook_state) + bstack11l1l11_opy_ (u"ࠨࠢሠ"))
+        if test_framework_state == bstack1llll111lll_opy_.TEST or test_framework_state in PytestBDDFramework.bstack1ll1111ll1l_opy_:
+            bstack1ll1111l1l1_opy_(test_framework_state, test_hook_state)
+        if test_framework_state == bstack1llll111lll_opy_.NONE:
+            self.logger.warning(bstack111111l_opy_ (u"ࠣ࡫ࡪࡲࡴࡸࡥࡥࠢࡦࡥࡱࡲࡢࡢࡥ࡮ࠤࡹ࡫ࡳࡵࡡࡩࡶࡦࡳࡥࡸࡱࡵ࡯ࡤࡹࡴࡢࡶࡨࡁࢀࡺࡥࡴࡶࡢࡪࡷࡧ࡭ࡦࡹࡲࡶࡰࡥࡳࡵࡣࡷࡩࢂࠦࡴࡦࡵࡷࡣ࡭ࡵ࡯࡬ࡡࡶࡸࡦࡺࡥ࠾ࠤᇸ") + str(test_hook_state) + bstack111111l_opy_ (u"ࠤࠥᇹ"))
             return
-        if not self.bstack1ll11l1l1ll_opy_:
-            self.logger.warning(bstack11l1l11_opy_ (u"ࠢࡵࡴࡤࡧࡰࡥࡥࡷࡧࡱࡸ࠿ࠦࡵ࡯ࡵࡸࡴࡵࡵࡲࡵࡧࡧࠤ࡫ࡸࡡ࡮ࡧࡺࡳࡷࡱ࠽ࠣሡ") + str(str(self.bstack1l1lll1ll11_opy_)) + bstack11l1l11_opy_ (u"ࠣࠤሢ"))
+        if not self.bstack1ll1111lll1_opy_:
+            self.logger.warning(bstack111111l_opy_ (u"ࠥࡸࡷࡧࡣ࡬ࡡࡨࡺࡪࡴࡴ࠻ࠢࡸࡲࡸࡻࡰࡱࡱࡵࡸࡪࡪࠠࡧࡴࡤࡱࡪࡽ࡯ࡳ࡭ࡀࠦᇺ") + str(str(self.bstack1ll11l11ll1_opy_)) + bstack111111l_opy_ (u"ࠦࠧᇻ"))
             return
         if not isinstance(args, tuple) or len(args) == 0:
-            self.logger.warning(bstack11l1l11_opy_ (u"ࠤࡷࡶࡦࡩ࡫ࡠࡧࡹࡩࡳࡺ࠺ࠡࡷࡱࡩࡽࡶࡥࡤࡶࡨࡨࠥࡧࡲࡨࡵࡀࡿࡦࡸࡧࡴࡿࠣ࡯ࡼࡧࡲࡨࡵࡀࠦሣ") + str(kwargs) + bstack11l1l11_opy_ (u"ࠥࠦሤ"))
+            self.logger.warning(bstack111111l_opy_ (u"ࠧࡺࡲࡢࡥ࡮ࡣࡪࡼࡥ࡯ࡶ࠽ࠤࡺࡴࡥࡹࡲࡨࡧࡹ࡫ࡤࠡࡣࡵ࡫ࡸࡃࡻࡢࡴࡪࡷࢂࠦ࡫ࡸࡣࡵ࡫ࡸࡃࠢᇼ") + str(kwargs) + bstack111111l_opy_ (u"ࠨࠢᇽ"))
             return
-        instance = self.__1ll11lllll1_opy_(context, test_framework_state, test_hook_state, *args, **kwargs)
+        instance = self.__1ll1l1l1l1l_opy_(context, test_framework_state, test_hook_state, *args, **kwargs)
         if not instance:
-            self.logger.debug(bstack11l1l11_opy_ (u"ࠦࡹࡸࡡࡤ࡭ࡢࡩࡻ࡫࡮ࡵ࠼ࠣࡹࡳ࡮ࡡ࡯ࡦ࡯ࡩࡩࠦࡥࡷࡧࡱࡸࡂࢁࡴࡦࡵࡷࡣ࡫ࡸࡡ࡮ࡧࡺࡳࡷࡱ࡟ࡴࡶࡤࡸࡪࢃ࠮ࡼࡶࡨࡷࡹࡥࡨࡰࡱ࡮ࡣࡸࡺࡡࡵࡧࢀࠤࡦࡸࡧࡴ࠿ࠥሥ") + str(args) + bstack11l1l11_opy_ (u"ࠧࠨሦ"))
+            self.logger.debug(bstack111111l_opy_ (u"ࠢࡵࡴࡤࡧࡰࡥࡥࡷࡧࡱࡸ࠿ࠦࡵ࡯ࡪࡤࡲࡩࡲࡥࡥࠢࡨࡺࡪࡴࡴ࠾ࡽࡷࡩࡸࡺ࡟ࡧࡴࡤࡱࡪࡽ࡯ࡳ࡭ࡢࡷࡹࡧࡴࡦࡿ࠱ࡿࡹ࡫ࡳࡵࡡ࡫ࡳࡴࡱ࡟ࡴࡶࡤࡸࡪࢃࠠࡢࡴࡪࡷࡂࠨᇾ") + str(args) + bstack111111l_opy_ (u"ࠣࠤᇿ"))
             return
         try:
-            if instance!= None and test_framework_state in PytestBDDFramework.bstack1ll11l11111_opy_ and test_hook_state == bstack1lll11lll1l_opy_.PRE:
-                bstack1ll1l11llll_opy_ = bstack1llllll1ll1_opy_.bstack1ll1l11l111_opy_(EVENTS.bstack1ll1111ll1_opy_.value)
-                name = str(EVENTS.bstack1ll1111ll1_opy_.name)+bstack11l1l11_opy_ (u"ࠨ࠺ࠣሧ")+str(test_framework_state.name)
-                TestFramework.bstack1l1llll11l1_opy_(instance, name, bstack1ll1l11llll_opy_)
+            if instance!= None and test_framework_state in PytestBDDFramework.bstack1ll1111ll1l_opy_ and test_hook_state == bstack1lll1lll11l_opy_.PRE:
+                bstack1ll1l1ll1ll_opy_ = bstack1llllll1lll_opy_.bstack1ll1l1l11ll_opy_(EVENTS.bstack1ll1111ll_opy_.value)
+                name = str(EVENTS.bstack1ll1111ll_opy_.name)+bstack111111l_opy_ (u"ࠤ࠽ࠦሀ")+str(test_framework_state.name)
+                TestFramework.bstack1ll111l1111_opy_(instance, name, bstack1ll1l1ll1ll_opy_)
         except Exception as e:
-            self.logger.debug(bstack11l1l11_opy_ (u"ࠢࡆࡺࡦࡩࡵࡺࡩࡰࡰࠣ࡭ࡳࠦࡨࡰࡱ࡮ࠤࡪࡸࡲࡰࡴࠣࡴࡷ࡫࠺ࠡࡽࢀࠦረ").format(e))
+            self.logger.debug(bstack111111l_opy_ (u"ࠥࡉࡽࡩࡥࡱࡶ࡬ࡳࡳࠦࡩ࡯ࠢ࡫ࡳࡴࡱࠠࡦࡴࡵࡳࡷࠦࡰࡳࡧ࠽ࠤࢀࢃࠢሁ").format(e))
         try:
-            if test_framework_state == bstack1lll1l1llll_opy_.TEST:
-                if not TestFramework.bstack111111111l_opy_(instance, TestFramework.bstack1ll1111llll_opy_) and test_hook_state == bstack1lll11lll1l_opy_.PRE:
+            if test_framework_state == bstack1llll111lll_opy_.TEST:
+                if not TestFramework.bstack1lllllll11l_opy_(instance, TestFramework.bstack1ll1l11l11l_opy_) and test_hook_state == bstack1lll1lll11l_opy_.PRE:
                     if not (len(args) >= 3):
                         return
-                    test = PytestBDDFramework.__1l1lllll111_opy_(args)
+                    test = PytestBDDFramework.__1ll1l11llll_opy_(args)
                     if test:
                         instance.data.update(test)
-                        self.logger.debug(bstack11l1l11_opy_ (u"ࠣ࡮ࡲࡥࡩ࡫ࡤࠡ࡫ࡱࡷࡹࡧ࡮ࡤࡧࡀࡿ࡮ࡴࡳࡵࡣࡱࡧࡪ࠴ࡲࡦࡨࠫ࠭ࢂࠦࡥࡷࡧࡱࡸࡂࢁࡴࡦࡵࡷࡣ࡫ࡸࡡ࡮ࡧࡺࡳࡷࡱ࡟ࡴࡶࡤࡸࡪࢃ࠮ࠣሩ") + str(test_hook_state) + bstack11l1l11_opy_ (u"ࠤࠥሪ"))
-                if test_hook_state == bstack1lll11lll1l_opy_.PRE and not TestFramework.bstack111111111l_opy_(instance, TestFramework.bstack1ll11lll11l_opy_):
-                    TestFramework.bstack1llllll1l11_opy_(instance, TestFramework.bstack1ll11lll11l_opy_, datetime.now(tz=timezone.utc))
-                    PytestBDDFramework.__1ll1111l1l1_opy_(instance, args)
-                    self.logger.debug(bstack11l1l11_opy_ (u"ࠥࡷࡪࡺࠠࡵࡧࡶࡸ࠲ࡹࡴࡢࡴࡷࠤ࡫ࡵࡲࠡ࡫ࡱࡷࡹࡧ࡮ࡤࡧࡀࡿ࡮ࡴࡳࡵࡣࡱࡧࡪ࠴ࡲࡦࡨࠫ࠭ࢂࠦࡥࡷࡧࡱࡸࡂࢁࡴࡦࡵࡷࡣ࡫ࡸࡡ࡮ࡧࡺࡳࡷࡱ࡟ࡴࡶࡤࡸࡪࢃ࠮ࠣራ") + str(test_hook_state) + bstack11l1l11_opy_ (u"ࠦࠧሬ"))
-                elif test_hook_state == bstack1lll11lll1l_opy_.POST and not TestFramework.bstack111111111l_opy_(instance, TestFramework.bstack1ll1l11l1ll_opy_):
-                    TestFramework.bstack1llllll1l11_opy_(instance, TestFramework.bstack1ll1l11l1ll_opy_, datetime.now(tz=timezone.utc))
-                    self.logger.debug(bstack11l1l11_opy_ (u"ࠧࡹࡥࡵࠢࡷࡩࡸࡺ࠭ࡦࡰࡧࠤ࡫ࡵࡲࠡ࡫ࡱࡷࡹࡧ࡮ࡤࡧࡀࡿ࡮ࡴࡳࡵࡣࡱࡧࡪ࠴ࡲࡦࡨࠫ࠭ࢂࠦࡥࡷࡧࡱࡸࡂࢁࡴࡦࡵࡷࡣ࡫ࡸࡡ࡮ࡧࡺࡳࡷࡱ࡟ࡴࡶࡤࡸࡪࢃ࠮ࠣር") + str(test_hook_state) + bstack11l1l11_opy_ (u"ࠨࠢሮ"))
-            elif test_framework_state == bstack1lll1l1llll_opy_.STEP:
-                if test_hook_state == bstack1lll11lll1l_opy_.PRE:
-                    PytestBDDFramework.__1ll11l11l1l_opy_(instance, args)
-                elif test_hook_state == bstack1lll11lll1l_opy_.POST:
-                    PytestBDDFramework.__1ll1l1ll111_opy_(instance, args)
-            elif test_framework_state == bstack1lll1l1llll_opy_.LOG and test_hook_state == bstack1lll11lll1l_opy_.POST:
-                PytestBDDFramework.__1ll111l1ll1_opy_(instance, *args)
-            elif test_framework_state == bstack1lll1l1llll_opy_.LOG_REPORT and test_hook_state == bstack1lll11lll1l_opy_.POST:
-                self.__1ll111l111l_opy_(instance, *args)
-                self.__1ll1l1l1lll_opy_(instance)
-            elif test_framework_state in PytestBDDFramework.bstack1ll11l11111_opy_:
-                self.__1l1llll11ll_opy_(instance, test_framework_state, test_hook_state, *args)
-            self.logger.debug(bstack11l1l11_opy_ (u"ࠢࡵࡴࡤࡧࡰࡥࡥࡷࡧࡱࡸ࠿ࠦࡨࡢࡰࡧࡰࡪࡪࠠࡦࡸࡨࡲࡹࡃࡻࡵࡧࡶࡸࡤ࡬ࡲࡢ࡯ࡨࡻࡴࡸ࡫ࡠࡵࡷࡥࡹ࡫ࡽ࠯ࡽࡷࡩࡸࡺ࡟ࡩࡱࡲ࡯ࡤࡹࡴࡢࡶࡨࢁࠥ࡯࡮ࡴࡶࡤࡲࡨ࡫࠽ࠣሯ") + str(instance.ref()) + bstack11l1l11_opy_ (u"ࠣࠤሰ"))
+                        self.logger.debug(bstack111111l_opy_ (u"ࠦࡱࡵࡡࡥࡧࡧࠤ࡮ࡴࡳࡵࡣࡱࡧࡪࡃࡻࡪࡰࡶࡸࡦࡴࡣࡦ࠰ࡵࡩ࡫࠮ࠩࡾࠢࡨࡺࡪࡴࡴ࠾ࡽࡷࡩࡸࡺ࡟ࡧࡴࡤࡱࡪࡽ࡯ࡳ࡭ࡢࡷࡹࡧࡴࡦࡿ࠱ࠦሂ") + str(test_hook_state) + bstack111111l_opy_ (u"ࠧࠨሃ"))
+                if test_hook_state == bstack1lll1lll11l_opy_.PRE and not TestFramework.bstack1lllllll11l_opy_(instance, TestFramework.bstack1ll111l1l11_opy_):
+                    TestFramework.bstack1llll1lll1l_opy_(instance, TestFramework.bstack1ll111l1l11_opy_, datetime.now(tz=timezone.utc))
+                    PytestBDDFramework.__1ll1l1llll1_opy_(instance, args)
+                    self.logger.debug(bstack111111l_opy_ (u"ࠨࡳࡦࡶࠣࡸࡪࡹࡴ࠮ࡵࡷࡥࡷࡺࠠࡧࡱࡵࠤ࡮ࡴࡳࡵࡣࡱࡧࡪࡃࡻࡪࡰࡶࡸࡦࡴࡣࡦ࠰ࡵࡩ࡫࠮ࠩࡾࠢࡨࡺࡪࡴࡴ࠾ࡽࡷࡩࡸࡺ࡟ࡧࡴࡤࡱࡪࡽ࡯ࡳ࡭ࡢࡷࡹࡧࡴࡦࡿ࠱ࠦሄ") + str(test_hook_state) + bstack111111l_opy_ (u"ࠢࠣህ"))
+                elif test_hook_state == bstack1lll1lll11l_opy_.POST and not TestFramework.bstack1lllllll11l_opy_(instance, TestFramework.bstack1ll11l1l1ll_opy_):
+                    TestFramework.bstack1llll1lll1l_opy_(instance, TestFramework.bstack1ll11l1l1ll_opy_, datetime.now(tz=timezone.utc))
+                    self.logger.debug(bstack111111l_opy_ (u"ࠣࡵࡨࡸࠥࡺࡥࡴࡶ࠰ࡩࡳࡪࠠࡧࡱࡵࠤ࡮ࡴࡳࡵࡣࡱࡧࡪࡃࡻࡪࡰࡶࡸࡦࡴࡣࡦ࠰ࡵࡩ࡫࠮ࠩࡾࠢࡨࡺࡪࡴࡴ࠾ࡽࡷࡩࡸࡺ࡟ࡧࡴࡤࡱࡪࡽ࡯ࡳ࡭ࡢࡷࡹࡧࡴࡦࡿ࠱ࠦሆ") + str(test_hook_state) + bstack111111l_opy_ (u"ࠤࠥሇ"))
+            elif test_framework_state == bstack1llll111lll_opy_.STEP:
+                if test_hook_state == bstack1lll1lll11l_opy_.PRE:
+                    PytestBDDFramework.__1ll111lllll_opy_(instance, args)
+                elif test_hook_state == bstack1lll1lll11l_opy_.POST:
+                    PytestBDDFramework.__1ll11111ll1_opy_(instance, args)
+            elif test_framework_state == bstack1llll111lll_opy_.LOG and test_hook_state == bstack1lll1lll11l_opy_.POST:
+                PytestBDDFramework.__1ll1l111l1l_opy_(instance, *args)
+            elif test_framework_state == bstack1llll111lll_opy_.LOG_REPORT and test_hook_state == bstack1lll1lll11l_opy_.POST:
+                self.__1l1lllll1l1_opy_(instance, *args)
+                self.__1ll111ll1l1_opy_(instance)
+            elif test_framework_state in PytestBDDFramework.bstack1ll1111ll1l_opy_:
+                self.__1ll11llll11_opy_(instance, test_framework_state, test_hook_state, *args)
+            self.logger.debug(bstack111111l_opy_ (u"ࠥࡸࡷࡧࡣ࡬ࡡࡨࡺࡪࡴࡴ࠻ࠢ࡫ࡥࡳࡪ࡬ࡦࡦࠣࡩࡻ࡫࡮ࡵ࠿ࡾࡸࡪࡹࡴࡠࡨࡵࡥࡲ࡫ࡷࡰࡴ࡮ࡣࡸࡺࡡࡵࡧࢀ࠲ࢀࡺࡥࡴࡶࡢ࡬ࡴࡵ࡫ࡠࡵࡷࡥࡹ࡫ࡽࠡ࡫ࡱࡷࡹࡧ࡮ࡤࡧࡀࠦለ") + str(instance.ref()) + bstack111111l_opy_ (u"ࠦࠧሉ"))
         except Exception as e:
             self.logger.error(e)
             traceback.print_exc()
-        self.bstack1ll11l1lll1_opy_(instance, (test_framework_state, test_hook_state), *args, **kwargs)
+        self.bstack1ll1l11l1l1_opy_(instance, (test_framework_state, test_hook_state), *args, **kwargs)
         try:
-            if instance!= None and test_framework_state in PytestBDDFramework.bstack1ll11l11111_opy_ and test_hook_state == bstack1lll11lll1l_opy_.POST:
-                name = str(EVENTS.bstack1ll1111ll1_opy_.name)+bstack11l1l11_opy_ (u"ࠤ࠽ࠦሱ")+str(test_framework_state.name)
-                bstack1ll1l11llll_opy_ = TestFramework.bstack1ll1l11ll11_opy_(instance, name)
-                bstack1llllll1ll1_opy_.end(EVENTS.bstack1ll1111ll1_opy_.value, bstack1ll1l11llll_opy_+bstack11l1l11_opy_ (u"ࠥ࠾ࡸࡺࡡࡳࡶࠥሲ"), bstack1ll1l11llll_opy_+bstack11l1l11_opy_ (u"ࠦ࠿࡫࡮ࡥࠤሳ"), True, None, test_framework_state.name)
+            if instance!= None and test_framework_state in PytestBDDFramework.bstack1ll1111ll1l_opy_ and test_hook_state == bstack1lll1lll11l_opy_.POST:
+                name = str(EVENTS.bstack1ll1111ll_opy_.name)+bstack111111l_opy_ (u"ࠧࡀࠢሊ")+str(test_framework_state.name)
+                bstack1ll1l1ll1ll_opy_ = TestFramework.bstack1ll111lll1l_opy_(instance, name)
+                bstack1llllll1lll_opy_.end(EVENTS.bstack1ll1111ll_opy_.value, bstack1ll1l1ll1ll_opy_+bstack111111l_opy_ (u"ࠨ࠺ࡴࡶࡤࡶࡹࠨላ"), bstack1ll1l1ll1ll_opy_+bstack111111l_opy_ (u"ࠢ࠻ࡧࡱࡨࠧሌ"), True, None, test_framework_state.name)
         except Exception as e:
-            self.logger.debug(bstack11l1l11_opy_ (u"ࠧࡋࡸࡤࡧࡳࡸ࡮ࡵ࡮ࠡ࡫ࡱࠤ࡭ࡵ࡯࡬ࠢࡨࡶࡷࡵࡲ࠻ࠢࡾࢁࠧሴ").format(e))
-    def bstack1l1llll1111_opy_(self):
-        return self.bstack1ll11l1l1ll_opy_
-    def __1l1llll1ll1_opy_(self, *args):
-        if len(args) > 2 and callable(getattr(args[2], bstack11l1l11_opy_ (u"ࠨࡧࡦࡶࡢࡶࡪࡹࡵ࡭ࡶࠥስ"), None)):
+            self.logger.debug(bstack111111l_opy_ (u"ࠣࡇࡻࡧࡪࡶࡴࡪࡱࡱࠤ࡮ࡴࠠࡩࡱࡲ࡯ࠥ࡫ࡲࡳࡱࡵ࠾ࠥࢁࡽࠣል").format(e))
+    def bstack1ll1l1lll11_opy_(self):
+        return self.bstack1ll1111lll1_opy_
+    def __1ll11ll1l1l_opy_(self, *args):
+        if len(args) > 2 and callable(getattr(args[2], bstack111111l_opy_ (u"ࠤࡪࡩࡹࡥࡲࡦࡵࡸࡰࡹࠨሎ"), None)):
             rep = args[2].get_result()
             if rep:
-                return TestFramework.bstack1ll1l11lll1_opy_(rep, [bstack11l1l11_opy_ (u"ࠢࡸࡪࡨࡲࠧሶ"), bstack11l1l11_opy_ (u"ࠣࡱࡸࡸࡨࡵ࡭ࡦࠤሷ"), bstack11l1l11_opy_ (u"ࠤࡳࡥࡸࡹࡥࡥࠤሸ"), bstack11l1l11_opy_ (u"ࠥࡪࡦ࡯࡬ࡦࡦࠥሹ"), bstack11l1l11_opy_ (u"ࠦࡸࡱࡩࡱࡲࡨࡨࠧሺ"), bstack11l1l11_opy_ (u"ࠧࡲ࡯࡯ࡩࡵࡩࡵࡸࡴࡦࡺࡷࠦሻ")])
+                return TestFramework.bstack1ll11111l11_opy_(rep, [bstack111111l_opy_ (u"ࠥࡻ࡭࡫࡮ࠣሏ"), bstack111111l_opy_ (u"ࠦࡴࡻࡴࡤࡱࡰࡩࠧሐ"), bstack111111l_opy_ (u"ࠧࡶࡡࡴࡵࡨࡨࠧሑ"), bstack111111l_opy_ (u"ࠨࡦࡢ࡫࡯ࡩࡩࠨሒ"), bstack111111l_opy_ (u"ࠢࡴ࡭࡬ࡴࡵ࡫ࡤࠣሓ"), bstack111111l_opy_ (u"ࠣ࡮ࡲࡲ࡬ࡸࡥࡱࡴࡷࡩࡽࡺࠢሔ")])
         return None
-    def __1ll111l111l_opy_(self, instance: bstack1lll1l1ll11_opy_, *args):
-        result = self.__1l1llll1ll1_opy_(*args)
+    def __1l1lllll1l1_opy_(self, instance: bstack1lll1lll1l1_opy_, *args):
+        result = self.__1ll11ll1l1l_opy_(*args)
         if not result:
             return
         failure = None
-        bstack1111111l1l_opy_ = None
-        if result.get(bstack11l1l11_opy_ (u"ࠨ࡯ࡶࡶࡦࡳࡲ࡫ࠢሼ"), None) == bstack11l1l11_opy_ (u"ࠢࡧࡣ࡬ࡰࡪࡪࠢሽ") and len(args) > 1 and getattr(args[1], bstack11l1l11_opy_ (u"ࠣࡧࡻࡧ࡮ࡴࡦࡰࠤሾ"), None) is not None:
-            failure = [{bstack11l1l11_opy_ (u"ࠩࡥࡥࡨࡱࡴࡳࡣࡦࡩࠬሿ"): [args[1].excinfo.exconly(), result.get(bstack11l1l11_opy_ (u"ࠥࡰࡴࡴࡧࡳࡧࡳࡶࡹ࡫ࡸࡵࠤቀ"), None)]}]
-            bstack1111111l1l_opy_ = bstack11l1l11_opy_ (u"ࠦࡆࡹࡳࡦࡴࡷ࡭ࡴࡴࡅࡳࡴࡲࡶࠧቁ") if bstack11l1l11_opy_ (u"ࠧࡇࡳࡴࡧࡵࡸ࡮ࡵ࡮ࠣቂ") in getattr(args[1].excinfo, bstack11l1l11_opy_ (u"ࠨࡴࡺࡲࡨࡲࡦࡳࡥࠣቃ"), bstack11l1l11_opy_ (u"ࠢࠣቄ")) else bstack11l1l11_opy_ (u"ࠣࡗࡱ࡬ࡦࡴࡤ࡭ࡧࡧࡉࡷࡸ࡯ࡳࠤቅ")
-        bstack1ll111llll1_opy_ = result.get(bstack11l1l11_opy_ (u"ࠤࡲࡹࡹࡩ࡯࡮ࡧࠥቆ"), TestFramework.bstack1ll11ll11l1_opy_)
-        if bstack1ll111llll1_opy_ != TestFramework.bstack1ll11ll11l1_opy_:
-            TestFramework.bstack1llllll1l11_opy_(instance, TestFramework.bstack1ll11111ll1_opy_, datetime.now(tz=timezone.utc))
-        TestFramework.bstack1ll11ll1ll1_opy_(instance, {
-            TestFramework.bstack1lll1llll11_opy_: failure,
-            TestFramework.bstack1ll11l1l111_opy_: bstack1111111l1l_opy_,
-            TestFramework.bstack1lll11l1l1l_opy_: bstack1ll111llll1_opy_,
+        bstack11111l111l_opy_ = None
+        if result.get(bstack111111l_opy_ (u"ࠤࡲࡹࡹࡩ࡯࡮ࡧࠥሕ"), None) == bstack111111l_opy_ (u"ࠥࡪࡦ࡯࡬ࡦࡦࠥሖ") and len(args) > 1 and getattr(args[1], bstack111111l_opy_ (u"ࠦࡪࡾࡣࡪࡰࡩࡳࠧሗ"), None) is not None:
+            failure = [{bstack111111l_opy_ (u"ࠬࡨࡡࡤ࡭ࡷࡶࡦࡩࡥࠨመ"): [args[1].excinfo.exconly(), result.get(bstack111111l_opy_ (u"ࠨ࡬ࡰࡰࡪࡶࡪࡶࡲࡵࡧࡻࡸࠧሙ"), None)]}]
+            bstack11111l111l_opy_ = bstack111111l_opy_ (u"ࠢࡂࡵࡶࡩࡷࡺࡩࡰࡰࡈࡶࡷࡵࡲࠣሚ") if bstack111111l_opy_ (u"ࠣࡃࡶࡷࡪࡸࡴࡪࡱࡱࠦማ") in getattr(args[1].excinfo, bstack111111l_opy_ (u"ࠤࡷࡽࡵ࡫࡮ࡢ࡯ࡨࠦሜ"), bstack111111l_opy_ (u"ࠥࠦም")) else bstack111111l_opy_ (u"࡚ࠦࡴࡨࡢࡰࡧࡰࡪࡪࡅࡳࡴࡲࡶࠧሞ")
+        bstack1ll111l111l_opy_ = result.get(bstack111111l_opy_ (u"ࠧࡵࡵࡵࡥࡲࡱࡪࠨሟ"), TestFramework.bstack1ll11llll1l_opy_)
+        if bstack1ll111l111l_opy_ != TestFramework.bstack1ll11llll1l_opy_:
+            TestFramework.bstack1llll1lll1l_opy_(instance, TestFramework.bstack1ll1l1111ll_opy_, datetime.now(tz=timezone.utc))
+        TestFramework.bstack1ll1l11l111_opy_(instance, {
+            TestFramework.bstack1lll1ll11ll_opy_: failure,
+            TestFramework.bstack1ll111ll111_opy_: bstack11111l111l_opy_,
+            TestFramework.bstack1lll1ll1ll1_opy_: bstack1ll111l111l_opy_,
         })
-    def __1ll11lllll1_opy_(
+    def __1ll1l1l1l1l_opy_(
         self,
-        context: bstack1ll111l1111_opy_,
-        test_framework_state: bstack1lll1l1llll_opy_,
-        test_hook_state: bstack1lll11lll1l_opy_,
+        context: bstack1l1llllllll_opy_,
+        test_framework_state: bstack1llll111lll_opy_,
+        test_hook_state: bstack1lll1lll11l_opy_,
         *args,
         **kwargs,
     ):
         instance = None
-        if test_framework_state == bstack1lll1l1llll_opy_.SETUP_FIXTURE:
-            instance = self.__1ll11lll1ll_opy_(context, test_framework_state, test_hook_state, *args, **kwargs)
+        if test_framework_state == bstack1llll111lll_opy_.SETUP_FIXTURE:
+            instance = self.__1ll111llll1_opy_(context, test_framework_state, test_hook_state, *args, **kwargs)
         else:
-            target = None # bstack1ll111ll111_opy_ bstack1ll11ll111l_opy_ this to be bstack11l1l11_opy_ (u"ࠥࡲࡴࡪࡥࡪࡦࠥቇ")
-            if test_framework_state == bstack1lll1l1llll_opy_.INIT_TEST:
+            target = None # bstack1ll11ll1111_opy_ bstack1ll1ll1111l_opy_ this to be bstack111111l_opy_ (u"ࠨ࡮ࡰࡦࡨ࡭ࡩࠨሠ")
+            if test_framework_state == bstack1llll111lll_opy_.INIT_TEST:
                 target = args[0] if isinstance(args[0], str) else None
                 if target:
-                    self.__1ll11l1l1l1_opy_(context, test_framework_state, target, *args)
-            elif test_framework_state == bstack1lll1l1llll_opy_.LOG:
-                nodeid = getattr(getattr(args[0], bstack11l1l11_opy_ (u"ࠦࡳࡵࡤࡦࠤቈ"), None), bstack11l1l11_opy_ (u"ࠧࡴ࡯ࡥࡧ࡬ࡨࠧ቉"), None) if args else None
+                    self.__1ll1l11111l_opy_(context, test_framework_state, target, *args)
+            elif test_framework_state == bstack1llll111lll_opy_.LOG:
+                nodeid = getattr(getattr(args[0], bstack111111l_opy_ (u"ࠢ࡯ࡱࡧࡩࠧሡ"), None), bstack111111l_opy_ (u"ࠣࡰࡲࡨࡪ࡯ࡤࠣሢ"), None) if args else None
                 if isinstance(nodeid, str):
                     target = nodeid
-            elif getattr(args[0], bstack11l1l11_opy_ (u"ࠨ࡮ࡰࡦࡨࠦቊ"), None):
+            elif getattr(args[0], bstack111111l_opy_ (u"ࠤࡱࡳࡩ࡫ࠢሣ"), None):
                 target = args[0].node.nodeid
-            elif getattr(args[0], bstack11l1l11_opy_ (u"ࠢ࡯ࡱࡧࡩ࡮ࡪࠢቋ"), None):
+            elif getattr(args[0], bstack111111l_opy_ (u"ࠥࡲࡴࡪࡥࡪࡦࠥሤ"), None):
                 target = args[0].nodeid
-            instance = TestFramework.bstack1l1lll1l1l1_opy_(target) if target else None
+            instance = TestFramework.bstack1ll11ll1lll_opy_(target) if target else None
         return instance
-    def __1l1llll11ll_opy_(
+    def __1ll11llll11_opy_(
         self,
-        instance: bstack1lll1l1ll11_opy_,
-        test_framework_state: bstack1lll1l1llll_opy_,
-        test_hook_state: bstack1lll11lll1l_opy_,
+        instance: bstack1lll1lll1l1_opy_,
+        test_framework_state: bstack1llll111lll_opy_,
+        test_hook_state: bstack1lll1lll11l_opy_,
         *args,
     ):
         key = test_framework_state.name
-        bstack1l1llll111l_opy_ = TestFramework.get_state(instance, PytestBDDFramework.bstack1ll1l1111ll_opy_, {})
-        if not key in bstack1l1llll111l_opy_:
-            bstack1l1llll111l_opy_[key] = []
-        bstack1ll11ll11ll_opy_ = TestFramework.get_state(instance, PytestBDDFramework.bstack1ll11111l11_opy_, {})
-        if not key in bstack1ll11ll11ll_opy_:
-            bstack1ll11ll11ll_opy_[key] = []
-        bstack1ll11ll1lll_opy_ = {
-            PytestBDDFramework.bstack1ll1l1111ll_opy_: bstack1l1llll111l_opy_,
-            PytestBDDFramework.bstack1ll11111l11_opy_: bstack1ll11ll11ll_opy_,
+        bstack1ll1l11lll1_opy_ = TestFramework.get_state(instance, PytestBDDFramework.bstack1ll1l11ll11_opy_, {})
+        if not key in bstack1ll1l11lll1_opy_:
+            bstack1ll1l11lll1_opy_[key] = []
+        bstack1l1llllll11_opy_ = TestFramework.get_state(instance, PytestBDDFramework.bstack1ll111l11l1_opy_, {})
+        if not key in bstack1l1llllll11_opy_:
+            bstack1l1llllll11_opy_[key] = []
+        bstack1ll1111ll11_opy_ = {
+            PytestBDDFramework.bstack1ll1l11ll11_opy_: bstack1ll1l11lll1_opy_,
+            PytestBDDFramework.bstack1ll111l11l1_opy_: bstack1l1llllll11_opy_,
         }
-        if test_hook_state == bstack1lll11lll1l_opy_.PRE:
+        if test_hook_state == bstack1lll1lll11l_opy_.PRE:
             hook_name = args[1] if len(args) > 1 else None
             hook = {
-                bstack11l1l11_opy_ (u"ࠣ࡭ࡨࡽࠧቌ"): key,
-                TestFramework.bstack1ll111ll11l_opy_: uuid4().__str__(),
-                TestFramework.bstack1ll1l111l11_opy_: TestFramework.bstack1ll1111111l_opy_,
-                TestFramework.bstack1l1llll1lll_opy_: datetime.now(tz=timezone.utc),
-                TestFramework.bstack1l1lllll11l_opy_: [],
-                TestFramework.bstack1ll111ll1l1_opy_: hook_name,
-                TestFramework.bstack1ll11lll1l1_opy_: bstack1ll11llll11_opy_.bstack1ll11llllll_opy_()
+                bstack111111l_opy_ (u"ࠦࡰ࡫ࡹࠣሥ"): key,
+                TestFramework.bstack1ll1l1111l1_opy_: uuid4().__str__(),
+                TestFramework.bstack1ll11l111ll_opy_: TestFramework.bstack1ll11ll1l11_opy_,
+                TestFramework.bstack1ll11lllll1_opy_: datetime.now(tz=timezone.utc),
+                TestFramework.bstack1ll11l1l1l1_opy_: [],
+                TestFramework.bstack1ll11l1l111_opy_: hook_name,
+                TestFramework.bstack1ll1l1ll1l1_opy_: bstack1ll1l1ll111_opy_.bstack1ll11l1lll1_opy_()
             }
-            bstack1l1llll111l_opy_[key].append(hook)
-            bstack1ll11ll1lll_opy_[PytestBDDFramework.bstack1ll1l1l111l_opy_] = key
-        elif test_hook_state == bstack1lll11lll1l_opy_.POST:
-            bstack1ll1111l111_opy_ = bstack1l1llll111l_opy_.get(key, [])
-            hook = bstack1ll1111l111_opy_.pop() if bstack1ll1111l111_opy_ else None
+            bstack1ll1l11lll1_opy_[key].append(hook)
+            bstack1ll1111ll11_opy_[PytestBDDFramework.bstack1ll11l1111l_opy_] = key
+        elif test_hook_state == bstack1lll1lll11l_opy_.POST:
+            bstack1ll1ll11111_opy_ = bstack1ll1l11lll1_opy_.get(key, [])
+            hook = bstack1ll1ll11111_opy_.pop() if bstack1ll1ll11111_opy_ else None
             if hook:
-                result = self.__1l1llll1ll1_opy_(*args)
+                result = self.__1ll11ll1l1l_opy_(*args)
                 if result:
-                    bstack1ll111l1lll_opy_ = result.get(bstack11l1l11_opy_ (u"ࠤࡲࡹࡹࡩ࡯࡮ࡧࠥቍ"), TestFramework.bstack1ll1111111l_opy_)
-                    if bstack1ll111l1lll_opy_ != TestFramework.bstack1ll1111111l_opy_:
-                        hook[TestFramework.bstack1ll1l111l11_opy_] = bstack1ll111l1lll_opy_
-                hook[TestFramework.bstack1ll1l1l1l1l_opy_] = datetime.now(tz=timezone.utc)
-                hook[TestFramework.bstack1ll11lll1l1_opy_] = bstack1ll11llll11_opy_.bstack1ll11llllll_opy_()
-                self.bstack1l1llll1l11_opy_(hook)
-                logs = hook.get(TestFramework.bstack1ll11l1ll11_opy_, [])
-                self.bstack1ll1l111l1l_opy_(instance, logs)
-                bstack1ll11ll11ll_opy_[key].append(hook)
-                bstack1ll11ll1lll_opy_[PytestBDDFramework.bstack1ll111ll1ll_opy_] = key
-        TestFramework.bstack1ll11ll1ll1_opy_(instance, bstack1ll11ll1lll_opy_)
-        self.logger.debug(bstack11l1l11_opy_ (u"ࠥࡸࡷࡧࡣ࡬ࡡ࡫ࡳࡴࡱ࡟ࡦࡸࡨࡲࡹࡀࠠࡵࡧࡶࡸࡤ࡮࡯ࡰ࡭ࡢࡷࡹࡧࡴࡦ࠿ࡾ࡯ࡪࡿࡽ࠯ࡽࡷࡩࡸࡺ࡟ࡩࡱࡲ࡯ࡤࡹࡴࡢࡶࡨࢁࠥ࡮࡯ࡰ࡭ࡶࡣࡸࡺࡡࡳࡶࡨࡨࡂࢁࡨࡰࡱ࡮ࡷࡤࡹࡴࡢࡴࡷࡩࡩࢃࠠࡩࡱࡲ࡯ࡸࡥࡦࡪࡰ࡬ࡷ࡭࡫ࡤ࠾ࠤ቎") + str(bstack1ll11ll11ll_opy_) + bstack11l1l11_opy_ (u"ࠦࠧ቏"))
-    def __1ll11lll1ll_opy_(
+                    bstack1l1lllllll1_opy_ = result.get(bstack111111l_opy_ (u"ࠧࡵࡵࡵࡥࡲࡱࡪࠨሦ"), TestFramework.bstack1ll11ll1l11_opy_)
+                    if bstack1l1lllllll1_opy_ != TestFramework.bstack1ll11ll1l11_opy_:
+                        hook[TestFramework.bstack1ll11l111ll_opy_] = bstack1l1lllllll1_opy_
+                hook[TestFramework.bstack1ll111ll1ll_opy_] = datetime.now(tz=timezone.utc)
+                hook[TestFramework.bstack1ll1l1ll1l1_opy_] = bstack1ll1l1ll111_opy_.bstack1ll11l1lll1_opy_()
+                self.bstack1ll1l11ll1l_opy_(hook)
+                logs = hook.get(TestFramework.bstack1ll11l11l1l_opy_, [])
+                self.bstack1ll11111111_opy_(instance, logs)
+                bstack1l1llllll11_opy_[key].append(hook)
+                bstack1ll1111ll11_opy_[PytestBDDFramework.bstack1ll1l111lll_opy_] = key
+        TestFramework.bstack1ll1l11l111_opy_(instance, bstack1ll1111ll11_opy_)
+        self.logger.debug(bstack111111l_opy_ (u"ࠨࡴࡳࡣࡦ࡯ࡤ࡮࡯ࡰ࡭ࡢࡩࡻ࡫࡮ࡵ࠼ࠣࡸࡪࡹࡴࡠࡪࡲࡳࡰࡥࡳࡵࡣࡷࡩࡂࢁ࡫ࡦࡻࢀ࠲ࢀࡺࡥࡴࡶࡢ࡬ࡴࡵ࡫ࡠࡵࡷࡥࡹ࡫ࡽࠡࡪࡲࡳࡰࡹ࡟ࡴࡶࡤࡶࡹ࡫ࡤ࠾ࡽ࡫ࡳࡴࡱࡳࡠࡵࡷࡥࡷࡺࡥࡥࡿࠣ࡬ࡴࡵ࡫ࡴࡡࡩ࡭ࡳ࡯ࡳࡩࡧࡧࡁࠧሧ") + str(bstack1l1llllll11_opy_) + bstack111111l_opy_ (u"ࠢࠣረ"))
+    def __1ll111llll1_opy_(
         self,
-        context: bstack1ll111l1111_opy_,
-        test_framework_state: bstack1lll1l1llll_opy_,
-        test_hook_state: bstack1lll11lll1l_opy_,
+        context: bstack1l1llllllll_opy_,
+        test_framework_state: bstack1llll111lll_opy_,
+        test_hook_state: bstack1lll1lll11l_opy_,
         *args,
         **kwargs,
     ):
-        fixturedef = TestFramework.bstack1ll1l11lll1_opy_(args[0], [bstack11l1l11_opy_ (u"ࠧࡹࡣࡰࡲࡨࠦቐ"), bstack11l1l11_opy_ (u"ࠨࡡࡳࡩࡱࡥࡲ࡫ࠢቑ"), bstack11l1l11_opy_ (u"ࠢࡱࡣࡵࡥࡲࡹࠢቒ"), bstack11l1l11_opy_ (u"ࠣ࡫ࡧࡷࠧቓ"), bstack11l1l11_opy_ (u"ࠤࡸࡲ࡮ࡺࡴࡦࡵࡷࠦቔ"), bstack11l1l11_opy_ (u"ࠥࡦࡦࡹࡥࡪࡦࠥቕ")]) if len(args) > 0 else {}
+        fixturedef = TestFramework.bstack1ll11111l11_opy_(args[0], [bstack111111l_opy_ (u"ࠣࡵࡦࡳࡵ࡫ࠢሩ"), bstack111111l_opy_ (u"ࠤࡤࡶ࡬ࡴࡡ࡮ࡧࠥሪ"), bstack111111l_opy_ (u"ࠥࡴࡦࡸࡡ࡮ࡵࠥራ"), bstack111111l_opy_ (u"ࠦ࡮ࡪࡳࠣሬ"), bstack111111l_opy_ (u"ࠧࡻ࡮ࡪࡶࡷࡩࡸࡺࠢር"), bstack111111l_opy_ (u"ࠨࡢࡢࡵࡨ࡭ࡩࠨሮ")]) if len(args) > 0 else {}
         request = args[1] if len(args) > 1 else None
         scenario = args[2] if len(args) == 3 else None
-        scope = request.scope if hasattr(request, bstack11l1l11_opy_ (u"ࠦࡸࡩ࡯ࡱࡧࠥቖ")) else fixturedef.get(bstack11l1l11_opy_ (u"ࠧࡹࡣࡰࡲࡨࠦ቗"), None)
-        fixturename = request.fixturename if hasattr(request, bstack11l1l11_opy_ (u"ࠨࡦࡪࡺࡷࡹࡷ࡫࡮ࡢ࡯ࡨࠦቘ")) else None
-        node = request.node if hasattr(request, bstack11l1l11_opy_ (u"ࠢ࡯ࡱࡧࡩࠧ቙")) else None
-        target = request.node.nodeid if hasattr(node, bstack11l1l11_opy_ (u"ࠣࡰࡲࡨࡪ࡯ࡤࠣቚ")) else None
-        baseid = fixturedef.get(bstack11l1l11_opy_ (u"ࠤࡥࡥࡸ࡫ࡩࡥࠤቛ"), None) or bstack11l1l11_opy_ (u"ࠥࠦቜ")
-        if (not target or len(baseid) > 0) and hasattr(request, bstack11l1l11_opy_ (u"ࠦࡤࡶࡹࡧࡷࡱࡧ࡮ࡺࡥ࡮ࠤቝ")):
-            target = PytestBDDFramework.__1ll11ll1l11_opy_(request._pyfuncitem.location) if hasattr(request._pyfuncitem, bstack11l1l11_opy_ (u"ࠧࡲ࡯ࡤࡣࡷ࡭ࡴࡴࠢ቞")) else None
-            if target and not TestFramework.bstack1l1lll1l1l1_opy_(target):
-                self.__1ll11l1l1l1_opy_(context, test_framework_state, target, (target, request._pyfuncitem.location))
+        scope = request.scope if hasattr(request, bstack111111l_opy_ (u"ࠢࡴࡥࡲࡴࡪࠨሯ")) else fixturedef.get(bstack111111l_opy_ (u"ࠣࡵࡦࡳࡵ࡫ࠢሰ"), None)
+        fixturename = request.fixturename if hasattr(request, bstack111111l_opy_ (u"ࠤࡩ࡭ࡽࡺࡵࡳࡧࡱࡥࡲ࡫ࠢሱ")) else None
+        node = request.node if hasattr(request, bstack111111l_opy_ (u"ࠥࡲࡴࡪࡥࠣሲ")) else None
+        target = request.node.nodeid if hasattr(node, bstack111111l_opy_ (u"ࠦࡳࡵࡤࡦ࡫ࡧࠦሳ")) else None
+        baseid = fixturedef.get(bstack111111l_opy_ (u"ࠧࡨࡡࡴࡧ࡬ࡨࠧሴ"), None) or bstack111111l_opy_ (u"ࠨࠢስ")
+        if (not target or len(baseid) > 0) and hasattr(request, bstack111111l_opy_ (u"ࠢࡠࡲࡼࡪࡺࡴࡣࡪࡶࡨࡱࠧሶ")):
+            target = PytestBDDFramework.__1ll1l111111_opy_(request._pyfuncitem.location) if hasattr(request._pyfuncitem, bstack111111l_opy_ (u"ࠣ࡮ࡲࡧࡦࡺࡩࡰࡰࠥሷ")) else None
+            if target and not TestFramework.bstack1ll11ll1lll_opy_(target):
+                self.__1ll1l11111l_opy_(context, test_framework_state, target, (target, request._pyfuncitem.location))
                 node = request._pyfuncitem
-                self.logger.debug(bstack11l1l11_opy_ (u"ࠨࡴࡳࡣࡦ࡯ࡤ࡬ࡩࡹࡶࡸࡶࡪࡥࡥࡷࡧࡱࡸ࠿ࠦࡦࡢ࡮࡯ࡦࡦࡩ࡫ࠡࡶࡤࡶ࡬࡫ࡴ࠾ࡽࡷࡥࡷ࡭ࡥࡵࡿࠣࡪ࡮ࡾࡴࡶࡴࡨࡲࡦࡳࡥ࠾ࡽࡩ࡭ࡽࡺࡵࡳࡧࡱࡥࡲ࡫ࡽࠡࡰࡲࡨࡪࡃࡻ࡯ࡱࡧࡩࢂࠦࡥࡷࡧࡱࡸࡂࢁࡴࡦࡵࡷࡣ࡫ࡸࡡ࡮ࡧࡺࡳࡷࡱ࡟ࡴࡶࡤࡸࡪࢃ࠮ࠣ቟") + str(test_hook_state) + bstack11l1l11_opy_ (u"ࠢࠣበ"))
+                self.logger.debug(bstack111111l_opy_ (u"ࠤࡷࡶࡦࡩ࡫ࡠࡨ࡬ࡼࡹࡻࡲࡦࡡࡨࡺࡪࡴࡴ࠻ࠢࡩࡥࡱࡲࡢࡢࡥ࡮ࠤࡹࡧࡲࡨࡧࡷࡁࢀࡺࡡࡳࡩࡨࡸࢂࠦࡦࡪࡺࡷࡹࡷ࡫࡮ࡢ࡯ࡨࡁࢀ࡬ࡩࡹࡶࡸࡶࡪࡴࡡ࡮ࡧࢀࠤࡳࡵࡤࡦ࠿ࡾࡲࡴࡪࡥࡾࠢࡨࡺࡪࡴࡴ࠾ࡽࡷࡩࡸࡺ࡟ࡧࡴࡤࡱࡪࡽ࡯ࡳ࡭ࡢࡷࡹࡧࡴࡦࡿ࠱ࠦሸ") + str(test_hook_state) + bstack111111l_opy_ (u"ࠥࠦሹ"))
         if not fixturedef or not scope or not target:
-            self.logger.warning(bstack11l1l11_opy_ (u"ࠣࡶࡵࡥࡨࡱ࡟ࡧ࡫ࡻࡸࡺࡸࡥࡠࡧࡹࡩࡳࡺ࠺ࠡࡷࡱ࡬ࡦࡴࡤ࡭ࡧࡧࠤࡪࡼࡥ࡯ࡶࡀࡿࡹ࡫ࡳࡵࡡࡩࡶࡦࡳࡥࡸࡱࡵ࡯ࡤࡹࡴࡢࡶࡨࢁ࠳ࢁࡴࡦࡵࡷࡣ࡭ࡵ࡯࡬ࡡࡶࡸࡦࡺࡥࡾࠢࡩ࡭ࡽࡺࡵࡳࡧࡧࡩ࡫ࡃࡻࡧ࡫ࡻࡸࡺࡸࡥࡥࡧࡩࢁࠥࡹࡣࡰࡲࡨࡁࢀࡹࡣࡰࡲࡨࢁࠥࡺࡡࡳࡩࡨࡸࡂࠨቡ") + str(target) + bstack11l1l11_opy_ (u"ࠤࠥቢ"))
+            self.logger.warning(bstack111111l_opy_ (u"ࠦࡹࡸࡡࡤ࡭ࡢࡪ࡮ࡾࡴࡶࡴࡨࡣࡪࡼࡥ࡯ࡶ࠽ࠤࡺࡴࡨࡢࡰࡧࡰࡪࡪࠠࡦࡸࡨࡲࡹࡃࡻࡵࡧࡶࡸࡤ࡬ࡲࡢ࡯ࡨࡻࡴࡸ࡫ࡠࡵࡷࡥࡹ࡫ࡽ࠯ࡽࡷࡩࡸࡺ࡟ࡩࡱࡲ࡯ࡤࡹࡴࡢࡶࡨࢁࠥ࡬ࡩࡹࡶࡸࡶࡪࡪࡥࡧ࠿ࡾࡪ࡮ࡾࡴࡶࡴࡨࡨࡪ࡬ࡽࠡࡵࡦࡳࡵ࡫࠽ࡼࡵࡦࡳࡵ࡫ࡽࠡࡶࡤࡶ࡬࡫ࡴ࠾ࠤሺ") + str(target) + bstack111111l_opy_ (u"ࠧࠨሻ"))
             return None
-        instance = TestFramework.bstack1l1lll1l1l1_opy_(target)
+        instance = TestFramework.bstack1ll11ll1lll_opy_(target)
         if not instance:
-            self.logger.warning(bstack11l1l11_opy_ (u"ࠥࡸࡷࡧࡣ࡬ࡡࡩ࡭ࡽࡺࡵࡳࡧࡢࡩࡻ࡫࡮ࡵ࠼ࠣࡹࡳ࡮ࡡ࡯ࡦ࡯ࡩࡩࠦࡥࡷࡧࡱࡸࡂࢁࡴࡦࡵࡷࡣ࡫ࡸࡡ࡮ࡧࡺࡳࡷࡱ࡟ࡴࡶࡤࡸࡪࢃ࠮ࡼࡶࡨࡷࡹࡥࡨࡰࡱ࡮ࡣࡸࡺࡡࡵࡧࢀࠤ࡫࡯ࡸࡵࡷࡵࡩࡳࡧ࡭ࡦ࠿ࡾࡪ࡮ࡾࡴࡶࡴࡨࡲࡦࡳࡥࡾࠢࡶࡧࡴࡶࡥ࠾ࡽࡶࡧࡴࡶࡥࡾࠢࡥࡥࡸ࡫ࡩࡥ࠿ࡾࡦࡦࡹࡥࡪࡦࢀࠤࡹࡧࡲࡨࡧࡷࡁࠧባ") + str(target) + bstack11l1l11_opy_ (u"ࠦࠧቤ"))
+            self.logger.warning(bstack111111l_opy_ (u"ࠨࡴࡳࡣࡦ࡯ࡤ࡬ࡩࡹࡶࡸࡶࡪࡥࡥࡷࡧࡱࡸ࠿ࠦࡵ࡯ࡪࡤࡲࡩࡲࡥࡥࠢࡨࡺࡪࡴࡴ࠾ࡽࡷࡩࡸࡺ࡟ࡧࡴࡤࡱࡪࡽ࡯ࡳ࡭ࡢࡷࡹࡧࡴࡦࡿ࠱ࡿࡹ࡫ࡳࡵࡡ࡫ࡳࡴࡱ࡟ࡴࡶࡤࡸࡪࢃࠠࡧ࡫ࡻࡸࡺࡸࡥ࡯ࡣࡰࡩࡂࢁࡦࡪࡺࡷࡹࡷ࡫࡮ࡢ࡯ࡨࢁࠥࡹࡣࡰࡲࡨࡁࢀࡹࡣࡰࡲࡨࢁࠥࡨࡡࡴࡧ࡬ࡨࡂࢁࡢࡢࡵࡨ࡭ࡩࢃࠠࡵࡣࡵ࡫ࡪࡺ࠽ࠣሼ") + str(target) + bstack111111l_opy_ (u"ࠢࠣሽ"))
             return None
-        bstack1ll1l1l1111_opy_ = TestFramework.get_state(instance, PytestBDDFramework.bstack1ll1111ll1l_opy_, {})
-        if os.getenv(bstack11l1l11_opy_ (u"࡙ࠧࡄࡌࡡࡆࡐࡎࡥࡆࡍࡃࡊࡣࡋࡏࡘࡕࡗࡕࡉࡘࠨብ"), bstack11l1l11_opy_ (u"ࠨ࠱ࠣቦ")) == bstack11l1l11_opy_ (u"ࠢ࠲ࠤቧ"):
-            bstack1ll1l1l11l1_opy_ = bstack11l1l11_opy_ (u"ࠣ࠼ࠥቨ").join((scope, fixturename))
-            bstack1ll111l11ll_opy_ = datetime.now(tz=timezone.utc)
-            bstack1ll1l11l11l_opy_ = {
-                bstack11l1l11_opy_ (u"ࠤ࡮ࡩࡾࠨቩ"): bstack1ll1l1l11l1_opy_,
-                bstack11l1l11_opy_ (u"ࠥࡸࡦ࡭ࡳࠣቪ"): PytestBDDFramework.__1l1llllll11_opy_(request.node, scenario),
-                bstack11l1l11_opy_ (u"ࠦ࡫࡯ࡸࡵࡷࡵࡩࠧቫ"): fixturedef,
-                bstack11l1l11_opy_ (u"ࠧࡹࡣࡰࡲࡨࠦቬ"): scope,
-                bstack11l1l11_opy_ (u"ࠨࡴࡺࡲࡨࠦቭ"): None,
+        bstack1ll11l1llll_opy_ = TestFramework.get_state(instance, PytestBDDFramework.bstack1ll1l1lll1l_opy_, {})
+        if os.getenv(bstack111111l_opy_ (u"ࠣࡕࡇࡏࡤࡉࡌࡊࡡࡉࡐࡆࡍ࡟ࡇࡋ࡛ࡘ࡚ࡘࡅࡔࠤሾ"), bstack111111l_opy_ (u"ࠤ࠴ࠦሿ")) == bstack111111l_opy_ (u"ࠥ࠵ࠧቀ"):
+            bstack1ll11l11l11_opy_ = bstack111111l_opy_ (u"ࠦ࠿ࠨቁ").join((scope, fixturename))
+            bstack1ll1l1l1111_opy_ = datetime.now(tz=timezone.utc)
+            bstack1ll1111111l_opy_ = {
+                bstack111111l_opy_ (u"ࠧࡱࡥࡺࠤቂ"): bstack1ll11l11l11_opy_,
+                bstack111111l_opy_ (u"ࠨࡴࡢࡩࡶࠦቃ"): PytestBDDFramework.__1ll11l111l1_opy_(request.node, scenario),
+                bstack111111l_opy_ (u"ࠢࡧ࡫ࡻࡸࡺࡸࡥࠣቄ"): fixturedef,
+                bstack111111l_opy_ (u"ࠣࡵࡦࡳࡵ࡫ࠢቅ"): scope,
+                bstack111111l_opy_ (u"ࠤࡷࡽࡵ࡫ࠢቆ"): None,
             }
             try:
-                if test_hook_state == bstack1lll11lll1l_opy_.POST and callable(getattr(args[-1], bstack11l1l11_opy_ (u"ࠢࡨࡧࡷࡣࡷ࡫ࡳࡶ࡮ࡷࠦቮ"), None)):
-                    bstack1ll1l11l11l_opy_[bstack11l1l11_opy_ (u"ࠣࡶࡼࡴࡪࠨቯ")] = TestFramework.bstack1ll1111l1ll_opy_(args[-1].get_result())
+                if test_hook_state == bstack1lll1lll11l_opy_.POST and callable(getattr(args[-1], bstack111111l_opy_ (u"ࠥ࡫ࡪࡺ࡟ࡳࡧࡶࡹࡱࡺࠢቇ"), None)):
+                    bstack1ll1111111l_opy_[bstack111111l_opy_ (u"ࠦࡹࡿࡰࡦࠤቈ")] = TestFramework.bstack1ll1l1ll11l_opy_(args[-1].get_result())
             except Exception as e:
                 pass
-            if test_hook_state == bstack1lll11lll1l_opy_.PRE:
-                bstack1ll1l11l11l_opy_[bstack11l1l11_opy_ (u"ࠤࡸࡹ࡮ࡪࠢተ")] = uuid4().__str__()
-                bstack1ll1l11l11l_opy_[PytestBDDFramework.bstack1l1llll1lll_opy_] = bstack1ll111l11ll_opy_
-            elif test_hook_state == bstack1lll11lll1l_opy_.POST:
-                bstack1ll1l11l11l_opy_[PytestBDDFramework.bstack1ll1l1l1l1l_opy_] = bstack1ll111l11ll_opy_
-            if bstack1ll1l1l11l1_opy_ in bstack1ll1l1l1111_opy_:
-                bstack1ll1l1l1111_opy_[bstack1ll1l1l11l1_opy_].update(bstack1ll1l11l11l_opy_)
-                self.logger.debug(bstack11l1l11_opy_ (u"ࠥࡹࡵࡪࡡࡵࡧࡧࠤ࡫࡯ࡸࡵࡷࡵࡩࡳࡧ࡭ࡦ࠿ࡾࡪ࡮ࡾࡴࡶࡴࡨࡲࡦࡳࡥࡾࠢࡶࡧࡴࡶࡥ࠾ࡽࡶࡧࡴࡶࡥࡾࠢࡩ࡭ࡽࡺࡵࡳࡧࡀࠦቱ") + str(bstack1ll1l1l1111_opy_[bstack1ll1l1l11l1_opy_]) + bstack11l1l11_opy_ (u"ࠦࠧቲ"))
+            if test_hook_state == bstack1lll1lll11l_opy_.PRE:
+                bstack1ll1111111l_opy_[bstack111111l_opy_ (u"ࠧࡻࡵࡪࡦࠥ቉")] = uuid4().__str__()
+                bstack1ll1111111l_opy_[PytestBDDFramework.bstack1ll11lllll1_opy_] = bstack1ll1l1l1111_opy_
+            elif test_hook_state == bstack1lll1lll11l_opy_.POST:
+                bstack1ll1111111l_opy_[PytestBDDFramework.bstack1ll111ll1ll_opy_] = bstack1ll1l1l1111_opy_
+            if bstack1ll11l11l11_opy_ in bstack1ll11l1llll_opy_:
+                bstack1ll11l1llll_opy_[bstack1ll11l11l11_opy_].update(bstack1ll1111111l_opy_)
+                self.logger.debug(bstack111111l_opy_ (u"ࠨࡵࡱࡦࡤࡸࡪࡪࠠࡧ࡫ࡻࡸࡺࡸࡥ࡯ࡣࡰࡩࡂࢁࡦࡪࡺࡷࡹࡷ࡫࡮ࡢ࡯ࡨࢁࠥࡹࡣࡰࡲࡨࡁࢀࡹࡣࡰࡲࡨࢁࠥ࡬ࡩࡹࡶࡸࡶࡪࡃࠢቊ") + str(bstack1ll11l1llll_opy_[bstack1ll11l11l11_opy_]) + bstack111111l_opy_ (u"ࠢࠣቋ"))
             else:
-                bstack1ll1l1l1111_opy_[bstack1ll1l1l11l1_opy_] = bstack1ll1l11l11l_opy_
-                self.logger.debug(bstack11l1l11_opy_ (u"ࠧࡹࡡࡷࡧࡧࠤ࡫࡯ࡸࡵࡷࡵࡩࡳࡧ࡭ࡦ࠿ࡾࡪ࡮ࡾࡴࡶࡴࡨࡲࡦࡳࡥࡾࠢࡶࡧࡴࡶࡥ࠾ࡽࡶࡧࡴࡶࡥࡾࠢࡩ࡭ࡽࡺࡵࡳࡧࡀࡿࡹ࡫ࡳࡵࡡࡩ࡭ࡽࡺࡵࡳࡧࢀࠤࡹࡸࡡࡤ࡭ࡨࡨࡤ࡬ࡩࡹࡶࡸࡶࡪࡹ࠽ࠣታ") + str(len(bstack1ll1l1l1111_opy_)) + bstack11l1l11_opy_ (u"ࠨࠢቴ"))
-        TestFramework.bstack1llllll1l11_opy_(instance, PytestBDDFramework.bstack1ll1111ll1l_opy_, bstack1ll1l1l1111_opy_)
-        self.logger.debug(bstack11l1l11_opy_ (u"ࠢࡴࡣࡹࡩࡩࠦࡦࡪࡺࡷࡹࡷ࡫ࡳ࠾ࡽ࡯ࡩࡳ࠮ࡴࡳࡣࡦ࡯ࡪࡪ࡟ࡧ࡫ࡻࡸࡺࡸࡥࡴࠫࢀࠤ࡮ࡴࡳࡵࡣࡱࡧࡪࡃࠢት") + str(instance.ref()) + bstack11l1l11_opy_ (u"ࠣࠤቶ"))
+                bstack1ll11l1llll_opy_[bstack1ll11l11l11_opy_] = bstack1ll1111111l_opy_
+                self.logger.debug(bstack111111l_opy_ (u"ࠣࡵࡤࡺࡪࡪࠠࡧ࡫ࡻࡸࡺࡸࡥ࡯ࡣࡰࡩࡂࢁࡦࡪࡺࡷࡹࡷ࡫࡮ࡢ࡯ࡨࢁࠥࡹࡣࡰࡲࡨࡁࢀࡹࡣࡰࡲࡨࢁࠥ࡬ࡩࡹࡶࡸࡶࡪࡃࡻࡵࡧࡶࡸࡤ࡬ࡩࡹࡶࡸࡶࡪࢃࠠࡵࡴࡤࡧࡰ࡫ࡤࡠࡨ࡬ࡼࡹࡻࡲࡦࡵࡀࠦቌ") + str(len(bstack1ll11l1llll_opy_)) + bstack111111l_opy_ (u"ࠤࠥቍ"))
+        TestFramework.bstack1llll1lll1l_opy_(instance, PytestBDDFramework.bstack1ll1l1lll1l_opy_, bstack1ll11l1llll_opy_)
+        self.logger.debug(bstack111111l_opy_ (u"ࠥࡷࡦࡼࡥࡥࠢࡩ࡭ࡽࡺࡵࡳࡧࡶࡁࢀࡲࡥ࡯ࠪࡷࡶࡦࡩ࡫ࡦࡦࡢࡪ࡮ࡾࡴࡶࡴࡨࡷ࠮ࢃࠠࡪࡰࡶࡸࡦࡴࡣࡦ࠿ࠥ቎") + str(instance.ref()) + bstack111111l_opy_ (u"ࠦࠧ቏"))
         return instance
-    def __1ll11l1l1l1_opy_(
+    def __1ll1l11111l_opy_(
         self,
-        context: bstack1ll111l1111_opy_,
-        test_framework_state: bstack1lll1l1llll_opy_,
+        context: bstack1l1llllllll_opy_,
+        test_framework_state: bstack1llll111lll_opy_,
         target: Any,
         *args,
     ):
-        ctx = bstack1ll1ll111ll_opy_.create_context(target)
-        ob = bstack1lll1l1ll11_opy_(ctx, self.bstack1l1lll1ll11_opy_, self.bstack1l1lll1l1ll_opy_, test_framework_state)
-        TestFramework.bstack1ll11ll1ll1_opy_(ob, {
-            TestFramework.bstack1lll1lll1l1_opy_: context.test_framework_name,
-            TestFramework.bstack1lll11lllll_opy_: context.test_framework_version,
-            TestFramework.bstack1ll1l11ll1l_opy_: [],
-            PytestBDDFramework.bstack1ll1111ll1l_opy_: {},
-            PytestBDDFramework.bstack1ll11111l11_opy_: {},
-            PytestBDDFramework.bstack1ll1l1111ll_opy_: {},
+        ctx = bstack1ll1lll1111_opy_.create_context(target)
+        ob = bstack1lll1lll1l1_opy_(ctx, self.bstack1ll11l11ll1_opy_, self.bstack1ll11lll11l_opy_, test_framework_state)
+        TestFramework.bstack1ll1l11l111_opy_(ob, {
+            TestFramework.bstack1llll1111l1_opy_: context.test_framework_name,
+            TestFramework.bstack1llll1l11l1_opy_: context.test_framework_version,
+            TestFramework.bstack1ll1ll11l11_opy_: [],
+            PytestBDDFramework.bstack1ll1l1lll1l_opy_: {},
+            PytestBDDFramework.bstack1ll111l11l1_opy_: {},
+            PytestBDDFramework.bstack1ll1l11ll11_opy_: {},
         })
         if len(args) > 1 and isinstance(args[1], tuple):
-            TestFramework.bstack1llllll1l11_opy_(ob, TestFramework.bstack1ll1111l11l_opy_, str(args[1][0]))
+            TestFramework.bstack1llll1lll1l_opy_(ob, TestFramework.bstack1ll111l1lll_opy_, str(args[1][0]))
         if context.platform_index >= 0:
-            TestFramework.bstack1llllll1l11_opy_(ob, TestFramework.bstack1llll1lll11_opy_, context.platform_index)
-        TestFramework.bstack1lll1lll1ll_opy_[ctx.id] = ob
-        self.logger.debug(bstack11l1l11_opy_ (u"ࠤࡶࡥࡻ࡫ࡤࠡ࡫ࡱࡷࡹࡧ࡮ࡤࡧࠣࡧࡹࡾ࠮ࡪࡦࡀࡿࡨࡺࡸ࠯࡫ࡧࢁࠥࡺࡡࡳࡩࡨࡸࡂࢁࡴࡢࡴࡪࡩࡹࢃࠠࡢࡴࡪࡷࡂࢁࡡࡳࡩࡶࢁࠥ࡯࡮ࡴࡶࡤࡲࡨ࡫ࡳ࠾ࠤቷ") + str(TestFramework.bstack1lll1lll1ll_opy_.keys()) + bstack11l1l11_opy_ (u"ࠥࠦቸ"))
+            TestFramework.bstack1llll1lll1l_opy_(ob, TestFramework.bstack1llllllll1l_opy_, context.platform_index)
+        TestFramework.bstack1llll111l1l_opy_[ctx.id] = ob
+        self.logger.debug(bstack111111l_opy_ (u"ࠧࡹࡡࡷࡧࡧࠤ࡮ࡴࡳࡵࡣࡱࡧࡪࠦࡣࡵࡺ࠱࡭ࡩࡃࡻࡤࡶࡻ࠲࡮ࡪࡽࠡࡶࡤࡶ࡬࡫ࡴ࠾ࡽࡷࡥࡷ࡭ࡥࡵࡿࠣࡥࡷ࡭ࡳ࠾ࡽࡤࡶ࡬ࡹࡽࠡ࡫ࡱࡷࡹࡧ࡮ࡤࡧࡶࡁࠧቐ") + str(TestFramework.bstack1llll111l1l_opy_.keys()) + bstack111111l_opy_ (u"ࠨࠢቑ"))
         return ob
     @staticmethod
-    def __1ll1111l1l1_opy_(instance, args):
+    def __1ll1l1llll1_opy_(instance, args):
         request, feature, scenario = args
         steps = []
         for step in scenario.steps:
             steps.append({
-                bstack11l1l11_opy_ (u"ࠫ࡮ࡪࠧቹ"): id(step),
-                bstack11l1l11_opy_ (u"ࠬࡺࡥࡹࡶࠪቺ"): step.name,
-                bstack11l1l11_opy_ (u"࠭࡫ࡦࡻࡺࡳࡷࡪࠧቻ"): step.keyword,
+                bstack111111l_opy_ (u"ࠧࡪࡦࠪቒ"): id(step),
+                bstack111111l_opy_ (u"ࠨࡶࡨࡼࡹ࠭ቓ"): step.name,
+                bstack111111l_opy_ (u"ࠩ࡮ࡩࡾࡽ࡯ࡳࡦࠪቔ"): step.keyword,
             })
         meta = {
-            bstack11l1l11_opy_ (u"ࠧࡧࡧࡤࡸࡺࡸࡥࠨቼ"): {
-                bstack11l1l11_opy_ (u"ࠨࡰࡤࡱࡪ࠭ች"): feature.name,
-                bstack11l1l11_opy_ (u"ࠩࡳࡥࡹ࡮ࠧቾ"): feature.filename,
-                bstack11l1l11_opy_ (u"ࠪࡨࡪࡹࡣࡳ࡫ࡳࡸ࡮ࡵ࡮ࠨቿ"): feature.description
+            bstack111111l_opy_ (u"ࠪࡪࡪࡧࡴࡶࡴࡨࠫቕ"): {
+                bstack111111l_opy_ (u"ࠫࡳࡧ࡭ࡦࠩቖ"): feature.name,
+                bstack111111l_opy_ (u"ࠬࡶࡡࡵࡪࠪ቗"): feature.filename,
+                bstack111111l_opy_ (u"࠭ࡤࡦࡵࡦࡶ࡮ࡶࡴࡪࡱࡱࠫቘ"): feature.description
             },
-            bstack11l1l11_opy_ (u"ࠫࡸࡩࡥ࡯ࡣࡵ࡭ࡴ࠭ኀ"): {
-                bstack11l1l11_opy_ (u"ࠬࡴࡡ࡮ࡧࠪኁ"): scenario.name
+            bstack111111l_opy_ (u"ࠧࡴࡥࡨࡲࡦࡸࡩࡰࠩ቙"): {
+                bstack111111l_opy_ (u"ࠨࡰࡤࡱࡪ࠭ቚ"): scenario.name
             },
-            bstack11l1l11_opy_ (u"࠭ࡳࡵࡧࡳࡷࠬኂ"): steps,
-            bstack11l1l11_opy_ (u"ࠧࡦࡺࡤࡱࡵࡲࡥࡴࠩኃ"): PytestBDDFramework.__1ll111111l1_opy_(request.node)
+            bstack111111l_opy_ (u"ࠩࡶࡸࡪࡶࡳࠨቛ"): steps,
+            bstack111111l_opy_ (u"ࠪࡩࡽࡧ࡭ࡱ࡮ࡨࡷࠬቜ"): PytestBDDFramework.__1l1llll1ll1_opy_(request.node)
         }
         instance.data.update(
             {
-                TestFramework.bstack1l1lll1ll1l_opy_: meta
+                TestFramework.bstack1ll1l1lllll_opy_: meta
             }
         )
-    def bstack1l1llll1l11_opy_(self, hook: Dict[str, Any]) -> None:
-        bstack11l1l11_opy_ (u"ࠣࠤࠥࠎࠥࠦࠠࠡࠢࠣࠤࠥࡖࡲࡰࡥࡨࡷࡸ࡫ࡳࠡࡶ࡫ࡩࠥࡎ࡯ࡰ࡭ࡏࡩࡻ࡫࡬ࠡࡣࡷࡸࡦࡩࡨ࡮ࡧࡱࡸࡸࠦࡳࡪ࡯࡬ࡰࡦࡸࠠࡵࡱࠣࡸ࡭࡫ࠠࡋࡣࡹࡥࠥ࡯࡭ࡱ࡮ࡨࡱࡪࡴࡴࡢࡶ࡬ࡳࡳ࠴ࠊࠡࠢࠣࠤࠥࠦࠠࠡࡖ࡫࡭ࡸࠦ࡭ࡦࡶ࡫ࡳࡩࡀࠊࠡࠢࠣࠤࠥࠦࠠࠡࠢࠣ࠱ࠥࡉࡨࡦࡥ࡮ࡷࠥࡺࡨࡦࠢࡋࡳࡴࡱࡌࡦࡸࡨࡰࠥࡪࡩࡳࡧࡦࡸࡴࡸࡹࠡ࡫ࡱࡷ࡮ࡪࡥࠡࢀ࠲࠲ࡧࡸ࡯ࡸࡵࡨࡶࡸࡺࡡࡤ࡭࠲࡙ࡵࡲ࡯ࡢࡦࡨࡨࡆࡺࡴࡢࡥ࡫ࡱࡪࡴࡴࡴ࠰ࠍࠤࠥࠦࠠࠡࠢࠣࠤࠥࠦ࠭ࠡࡈࡲࡶࠥ࡫ࡡࡤࡪࠣࡪ࡮ࡲࡥࠡ࡫ࡱࠤ࡭ࡵ࡯࡬ࡡ࡯ࡩࡻ࡫࡬ࡠࡨ࡬ࡰࡪࡹࠬࠡࡴࡨࡴࡱࡧࡣࡦࡵ࡙ࠣࠦ࡫ࡳࡵࡎࡨࡺࡪࡲࠢࠡࡹ࡬ࡸ࡭ࠦࠢࡉࡱࡲ࡯ࡑ࡫ࡶࡦ࡮ࠥࠤ࡮ࡴࠠࡪࡶࡶࠤࡵࡧࡴࡩ࠰ࠍࠤࠥࠦࠠࠡࠢࠣࠤࠥࠦ࠭ࠡࡋࡩࠤࡦࠦࡦࡪ࡮ࡨࠤ࡮ࡴࠠࡵࡪࡨࠤࡩ࡯ࡲࡦࡥࡷࡳࡷࡿࠠ࡮ࡣࡷࡧ࡭࡫ࡳࠡࡣࠣࡱࡴࡪࡩࡧ࡫ࡨࡨࠥ࡮࡯ࡰ࡭࠰ࡰࡪࡼࡥ࡭ࠢࡩ࡭ࡱ࡫ࠬࠡ࡫ࡷࠤࡨࡸࡥࡢࡶࡨࡷࠥࡧࠠࡍࡱࡪࡉࡳࡺࡲࡺࠢࡲࡦ࡯࡫ࡣࡵࠢࡺ࡭ࡹ࡮ࠠࡢࡶࡷࡥࡨ࡮࡭ࡦࡰࡷࠤࡩ࡫ࡴࡢ࡫࡯ࡷ࠳ࠐࠠࠡࠢࠣࠤࠥࠦࠠࠡࠢ࠰ࠤࡘ࡯࡭ࡪ࡮ࡤࡶࡱࡿࠬࠡ࡫ࡷࠤࡵࡸ࡯ࡤࡧࡶࡷࡪࡹࠠࡃࡷ࡬ࡰࡩࡒࡥࡷࡧ࡯ࠤࡦࡺࡴࡢࡥ࡫ࡱࡪࡴࡴࡴࠢ࡯ࡳࡨࡧࡴࡦࡦࠣ࡭ࡳࠦࡈࡰࡱ࡮ࡐࡪࡼࡥ࡭࠱ࡅࡹ࡮ࡲࡤࡍࡧࡹࡩࡱࡎ࡯ࡰ࡭ࡈࡺࡪࡴࡴࠡࡤࡼࠤࡷ࡫ࡰ࡭ࡣࡦ࡭ࡳ࡭ࠠࠣࡄࡸ࡭ࡱࡪࡌࡦࡸࡨࡰࠧࠦࡷࡪࡶ࡫ࠤࠧࡎ࡯ࡰ࡭ࡏࡩࡻ࡫࡬࠰ࡄࡸ࡭ࡱࡪࡌࡦࡸࡨࡰࡍࡵ࡯࡬ࡇࡹࡩࡳࡺࠢ࠯ࠌࠣࠤࠥࠦࠠࠡࠢࠣࠤࠥ࠳ࠠࡕࡪࡨࠤࡨࡸࡥࡢࡶࡨࡨࠥࡒ࡯ࡨࡇࡱࡸࡷࡿࠠࡰࡤ࡭ࡩࡨࡺࡳࠡࡣࡵࡩࠥࡧࡤࡥࡧࡧࠤࡹࡵࠠࡵࡪࡨࠤ࡭ࡵ࡯࡬ࠩࡶࠤࠧࡲ࡯ࡨࡵࠥࠤࡱ࡯ࡳࡵ࠰ࠍࠤࠥࠦࠠࠡࠢࠣࠤࡆࡸࡧࡴ࠼ࠍࠤࠥࠦࠠࠡࠢࠣࠤࠥࠦࠠࠡࡪࡲࡳࡰࡀࠠࡕࡪࡨࠤࡪࡼࡥ࡯ࡶࠣࡨ࡮ࡩࡴࡪࡱࡱࡥࡷࡿࠠࡤࡱࡱࡸࡦ࡯࡮ࡪࡰࡪࠤࡪࡾࡩࡴࡶ࡬ࡲ࡬ࠦ࡬ࡰࡩࡶࠤࡦࡴࡤࠡࡪࡲࡳࡰࠦࡩ࡯ࡨࡲࡶࡲࡧࡴࡪࡱࡱ࠲ࠏࠦࠠࠡࠢࠣࠤࠥࠦࠠࠡࠢࠣ࡬ࡴࡵ࡫ࡠ࡮ࡨࡺࡪࡲ࡟ࡧ࡫࡯ࡩࡸࡀࠠࡍ࡫ࡶࡸࠥࡵࡦࠡࡒࡤࡸ࡭ࠦ࡯ࡣ࡬ࡨࡧࡹࡹࠠࡧࡴࡲࡱࠥࡺࡨࡦࠢࡗࡩࡸࡺࡌࡦࡸࡨࡰࠥࡳ࡯࡯࡫ࡷࡳࡷ࡯࡮ࡨ࠰ࠍࠤࠥࠦࠠࠡࠢࠣࠤࠥࠦࠠࠡࡤࡸ࡭ࡱࡪ࡟࡭ࡧࡹࡩࡱࡥࡦࡪ࡮ࡨࡷ࠿ࠦࡌࡪࡵࡷࠤࡴ࡬ࠠࡑࡣࡷ࡬ࠥࡵࡢ࡫ࡧࡦࡸࡸࠦࡦࡳࡱࡰࠤࡹ࡮ࡥࠡࡄࡸ࡭ࡱࡪࡌࡦࡸࡨࡰࠥࡳ࡯࡯࡫ࡷࡳࡷ࡯࡮ࡨ࠰ࠍࠤࠥࠦࠠࠡࠢࠣࠤࠧࠨࠢኄ")
-        global _1ll1l111ll1_opy_
-        platform_index = os.environ[bstack11l1l11_opy_ (u"ࠩࡅࡖࡔ࡝ࡓࡆࡔࡖࡘࡆࡉࡋࡠࡒࡏࡅ࡙ࡌࡏࡓࡏࡢࡍࡓࡊࡅ࡙ࠩኅ")]
-        bstack1ll1111lll1_opy_ = os.path.join(bstack1ll11111l1l_opy_, (bstack1ll11l111l1_opy_ + str(platform_index)), bstack1ll11l111ll_opy_)
-        if not os.path.exists(bstack1ll1111lll1_opy_) or not os.path.isdir(bstack1ll1111lll1_opy_):
+    def bstack1ll1l11ll1l_opy_(self, hook: Dict[str, Any]) -> None:
+        bstack111111l_opy_ (u"ࠦࠧࠨࠊࠡࠢࠣࠤࠥࠦࠠࠡࡒࡵࡳࡨ࡫ࡳࡴࡧࡶࠤࡹ࡮ࡥࠡࡊࡲࡳࡰࡒࡥࡷࡧ࡯ࠤࡦࡺࡴࡢࡥ࡫ࡱࡪࡴࡴࡴࠢࡶ࡭ࡲ࡯࡬ࡢࡴࠣࡸࡴࠦࡴࡩࡧࠣࡎࡦࡼࡡࠡ࡫ࡰࡴࡱ࡫࡭ࡦࡰࡷࡥࡹ࡯࡯࡯࠰ࠍࠤࠥࠦࠠࠡࠢࠣࠤ࡙࡮ࡩࡴࠢࡰࡩࡹ࡮࡯ࡥ࠼ࠍࠤࠥࠦࠠࠡࠢࠣࠤࠥࠦ࠭ࠡࡅ࡫ࡩࡨࡱࡳࠡࡶ࡫ࡩࠥࡎ࡯ࡰ࡭ࡏࡩࡻ࡫࡬ࠡࡦ࡬ࡶࡪࡩࡴࡰࡴࡼࠤ࡮ࡴࡳࡪࡦࡨࠤࢃ࠵࠮ࡣࡴࡲࡻࡸ࡫ࡲࡴࡶࡤࡧࡰ࠵ࡕࡱ࡮ࡲࡥࡩ࡫ࡤࡂࡶࡷࡥࡨ࡮࡭ࡦࡰࡷࡷ࠳ࠐࠠࠡࠢࠣࠤࠥࠦࠠࠡࠢ࠰ࠤࡋࡵࡲࠡࡧࡤࡧ࡭ࠦࡦࡪ࡮ࡨࠤ࡮ࡴࠠࡩࡱࡲ࡯ࡤࡲࡥࡷࡧ࡯ࡣ࡫࡯࡬ࡦࡵ࠯ࠤࡷ࡫ࡰ࡭ࡣࡦࡩࡸࠦࠢࡕࡧࡶࡸࡑ࡫ࡶࡦ࡮ࠥࠤࡼ࡯ࡴࡩࠢࠥࡌࡴࡵ࡫ࡍࡧࡹࡩࡱࠨࠠࡪࡰࠣ࡭ࡹࡹࠠࡱࡣࡷ࡬࠳ࠐࠠࠡࠢࠣࠤࠥࠦࠠࠡࠢ࠰ࠤࡎ࡬ࠠࡢࠢࡩ࡭ࡱ࡫ࠠࡪࡰࠣࡸ࡭࡫ࠠࡥ࡫ࡵࡩࡨࡺ࡯ࡳࡻࠣࡱࡦࡺࡣࡩࡧࡶࠤࡦࠦ࡭ࡰࡦ࡬ࡪ࡮࡫ࡤࠡࡪࡲࡳࡰ࠳࡬ࡦࡸࡨࡰࠥ࡬ࡩ࡭ࡧ࠯ࠤ࡮ࡺࠠࡤࡴࡨࡥࡹ࡫ࡳࠡࡣࠣࡐࡴ࡭ࡅ࡯ࡶࡵࡽࠥࡵࡢ࡫ࡧࡦࡸࠥࡽࡩࡵࡪࠣࡥࡹࡺࡡࡤࡪࡰࡩࡳࡺࠠࡥࡧࡷࡥ࡮ࡲࡳ࠯ࠌࠣࠤࠥࠦࠠࠡࠢࠣࠤࠥ࠳ࠠࡔ࡫ࡰ࡭ࡱࡧࡲ࡭ࡻ࠯ࠤ࡮ࡺࠠࡱࡴࡲࡧࡪࡹࡳࡦࡵࠣࡆࡺ࡯࡬ࡥࡎࡨࡺࡪࡲࠠࡢࡶࡷࡥࡨ࡮࡭ࡦࡰࡷࡷࠥࡲ࡯ࡤࡣࡷࡩࡩࠦࡩ࡯ࠢࡋࡳࡴࡱࡌࡦࡸࡨࡰ࠴ࡈࡵࡪ࡮ࡧࡐࡪࡼࡥ࡭ࡊࡲࡳࡰࡋࡶࡦࡰࡷࠤࡧࡿࠠࡳࡧࡳࡰࡦࡩࡩ࡯ࡩࠣࠦࡇࡻࡩ࡭ࡦࡏࡩࡻ࡫࡬ࠣࠢࡺ࡭ࡹ࡮ࠠࠣࡊࡲࡳࡰࡒࡥࡷࡧ࡯࠳ࡇࡻࡩ࡭ࡦࡏࡩࡻ࡫࡬ࡉࡱࡲ࡯ࡊࡼࡥ࡯ࡶࠥ࠲ࠏࠦࠠࠡࠢࠣࠤࠥࠦࠠࠡ࠯ࠣࡘ࡭࡫ࠠࡤࡴࡨࡥࡹ࡫ࡤࠡࡎࡲ࡫ࡊࡴࡴࡳࡻࠣࡳࡧࡰࡥࡤࡶࡶࠤࡦࡸࡥࠡࡣࡧࡨࡪࡪࠠࡵࡱࠣࡸ࡭࡫ࠠࡩࡱࡲ࡯ࠬࡹࠠࠣ࡮ࡲ࡫ࡸࠨࠠ࡭࡫ࡶࡸ࠳ࠐࠠࠡࠢࠣࠤࠥࠦࠠࡂࡴࡪࡷ࠿ࠐࠠࠡࠢࠣࠤࠥࠦࠠࠡࠢࠣࠤ࡭ࡵ࡯࡬࠼ࠣࡘ࡭࡫ࠠࡦࡸࡨࡲࡹࠦࡤࡪࡥࡷ࡭ࡴࡴࡡࡳࡻࠣࡧࡴࡴࡴࡢ࡫ࡱ࡭ࡳ࡭ࠠࡦࡺ࡬ࡷࡹ࡯࡮ࡨࠢ࡯ࡳ࡬ࡹࠠࡢࡰࡧࠤ࡭ࡵ࡯࡬ࠢ࡬ࡲ࡫ࡵࡲ࡮ࡣࡷ࡭ࡴࡴ࠮ࠋࠢࠣࠤࠥࠦࠠࠡࠢࠣࠤࠥࠦࡨࡰࡱ࡮ࡣࡱ࡫ࡶࡦ࡮ࡢࡪ࡮ࡲࡥࡴ࠼ࠣࡐ࡮ࡹࡴࠡࡱࡩࠤࡕࡧࡴࡩࠢࡲࡦ࡯࡫ࡣࡵࡵࠣࡪࡷࡵ࡭ࠡࡶ࡫ࡩ࡚ࠥࡥࡴࡶࡏࡩࡻ࡫࡬ࠡ࡯ࡲࡲ࡮ࡺ࡯ࡳ࡫ࡱ࡫࠳ࠐࠠࠡࠢࠣࠤࠥࠦࠠࠡࠢࠣࠤࡧࡻࡩ࡭ࡦࡢࡰࡪࡼࡥ࡭ࡡࡩ࡭ࡱ࡫ࡳ࠻ࠢࡏ࡭ࡸࡺࠠࡰࡨࠣࡔࡦࡺࡨࠡࡱࡥ࡮ࡪࡩࡴࡴࠢࡩࡶࡴࡳࠠࡵࡪࡨࠤࡇࡻࡩ࡭ࡦࡏࡩࡻ࡫࡬ࠡ࡯ࡲࡲ࡮ࡺ࡯ࡳ࡫ࡱ࡫࠳ࠐࠠࠡࠢࠣࠤࠥࠦࠠࠣࠤࠥቝ")
+        global _1ll111l1ll1_opy_
+        platform_index = os.environ[bstack111111l_opy_ (u"ࠬࡈࡒࡐ࡙ࡖࡉࡗ࡙ࡔࡂࡅࡎࡣࡕࡒࡁࡕࡈࡒࡖࡒࡥࡉࡏࡆࡈ࡜ࠬ቞")]
+        bstack1ll1ll111ll_opy_ = os.path.join(bstack1ll111l1l1l_opy_, (bstack1ll1l1l1lll_opy_ + str(platform_index)), bstack1ll11l11111_opy_)
+        if not os.path.exists(bstack1ll1ll111ll_opy_) or not os.path.isdir(bstack1ll1ll111ll_opy_):
             return
-        logs = hook.get(bstack11l1l11_opy_ (u"ࠥࡰࡴ࡭ࡳࠣኆ"), [])
-        with os.scandir(bstack1ll1111lll1_opy_) as entries:
+        logs = hook.get(bstack111111l_opy_ (u"ࠨ࡬ࡰࡩࡶࠦ቟"), [])
+        with os.scandir(bstack1ll1ll111ll_opy_) as entries:
             for entry in entries:
                 abs_path = os.path.abspath(entry.path)
-                if abs_path in _1ll1l111ll1_opy_:
-                    self.logger.info(bstack11l1l11_opy_ (u"ࠦࡕࡧࡴࡩࠢࡤࡰࡷ࡫ࡡࡥࡻࠣࡴࡷࡵࡣࡦࡵࡶࡩࡩࠦࡻࡾࠤኇ").format(abs_path))
+                if abs_path in _1ll111l1ll1_opy_:
+                    self.logger.info(bstack111111l_opy_ (u"ࠢࡑࡣࡷ࡬ࠥࡧ࡬ࡳࡧࡤࡨࡾࠦࡰࡳࡱࡦࡩࡸࡹࡥࡥࠢࡾࢁࠧበ").format(abs_path))
                     continue
                 if entry.is_file():
                     try:
                         timestamp = datetime.fromtimestamp(entry.stat().st_mtime, tz=timezone.utc).isoformat()
                     except Exception:
-                        timestamp = bstack11l1l11_opy_ (u"ࠧࠨኈ")
-                    log_entry = bstack1ll1l1111l1_opy_(
-                        kind=bstack11l1l11_opy_ (u"ࠨࡔࡆࡕࡗࡣࡆ࡚ࡔࡂࡅࡋࡑࡊࡔࡔࠣ኉"),
-                        message=bstack11l1l11_opy_ (u"ࠢࠣኊ"),
-                        level=bstack11l1l11_opy_ (u"ࠣࠤኋ"),
+                        timestamp = bstack111111l_opy_ (u"ࠣࠤቡ")
+                    log_entry = bstack1ll111lll11_opy_(
+                        kind=bstack111111l_opy_ (u"ࠤࡗࡉࡘ࡚࡟ࡂࡖࡗࡅࡈࡎࡍࡆࡐࡗࠦቢ"),
+                        message=bstack111111l_opy_ (u"ࠥࠦባ"),
+                        level=bstack111111l_opy_ (u"ࠦࠧቤ"),
                         timestamp=timestamp,
                         fileName=entry.name,
-                        bstack1l1lll1llll_opy_=entry.stat().st_size,
-                        bstack1l1lll1lll1_opy_=bstack11l1l11_opy_ (u"ࠤࡐࡅࡓ࡛ࡁࡍࡡࡘࡔࡑࡕࡁࡅࠤኌ"),
-                        bstack1l11l1_opy_=os.path.abspath(entry.path),
-                        bstack1ll111lllll_opy_=hook.get(TestFramework.bstack1ll111ll11l_opy_)
+                        bstack1ll11l1ll11_opy_=entry.stat().st_size,
+                        bstack1ll1l1l1l11_opy_=bstack111111l_opy_ (u"ࠧࡓࡁࡏࡗࡄࡐࡤ࡛ࡐࡍࡑࡄࡈࠧብ"),
+                        bstack1111l1l_opy_=os.path.abspath(entry.path),
+                        bstack1ll1l1l1ll1_opy_=hook.get(TestFramework.bstack1ll1l1111l1_opy_)
                     )
                     logs.append(log_entry)
-                    _1ll1l111ll1_opy_.add(abs_path)
-        platform_index = os.environ[bstack11l1l11_opy_ (u"ࠪࡆࡗࡕࡗࡔࡇࡕࡗ࡙ࡇࡃࡌࡡࡓࡐࡆ࡚ࡆࡐࡔࡐࡣࡎࡔࡄࡆ࡚ࠪኍ")]
-        bstack1ll11l11ll1_opy_ = os.path.join(bstack1ll11111l1l_opy_, (bstack1ll11l111l1_opy_ + str(platform_index)), bstack1ll11l111ll_opy_, bstack1ll1l111111_opy_)
-        if not os.path.exists(bstack1ll11l11ll1_opy_) or not os.path.isdir(bstack1ll11l11ll1_opy_):
-            self.logger.info(bstack11l1l11_opy_ (u"ࠦࡓࡵࠠࡃࡷ࡬ࡰࡩࡒࡥࡷࡧ࡯ࡌࡴࡵ࡫ࡆࡸࡨࡲࡹࠦࡡࡵࡶࡤࡧ࡭ࡳࡥ࡯ࡶࡶࠤࡩ࡯ࡲࡦࡥࡷࡳࡷࡿࠠࡧࡱࡸࡲࡩࠦࡡࡵ࠼ࠣࡿࢂࠨ኎").format(bstack1ll11l11ll1_opy_))
+                    _1ll111l1ll1_opy_.add(abs_path)
+        platform_index = os.environ[bstack111111l_opy_ (u"࠭ࡂࡓࡑ࡚ࡗࡊࡘࡓࡕࡃࡆࡏࡤࡖࡌࡂࡖࡉࡓࡗࡓ࡟ࡊࡐࡇࡉ࡝࠭ቦ")]
+        bstack1ll11lll1l1_opy_ = os.path.join(bstack1ll111l1l1l_opy_, (bstack1ll1l1l1lll_opy_ + str(platform_index)), bstack1ll11l11111_opy_, bstack1ll11l1l11l_opy_)
+        if not os.path.exists(bstack1ll11lll1l1_opy_) or not os.path.isdir(bstack1ll11lll1l1_opy_):
+            self.logger.info(bstack111111l_opy_ (u"ࠢࡏࡱࠣࡆࡺ࡯࡬ࡥࡎࡨࡺࡪࡲࡈࡰࡱ࡮ࡉࡻ࡫࡮ࡵࠢࡤࡸࡹࡧࡣࡩ࡯ࡨࡲࡹࡹࠠࡥ࡫ࡵࡩࡨࡺ࡯ࡳࡻࠣࡪࡴࡻ࡮ࡥࠢࡤࡸ࠿ࠦࡻࡾࠤቧ").format(bstack1ll11lll1l1_opy_))
         else:
-            self.logger.info(bstack11l1l11_opy_ (u"ࠧࡖࡲࡰࡥࡨࡷࡸ࡯࡮ࡨࠢࡅࡹ࡮ࡲࡤࡍࡧࡹࡩࡱࡎ࡯ࡰ࡭ࡈࡺࡪࡴࡴࠡࡣࡷࡸࡦࡩࡨ࡮ࡧࡱࡸࡸࠦࡦࡳࡱࡰࠤࡩ࡯ࡲࡦࡥࡷࡳࡷࡿ࠺ࠡࡽࢀࠦ኏").format(bstack1ll11l11ll1_opy_))
-            with os.scandir(bstack1ll11l11ll1_opy_) as entries:
+            self.logger.info(bstack111111l_opy_ (u"ࠣࡒࡵࡳࡨ࡫ࡳࡴ࡫ࡱ࡫ࠥࡈࡵࡪ࡮ࡧࡐࡪࡼࡥ࡭ࡊࡲࡳࡰࡋࡶࡦࡰࡷࠤࡦࡺࡴࡢࡥ࡫ࡱࡪࡴࡴࡴࠢࡩࡶࡴࡳࠠࡥ࡫ࡵࡩࡨࡺ࡯ࡳࡻ࠽ࠤࢀࢃࠢቨ").format(bstack1ll11lll1l1_opy_))
+            with os.scandir(bstack1ll11lll1l1_opy_) as entries:
                 for entry in entries:
                     abs_path = os.path.abspath(entry.path)
-                    if abs_path in _1ll1l111ll1_opy_:
-                        self.logger.info(bstack11l1l11_opy_ (u"ࠨࡐࡢࡶ࡫ࠤࡦࡲࡲࡦࡣࡧࡽࠥࡶࡲࡰࡥࡨࡷࡸ࡫ࡤࠡࡽࢀࠦነ").format(abs_path))
+                    if abs_path in _1ll111l1ll1_opy_:
+                        self.logger.info(bstack111111l_opy_ (u"ࠤࡓࡥࡹ࡮ࠠࡢ࡮ࡵࡩࡦࡪࡹࠡࡲࡵࡳࡨ࡫ࡳࡴࡧࡧࠤࢀࢃࠢቩ").format(abs_path))
                         continue
                     if entry.is_file():
                         try:
                             timestamp = datetime.fromtimestamp(entry.stat().st_mtime, tz=timezone.utc).isoformat()
                         except Exception:
-                            timestamp = bstack11l1l11_opy_ (u"ࠢࠣኑ")
-                        log_entry = bstack1ll1l1111l1_opy_(
-                            kind=bstack11l1l11_opy_ (u"ࠣࡖࡈࡗ࡙ࡥࡁࡕࡖࡄࡇࡍࡓࡅࡏࡖࠥኒ"),
-                            message=bstack11l1l11_opy_ (u"ࠤࠥና"),
-                            level=bstack11l1l11_opy_ (u"ࠥࡆࡺ࡯࡬ࡥࡎࡨࡺࡪࡲࠢኔ"),
+                            timestamp = bstack111111l_opy_ (u"ࠥࠦቪ")
+                        log_entry = bstack1ll111lll11_opy_(
+                            kind=bstack111111l_opy_ (u"࡙ࠦࡋࡓࡕࡡࡄࡘ࡙ࡇࡃࡉࡏࡈࡒ࡙ࠨቫ"),
+                            message=bstack111111l_opy_ (u"ࠧࠨቬ"),
+                            level=bstack111111l_opy_ (u"ࠨࡂࡶ࡫࡯ࡨࡑ࡫ࡶࡦ࡮ࠥቭ"),
                             timestamp=timestamp,
                             fileName=entry.name,
-                            bstack1l1lll1llll_opy_=entry.stat().st_size,
-                            bstack1l1lll1lll1_opy_=bstack11l1l11_opy_ (u"ࠦࡒࡇࡎࡖࡃࡏࡣ࡚ࡖࡌࡐࡃࡇࠦን"),
-                            bstack1l11l1_opy_=os.path.abspath(entry.path),
-                            bstack1ll111lll1l_opy_=hook.get(TestFramework.bstack1ll111ll11l_opy_)
+                            bstack1ll11l1ll11_opy_=entry.stat().st_size,
+                            bstack1ll1l1l1l11_opy_=bstack111111l_opy_ (u"ࠢࡎࡃࡑ࡙ࡆࡒ࡟ࡖࡒࡏࡓࡆࡊࠢቮ"),
+                            bstack1111l1l_opy_=os.path.abspath(entry.path),
+                            bstack1ll1ll111l1_opy_=hook.get(TestFramework.bstack1ll1l1111l1_opy_)
                         )
                         logs.append(log_entry)
-                        _1ll1l111ll1_opy_.add(abs_path)
-        hook[bstack11l1l11_opy_ (u"ࠧࡲ࡯ࡨࡵࠥኖ")] = logs
-    def bstack1ll1l111l1l_opy_(
+                        _1ll111l1ll1_opy_.add(abs_path)
+        hook[bstack111111l_opy_ (u"ࠣ࡮ࡲ࡫ࡸࠨቯ")] = logs
+    def bstack1ll11111111_opy_(
         self,
-        bstack1ll11l11l11_opy_: bstack1lll1l1ll11_opy_,
-        entries: List[bstack1ll1l1111l1_opy_],
+        bstack1ll11l11lll_opy_: bstack1lll1lll1l1_opy_,
+        entries: List[bstack1ll111lll11_opy_],
     ):
         req = structs.LogCreatedEventRequest()
-        req.bin_session_id = os.environ.get(bstack11l1l11_opy_ (u"ࠨࡂࡓࡑ࡚ࡗࡊࡘࡓࡕࡃࡆࡏࡤࡉࡌࡊࡡࡅࡍࡓࡥࡓࡆࡕࡖࡍࡔࡔ࡟ࡊࡆࠥኗ"))
-        req.platform_index = TestFramework.get_state(bstack1ll11l11l11_opy_, TestFramework.bstack1llll1lll11_opy_)
-        req.execution_context.hash = str(bstack1ll11l11l11_opy_.context.hash)
-        req.execution_context.thread_id = str(bstack1ll11l11l11_opy_.context.thread_id)
-        req.execution_context.process_id = str(bstack1ll11l11l11_opy_.context.process_id)
+        req.bin_session_id = os.environ.get(bstack111111l_opy_ (u"ࠤࡅࡖࡔ࡝ࡓࡆࡔࡖࡘࡆࡉࡋࡠࡅࡏࡍࡤࡈࡉࡏࡡࡖࡉࡘ࡙ࡉࡐࡐࡢࡍࡉࠨተ"))
+        req.platform_index = TestFramework.get_state(bstack1ll11l11lll_opy_, TestFramework.bstack1llllllll1l_opy_)
+        req.execution_context.hash = str(bstack1ll11l11lll_opy_.context.hash)
+        req.execution_context.thread_id = str(bstack1ll11l11lll_opy_.context.thread_id)
+        req.execution_context.process_id = str(bstack1ll11l11lll_opy_.context.process_id)
         for entry in entries:
             log_entry = req.logs.add()
-            log_entry.test_framework_name = TestFramework.get_state(bstack1ll11l11l11_opy_, TestFramework.bstack1lll1lll1l1_opy_)
-            log_entry.test_framework_version = TestFramework.get_state(bstack1ll11l11l11_opy_, TestFramework.bstack1lll11lllll_opy_)
-            log_entry.uuid = entry.bstack1ll111lllll_opy_ if entry.bstack1ll111lllll_opy_ else TestFramework.get_state(bstack1ll11l11l11_opy_, TestFramework.bstack1llll111ll1_opy_)
-            log_entry.test_framework_state = bstack1ll11l11l11_opy_.state.name
-            log_entry.message = entry.message.encode(bstack11l1l11_opy_ (u"ࠢࡶࡶࡩ࠱࠽ࠨኘ"))
+            log_entry.test_framework_name = TestFramework.get_state(bstack1ll11l11lll_opy_, TestFramework.bstack1llll1111l1_opy_)
+            log_entry.test_framework_version = TestFramework.get_state(bstack1ll11l11lll_opy_, TestFramework.bstack1llll1l11l1_opy_)
+            log_entry.uuid = entry.bstack1ll1l1l1ll1_opy_ if entry.bstack1ll1l1l1ll1_opy_ else TestFramework.get_state(bstack1ll11l11lll_opy_, TestFramework.bstack1llll11lll1_opy_)
+            log_entry.test_framework_state = bstack1ll11l11lll_opy_.state.name
+            log_entry.message = entry.message.encode(bstack111111l_opy_ (u"ࠥࡹࡹ࡬࠭࠹ࠤቱ"))
             log_entry.kind = entry.kind
             log_entry.timestamp = (
                 entry.timestamp.isoformat()
@@ -438,182 +438,182 @@ class PytestBDDFramework(TestFramework):
             )
             if isinstance(entry.level, str) and len(entry.level.strip()) > 0:
                 log_entry.level = entry.level.strip()
-            if entry.kind == bstack11l1l11_opy_ (u"ࠣࡖࡈࡗ࡙ࡥࡁࡕࡖࡄࡇࡍࡓࡅࡏࡖࠥኙ"):
+            if entry.kind == bstack111111l_opy_ (u"࡙ࠦࡋࡓࡕࡡࡄࡘ࡙ࡇࡃࡉࡏࡈࡒ࡙ࠨቲ"):
                 log_entry.file_name = entry.fileName
-                log_entry.file_size = entry.bstack1l1lll1llll_opy_
-                log_entry.file_path = entry.bstack1l11l1_opy_
-        def bstack1ll11ll1111_opy_():
-            bstack1ll1111ll_opy_ = datetime.now()
+                log_entry.file_size = entry.bstack1ll11l1ll11_opy_
+                log_entry.file_path = entry.bstack1111l1l_opy_
+        def bstack1ll1l111l11_opy_():
+            bstack1111ll111_opy_ = datetime.now()
             try:
-                self.bstack1llllllll11_opy_.LogCreatedEvent(req)
-                bstack1ll11l11l11_opy_.bstack111lllllll_opy_(bstack11l1l11_opy_ (u"ࠤࡪࡶࡵࡩ࠺ࡴࡧࡱࡨࡤࡲ࡯ࡨࡡࡦࡶࡪࡧࡴࡦࡦࡢࡩࡻ࡫࡮ࡵࡡࡤࡸࡹࡧࡣࡩ࡯ࡨࡲࡹࠨኚ"), datetime.now() - bstack1ll1111ll_opy_)
+                self.bstack111111111l_opy_.LogCreatedEvent(req)
+                bstack1ll11l11lll_opy_.bstack11l1l1lll_opy_(bstack111111l_opy_ (u"ࠧ࡭ࡲࡱࡥ࠽ࡷࡪࡴࡤࡠ࡮ࡲ࡫ࡤࡩࡲࡦࡣࡷࡩࡩࡥࡥࡷࡧࡱࡸࡤࡧࡴࡵࡣࡦ࡬ࡲ࡫࡮ࡵࠤታ"), datetime.now() - bstack1111ll111_opy_)
             except grpc.RpcError as e:
-                self.log_error(bstack11l1l11_opy_ (u"ࠥࡶࡵࡩ࠭ࡦࡴࡵࡳࡷࡀࠠࡴࡧࡱࡨࡤࡲ࡯ࡨࡡࡦࡶࡪࡧࡴࡦࡦࡢࡩࡻ࡫࡮ࡵࡡࡤࡸࡹࡧࡣࡩ࡯ࡨࡲࡹࠦࡻࡾࠤኛ").format(str(e)))
+                self.log_error(bstack111111l_opy_ (u"ࠨࡲࡱࡥ࠰ࡩࡷࡸ࡯ࡳ࠼ࠣࡷࡪࡴࡤࡠ࡮ࡲ࡫ࡤࡩࡲࡦࡣࡷࡩࡩࡥࡥࡷࡧࡱࡸࡤࡧࡴࡵࡣࡦ࡬ࡲ࡫࡮ࡵࠢࡾࢁࠧቴ").format(str(e)))
                 traceback.print_exc()
-        self.bstack1lll11l11ll_opy_.enqueue(bstack1ll11ll1111_opy_)
-    def __1ll1l1l1lll_opy_(self, instance) -> None:
-        bstack11l1l11_opy_ (u"ࠦࠧࠨࠊࠡࠢࠣࠤࠥࠦࠠࠡࡎࡲࡥࡩࡹࠠࡤࡷࡶࡸࡴࡳࠠࡵࡣࡪࡷࠥ࡬࡯ࡳࠢࡷ࡬ࡪࠦࡧࡪࡸࡨࡲࠥࡺࡥࡴࡶࠣࡪࡷࡧ࡭ࡦࡹࡲࡶࡰࠦࡩ࡯ࡵࡷࡥࡳࡩࡥ࠯ࠌࠣࠤࠥࠦࠠࠡࠢࠣࡇࡷ࡫ࡡࡵࡧࡶࠤࡦࠦࡤࡪࡥࡷࠤࡨࡵ࡮ࡵࡣ࡬ࡲ࡮ࡴࡧࠡࡶࡨࡷࡹࠦ࡬ࡦࡸࡨࡰࠥࡩࡵࡴࡶࡲࡱࠥࡳࡥࡵࡣࡧࡥࡹࡧࠠࡳࡧࡷࡶ࡮࡫ࡶࡦࡦࠣࡪࡷࡵ࡭ࠋࠢࠣࠤࠥࠦࠠࠡࠢࡆࡹࡸࡺ࡯࡮ࡖࡤ࡫ࡒࡧ࡮ࡢࡩࡨࡶࠥࡧ࡮ࡥࠢࡸࡴࡩࡧࡴࡦࡵࠣࡸ࡭࡫ࠠࡪࡰࡶࡸࡦࡴࡣࡦࠢࡶࡸࡦࡺࡥࠡࡷࡶ࡭ࡳ࡭ࠠࡴࡧࡷࡣࡸࡺࡡࡵࡧࡢࡩࡳࡺࡲࡪࡧࡶ࠲ࠏࠦࠠࠡࠢࠣࠤࠥࠦࠢࠣࠤኜ")
-        bstack1ll11ll1lll_opy_ = {bstack11l1l11_opy_ (u"ࠧࡩࡵࡴࡶࡲࡱࡤࡳࡥࡵࡣࡧࡥࡹࡧࠢኝ"): bstack1ll11llll11_opy_.bstack1ll11llllll_opy_()}
-        TestFramework.bstack1ll11ll1ll1_opy_(instance, bstack1ll11ll1lll_opy_)
+        self.bstack1lll11lllll_opy_.enqueue(bstack1ll1l111l11_opy_)
+    def __1ll111ll1l1_opy_(self, instance) -> None:
+        bstack111111l_opy_ (u"ࠢࠣࠤࠍࠤࠥࠦࠠࠡࠢࠣࠤࡑࡵࡡࡥࡵࠣࡧࡺࡹࡴࡰ࡯ࠣࡸࡦ࡭ࡳࠡࡨࡲࡶࠥࡺࡨࡦࠢࡪ࡭ࡻ࡫࡮ࠡࡶࡨࡷࡹࠦࡦࡳࡣࡰࡩࡼࡵࡲ࡬ࠢ࡬ࡲࡸࡺࡡ࡯ࡥࡨ࠲ࠏࠦࠠࠡࠢࠣࠤࠥࠦࡃࡳࡧࡤࡸࡪࡹࠠࡢࠢࡧ࡭ࡨࡺࠠࡤࡱࡱࡸࡦ࡯࡮ࡪࡰࡪࠤࡹ࡫ࡳࡵࠢ࡯ࡩࡻ࡫࡬ࠡࡥࡸࡷࡹࡵ࡭ࠡ࡯ࡨࡸࡦࡪࡡࡵࡣࠣࡶࡪࡺࡲࡪࡧࡹࡩࡩࠦࡦࡳࡱࡰࠎࠥࠦࠠࠡࠢࠣࠤࠥࡉࡵࡴࡶࡲࡱ࡙ࡧࡧࡎࡣࡱࡥ࡬࡫ࡲࠡࡣࡱࡨࠥࡻࡰࡥࡣࡷࡩࡸࠦࡴࡩࡧࠣ࡭ࡳࡹࡴࡢࡰࡦࡩࠥࡹࡴࡢࡶࡨࠤࡺࡹࡩ࡯ࡩࠣࡷࡪࡺ࡟ࡴࡶࡤࡸࡪࡥࡥ࡯ࡶࡵ࡭ࡪࡹ࠮ࠋࠢࠣࠤࠥࠦࠠࠡࠢࠥࠦࠧት")
+        bstack1ll1111ll11_opy_ = {bstack111111l_opy_ (u"ࠣࡥࡸࡷࡹࡵ࡭ࡠ࡯ࡨࡸࡦࡪࡡࡵࡣࠥቶ"): bstack1ll1l1ll111_opy_.bstack1ll11l1lll1_opy_()}
+        TestFramework.bstack1ll1l11l111_opy_(instance, bstack1ll1111ll11_opy_)
     @staticmethod
-    def __1ll11l11l1l_opy_(instance, args):
-        request, bstack1ll11l1llll_opy_ = args
-        bstack1l1llllll1l_opy_ = id(bstack1ll11l1llll_opy_)
-        bstack1ll1l1l1l11_opy_ = instance.data[TestFramework.bstack1l1lll1ll1l_opy_]
-        step = next(filter(lambda st: st[bstack11l1l11_opy_ (u"࠭ࡩࡥࠩኞ")] == bstack1l1llllll1l_opy_, bstack1ll1l1l1l11_opy_[bstack11l1l11_opy_ (u"ࠧࡴࡶࡨࡴࡸ࠭ኟ")]), None)
+    def __1ll111lllll_opy_(instance, args):
+        request, bstack1l1lllll1ll_opy_ = args
+        bstack1ll111111ll_opy_ = id(bstack1l1lllll1ll_opy_)
+        bstack1ll1l1l111l_opy_ = instance.data[TestFramework.bstack1ll1l1lllll_opy_]
+        step = next(filter(lambda st: st[bstack111111l_opy_ (u"ࠩ࡬ࡨࠬቷ")] == bstack1ll111111ll_opy_, bstack1ll1l1l111l_opy_[bstack111111l_opy_ (u"ࠪࡷࡹ࡫ࡰࡴࠩቸ")]), None)
         step.update({
-            bstack11l1l11_opy_ (u"ࠨࡵࡷࡥࡷࡺࡥࡥࡡࡤࡸࠬአ"): datetime.now(tz=timezone.utc)
+            bstack111111l_opy_ (u"ࠫࡸࡺࡡࡳࡶࡨࡨࡤࡧࡴࠨቹ"): datetime.now(tz=timezone.utc)
         })
-        index = next((i for i, st in enumerate(bstack1ll1l1l1l11_opy_[bstack11l1l11_opy_ (u"ࠩࡶࡸࡪࡶࡳࠨኡ")]) if st[bstack11l1l11_opy_ (u"ࠪ࡭ࡩ࠭ኢ")] == step[bstack11l1l11_opy_ (u"ࠫ࡮ࡪࠧኣ")]), None)
+        index = next((i for i, st in enumerate(bstack1ll1l1l111l_opy_[bstack111111l_opy_ (u"ࠬࡹࡴࡦࡲࡶࠫቺ")]) if st[bstack111111l_opy_ (u"࠭ࡩࡥࠩቻ")] == step[bstack111111l_opy_ (u"ࠧࡪࡦࠪቼ")]), None)
         if index is not None:
-            bstack1ll1l1l1l11_opy_[bstack11l1l11_opy_ (u"ࠬࡹࡴࡦࡲࡶࠫኤ")][index] = step
-        instance.data[TestFramework.bstack1l1lll1ll1l_opy_] = bstack1ll1l1l1l11_opy_
+            bstack1ll1l1l111l_opy_[bstack111111l_opy_ (u"ࠨࡵࡷࡩࡵࡹࠧች")][index] = step
+        instance.data[TestFramework.bstack1ll1l1lllll_opy_] = bstack1ll1l1l111l_opy_
     @staticmethod
-    def __1ll1l1ll111_opy_(instance, args):
-        bstack11l1l11_opy_ (u"ࠨࠢࠣࠌࠣࠤࠥࠦࠠࠡࠢࠣࡻ࡭࡫࡮ࠡ࡮ࡨࡲࠥࡧࡲࡨࡵࠣ࡭ࡸࠦ࠲࠭ࠢ࡬ࡸࠥࡹࡩࡨࡰ࡬ࡪ࡮࡫ࡳࠡࡶ࡫ࡩࡷ࡫ࠠࡪࡵࠣࡲࡴࠦࡥࡹࡥࡨࡴࡹ࡯࡯࡯ࠌࠣࠤࠥࠦࠠࠡࠢࠣࠤࠥࠦࠠࡢࡴࡪࡷࠥࡧࡲࡦࠢ࠰ࠤࡠࡸࡥࡲࡷࡨࡷࡹ࠲ࠠࡴࡶࡨࡴࡢࠐࠠࠡࠢࠣࠤࠥࠦࠠࡪࡨࠣࡥࡷ࡭ࡳࠡࡣࡵࡩࠥ࠹ࠠࡵࡪࡨࡲࠥࡺࡨࡦࠢ࡯ࡥࡸࡺࠠࡷࡣ࡯ࡹࡪࠦࡩࡴࠢࡨࡼࡨ࡫ࡰࡵ࡫ࡲࡲࠏࠦࠠࠡࠢࠣࠤࠥࠦࠢࠣࠤእ")
-        bstack1ll111lll11_opy_ = datetime.now(tz=timezone.utc)
+    def __1ll11111ll1_opy_(instance, args):
+        bstack111111l_opy_ (u"ࠤࠥࠦࠏࠦࠠࠡࠢࠣࠤࠥࠦࡷࡩࡧࡱࠤࡱ࡫࡮ࠡࡣࡵ࡫ࡸࠦࡩࡴࠢ࠵࠰ࠥ࡯ࡴࠡࡵ࡬࡫ࡳ࡯ࡦࡪࡧࡶࠤࡹ࡮ࡥࡳࡧࠣ࡭ࡸࠦ࡮ࡰࠢࡨࡼࡨ࡫ࡰࡵ࡫ࡲࡲࠏࠦࠠࠡࠢࠣࠤࠥࠦࠠࠡࠢࠣࡥࡷ࡭ࡳࠡࡣࡵࡩࠥ࠳ࠠ࡜ࡴࡨࡵࡺ࡫ࡳࡵ࠮ࠣࡷࡹ࡫ࡰ࡞ࠌࠣࠤࠥࠦࠠࠡࠢࠣ࡭࡫ࠦࡡࡳࡩࡶࠤࡦࡸࡥࠡ࠵ࠣࡸ࡭࡫࡮ࠡࡶ࡫ࡩࠥࡲࡡࡴࡶࠣࡺࡦࡲࡵࡦࠢ࡬ࡷࠥ࡫ࡸࡤࡧࡳࡸ࡮ࡵ࡮ࠋࠢࠣࠤࠥࠦࠠࠡࠢࠥࠦࠧቾ")
+        bstack1ll1111l11l_opy_ = datetime.now(tz=timezone.utc)
         request = args[0]
-        bstack1ll11l1llll_opy_ = args[1]
-        bstack1l1llllll1l_opy_ = id(bstack1ll11l1llll_opy_)
-        bstack1ll1l1l1l11_opy_ = instance.data[TestFramework.bstack1l1lll1ll1l_opy_]
+        bstack1l1lllll1ll_opy_ = args[1]
+        bstack1ll111111ll_opy_ = id(bstack1l1lllll1ll_opy_)
+        bstack1ll1l1l111l_opy_ = instance.data[TestFramework.bstack1ll1l1lllll_opy_]
         step = None
-        if bstack1l1llllll1l_opy_ is not None and bstack1ll1l1l1l11_opy_.get(bstack11l1l11_opy_ (u"ࠧࡴࡶࡨࡴࡸ࠭ኦ")):
-            step = next(filter(lambda st: st[bstack11l1l11_opy_ (u"ࠨ࡫ࡧࠫኧ")] == bstack1l1llllll1l_opy_, bstack1ll1l1l1l11_opy_[bstack11l1l11_opy_ (u"ࠩࡶࡸࡪࡶࡳࠨከ")]), None)
+        if bstack1ll111111ll_opy_ is not None and bstack1ll1l1l111l_opy_.get(bstack111111l_opy_ (u"ࠪࡷࡹ࡫ࡰࡴࠩቿ")):
+            step = next(filter(lambda st: st[bstack111111l_opy_ (u"ࠫ࡮ࡪࠧኀ")] == bstack1ll111111ll_opy_, bstack1ll1l1l111l_opy_[bstack111111l_opy_ (u"ࠬࡹࡴࡦࡲࡶࠫኁ")]), None)
             step.update({
-                bstack11l1l11_opy_ (u"ࠪࡪ࡮ࡴࡩࡴࡪࡨࡨࡤࡧࡴࠨኩ"): bstack1ll111lll11_opy_,
+                bstack111111l_opy_ (u"࠭ࡦࡪࡰ࡬ࡷ࡭࡫ࡤࡠࡣࡷࠫኂ"): bstack1ll1111l11l_opy_,
             })
         if len(args) > 2:
             exception = args[2]
             step.update({
-                bstack11l1l11_opy_ (u"ࠫࡷ࡫ࡳࡶ࡮ࡷࠫኪ"): bstack11l1l11_opy_ (u"ࠬ࡬ࡡࡪ࡮ࡨࡨࠬካ"),
-                bstack11l1l11_opy_ (u"࠭ࡦࡢ࡫࡯ࡹࡷ࡫ࠧኬ"): str(exception)
+                bstack111111l_opy_ (u"ࠧࡳࡧࡶࡹࡱࡺࠧኃ"): bstack111111l_opy_ (u"ࠨࡨࡤ࡭ࡱ࡫ࡤࠨኄ"),
+                bstack111111l_opy_ (u"ࠩࡩࡥ࡮ࡲࡵࡳࡧࠪኅ"): str(exception)
             })
         else:
             if step is not None:
                 step.update({
-                    bstack11l1l11_opy_ (u"ࠧࡳࡧࡶࡹࡱࡺࠧክ"): bstack11l1l11_opy_ (u"ࠨࡲࡤࡷࡸ࡫ࡤࠨኮ"),
+                    bstack111111l_opy_ (u"ࠪࡶࡪࡹࡵ࡭ࡶࠪኆ"): bstack111111l_opy_ (u"ࠫࡵࡧࡳࡴࡧࡧࠫኇ"),
                 })
-        index = next((i for i, st in enumerate(bstack1ll1l1l1l11_opy_[bstack11l1l11_opy_ (u"ࠩࡶࡸࡪࡶࡳࠨኯ")]) if st[bstack11l1l11_opy_ (u"ࠪ࡭ࡩ࠭ኰ")] == step[bstack11l1l11_opy_ (u"ࠫ࡮ࡪࠧ኱")]), None)
+        index = next((i for i, st in enumerate(bstack1ll1l1l111l_opy_[bstack111111l_opy_ (u"ࠬࡹࡴࡦࡲࡶࠫኈ")]) if st[bstack111111l_opy_ (u"࠭ࡩࡥࠩ኉")] == step[bstack111111l_opy_ (u"ࠧࡪࡦࠪኊ")]), None)
         if index is not None:
-            bstack1ll1l1l1l11_opy_[bstack11l1l11_opy_ (u"ࠬࡹࡴࡦࡲࡶࠫኲ")][index] = step
-        instance.data[TestFramework.bstack1l1lll1ll1l_opy_] = bstack1ll1l1l1l11_opy_
+            bstack1ll1l1l111l_opy_[bstack111111l_opy_ (u"ࠨࡵࡷࡩࡵࡹࠧኋ")][index] = step
+        instance.data[TestFramework.bstack1ll1l1lllll_opy_] = bstack1ll1l1l111l_opy_
     @staticmethod
-    def __1ll111111l1_opy_(node):
+    def __1l1llll1ll1_opy_(node):
         try:
             examples = []
-            if hasattr(node, bstack11l1l11_opy_ (u"࠭ࡣࡢ࡮࡯ࡷࡵ࡫ࡣࠨኳ")):
-                examples = list(node.callspec.params[bstack11l1l11_opy_ (u"ࠧࡠࡲࡼࡸࡪࡹࡴࡠࡤࡧࡨࡤ࡫ࡸࡢ࡯ࡳࡰࡪ࠭ኴ")].values())
+            if hasattr(node, bstack111111l_opy_ (u"ࠩࡦࡥࡱࡲࡳࡱࡧࡦࠫኌ")):
+                examples = list(node.callspec.params[bstack111111l_opy_ (u"ࠪࡣࡵࡿࡴࡦࡵࡷࡣࡧࡪࡤࡠࡧࡻࡥࡲࡶ࡬ࡦࠩኍ")].values())
             return examples
         except:
             return []
-    def bstack1ll111111ll_opy_(self, instance: bstack1lll1l1ll11_opy_, bstack1llllll11l1_opy_: Tuple[bstack1lll1l1llll_opy_, bstack1lll11lll1l_opy_]):
-        bstack1ll1111ll11_opy_ = (
-            PytestBDDFramework.bstack1ll1l1l111l_opy_
-            if bstack1llllll11l1_opy_[1] == bstack1lll11lll1l_opy_.PRE
-            else PytestBDDFramework.bstack1ll111ll1ll_opy_
+    def bstack1l1lllll11l_opy_(self, instance: bstack1lll1lll1l1_opy_, bstack1lllll1l1ll_opy_: Tuple[bstack1llll111lll_opy_, bstack1lll1lll11l_opy_]):
+        bstack1ll1111l111_opy_ = (
+            PytestBDDFramework.bstack1ll11l1111l_opy_
+            if bstack1lllll1l1ll_opy_[1] == bstack1lll1lll11l_opy_.PRE
+            else PytestBDDFramework.bstack1ll1l111lll_opy_
         )
-        hook = PytestBDDFramework.bstack1ll111l1l11_opy_(instance, bstack1ll1111ll11_opy_)
-        entries = hook.get(TestFramework.bstack1l1lllll11l_opy_, []) if isinstance(hook, dict) else []
-        entries.extend(TestFramework.get_state(instance, TestFramework.bstack1ll1l11ll1l_opy_, []))
+        hook = PytestBDDFramework.bstack1l1lllll111_opy_(instance, bstack1ll1111l111_opy_)
+        entries = hook.get(TestFramework.bstack1ll11l1l1l1_opy_, []) if isinstance(hook, dict) else []
+        entries.extend(TestFramework.get_state(instance, TestFramework.bstack1ll1ll11l11_opy_, []))
         return entries
-    def bstack1ll11ll1l1l_opy_(self, instance: bstack1lll1l1ll11_opy_, bstack1llllll11l1_opy_: Tuple[bstack1lll1l1llll_opy_, bstack1lll11lll1l_opy_]):
-        bstack1ll1111ll11_opy_ = (
-            PytestBDDFramework.bstack1ll1l1l111l_opy_
-            if bstack1llllll11l1_opy_[1] == bstack1lll11lll1l_opy_.PRE
-            else PytestBDDFramework.bstack1ll111ll1ll_opy_
+    def bstack1l1llll1lll_opy_(self, instance: bstack1lll1lll1l1_opy_, bstack1lllll1l1ll_opy_: Tuple[bstack1llll111lll_opy_, bstack1lll1lll11l_opy_]):
+        bstack1ll1111l111_opy_ = (
+            PytestBDDFramework.bstack1ll11l1111l_opy_
+            if bstack1lllll1l1ll_opy_[1] == bstack1lll1lll11l_opy_.PRE
+            else PytestBDDFramework.bstack1ll1l111lll_opy_
         )
-        PytestBDDFramework.bstack1l1llll1l1l_opy_(instance, bstack1ll1111ll11_opy_)
-        TestFramework.get_state(instance, TestFramework.bstack1ll1l11ll1l_opy_, []).clear()
+        PytestBDDFramework.bstack1ll11ll1ll1_opy_(instance, bstack1ll1111l111_opy_)
+        TestFramework.get_state(instance, TestFramework.bstack1ll1ll11l11_opy_, []).clear()
     @staticmethod
-    def bstack1ll111l1l11_opy_(instance: bstack1lll1l1ll11_opy_, bstack1ll1111ll11_opy_: str):
-        bstack1ll11l1111l_opy_ = (
-            PytestBDDFramework.bstack1ll11111l11_opy_
-            if bstack1ll1111ll11_opy_ == PytestBDDFramework.bstack1ll111ll1ll_opy_
-            else PytestBDDFramework.bstack1ll1l1111ll_opy_
+    def bstack1l1lllll111_opy_(instance: bstack1lll1lll1l1_opy_, bstack1ll1111l111_opy_: str):
+        bstack1ll111ll11l_opy_ = (
+            PytestBDDFramework.bstack1ll111l11l1_opy_
+            if bstack1ll1111l111_opy_ == PytestBDDFramework.bstack1ll1l111lll_opy_
+            else PytestBDDFramework.bstack1ll1l11ll11_opy_
         )
-        bstack1ll1l11l1l1_opy_ = TestFramework.get_state(instance, bstack1ll1111ll11_opy_, None)
-        bstack1ll11111lll_opy_ = TestFramework.get_state(instance, bstack1ll11l1111l_opy_, None) if bstack1ll1l11l1l1_opy_ else None
+        bstack1ll111l11ll_opy_ = TestFramework.get_state(instance, bstack1ll1111l111_opy_, None)
+        bstack1ll1l111ll1_opy_ = TestFramework.get_state(instance, bstack1ll111ll11l_opy_, None) if bstack1ll111l11ll_opy_ else None
         return (
-            bstack1ll11111lll_opy_[bstack1ll1l11l1l1_opy_][-1]
-            if isinstance(bstack1ll11111lll_opy_, dict) and len(bstack1ll11111lll_opy_.get(bstack1ll1l11l1l1_opy_, [])) > 0
+            bstack1ll1l111ll1_opy_[bstack1ll111l11ll_opy_][-1]
+            if isinstance(bstack1ll1l111ll1_opy_, dict) and len(bstack1ll1l111ll1_opy_.get(bstack1ll111l11ll_opy_, [])) > 0
             else None
         )
     @staticmethod
-    def bstack1l1llll1l1l_opy_(instance: bstack1lll1l1ll11_opy_, bstack1ll1111ll11_opy_: str):
-        hook = PytestBDDFramework.bstack1ll111l1l11_opy_(instance, bstack1ll1111ll11_opy_)
+    def bstack1ll11ll1ll1_opy_(instance: bstack1lll1lll1l1_opy_, bstack1ll1111l111_opy_: str):
+        hook = PytestBDDFramework.bstack1l1lllll111_opy_(instance, bstack1ll1111l111_opy_)
         if isinstance(hook, dict):
-            hook.get(TestFramework.bstack1l1lllll11l_opy_, []).clear()
+            hook.get(TestFramework.bstack1ll11l1l1l1_opy_, []).clear()
     @staticmethod
-    def __1ll111l1ll1_opy_(instance: bstack1lll1l1ll11_opy_, *args):
-        if len(args) < 2 or not callable(getattr(args[1], bstack11l1l11_opy_ (u"ࠣࡩࡨࡸࡤࡸࡥࡤࡱࡵࡨࡸࠨኵ"), None)):
+    def __1ll1l111l1l_opy_(instance: bstack1lll1lll1l1_opy_, *args):
+        if len(args) < 2 or not callable(getattr(args[1], bstack111111l_opy_ (u"ࠦ࡬࡫ࡴࡠࡴࡨࡧࡴࡸࡤࡴࠤ኎"), None)):
             return
-        if os.getenv(bstack11l1l11_opy_ (u"ࠤࡖࡈࡐࡥࡃࡍࡋࡢࡊࡑࡇࡇࡠࡎࡒࡋࡘࠨ኶"), bstack11l1l11_opy_ (u"ࠥ࠵ࠧ኷")) != bstack11l1l11_opy_ (u"ࠦ࠶ࠨኸ"):
-            PytestBDDFramework.logger.warning(bstack11l1l11_opy_ (u"ࠧ࡯ࡧ࡯ࡱࡵ࡭ࡳ࡭ࠠࡤࡣࡳࡰࡴ࡭ࠢኹ"))
+        if os.getenv(bstack111111l_opy_ (u"࡙ࠧࡄࡌࡡࡆࡐࡎࡥࡆࡍࡃࡊࡣࡑࡕࡇࡔࠤ኏"), bstack111111l_opy_ (u"ࠨ࠱ࠣነ")) != bstack111111l_opy_ (u"ࠢ࠲ࠤኑ"):
+            PytestBDDFramework.logger.warning(bstack111111l_opy_ (u"ࠣ࡫ࡪࡲࡴࡸࡩ࡯ࡩࠣࡧࡦࡶ࡬ࡰࡩࠥኒ"))
             return
-        bstack1ll11l11lll_opy_ = {
-            bstack11l1l11_opy_ (u"ࠨࡳࡦࡶࡸࡴࠧኺ"): (PytestBDDFramework.bstack1ll1l1l111l_opy_, PytestBDDFramework.bstack1ll1l1111ll_opy_),
-            bstack11l1l11_opy_ (u"ࠢࡵࡧࡤࡶࡩࡵࡷ࡯ࠤኻ"): (PytestBDDFramework.bstack1ll111ll1ll_opy_, PytestBDDFramework.bstack1ll11111l11_opy_),
+        bstack1ll11ll11ll_opy_ = {
+            bstack111111l_opy_ (u"ࠤࡶࡩࡹࡻࡰࠣና"): (PytestBDDFramework.bstack1ll11l1111l_opy_, PytestBDDFramework.bstack1ll1l11ll11_opy_),
+            bstack111111l_opy_ (u"ࠥࡸࡪࡧࡲࡥࡱࡺࡲࠧኔ"): (PytestBDDFramework.bstack1ll1l111lll_opy_, PytestBDDFramework.bstack1ll111l11l1_opy_),
         }
-        for when in (bstack11l1l11_opy_ (u"ࠣࡵࡨࡸࡺࡶࠢኼ"), bstack11l1l11_opy_ (u"ࠤࡦࡥࡱࡲࠢኽ"), bstack11l1l11_opy_ (u"ࠥࡸࡪࡧࡲࡥࡱࡺࡲࠧኾ")):
-            bstack1l1lllllll1_opy_ = args[1].get_records(when)
-            if not bstack1l1lllllll1_opy_:
+        for when in (bstack111111l_opy_ (u"ࠦࡸ࡫ࡴࡶࡲࠥን"), bstack111111l_opy_ (u"ࠧࡩࡡ࡭࡮ࠥኖ"), bstack111111l_opy_ (u"ࠨࡴࡦࡣࡵࡨࡴࡽ࡮ࠣኗ")):
+            bstack1ll11ll111l_opy_ = args[1].get_records(when)
+            if not bstack1ll11ll111l_opy_:
                 continue
             records = [
-                bstack1ll1l1111l1_opy_(
-                    kind=TestFramework.bstack1l1lllll1ll_opy_,
+                bstack1ll111lll11_opy_(
+                    kind=TestFramework.bstack1ll1l1l11l1_opy_,
                     message=r.message,
-                    level=r.levelname if hasattr(r, bstack11l1l11_opy_ (u"ࠦࡱ࡫ࡶࡦ࡮ࡱࡥࡲ࡫ࠢ኿")) and r.levelname else None,
+                    level=r.levelname if hasattr(r, bstack111111l_opy_ (u"ࠢ࡭ࡧࡹࡩࡱࡴࡡ࡮ࡧࠥኘ")) and r.levelname else None,
                     timestamp=(
                         datetime.fromtimestamp(r.created, tz=timezone.utc)
-                        if hasattr(r, bstack11l1l11_opy_ (u"ࠧࡩࡲࡦࡣࡷࡩࡩࠨዀ")) and r.created
+                        if hasattr(r, bstack111111l_opy_ (u"ࠣࡥࡵࡩࡦࡺࡥࡥࠤኙ")) and r.created
                         else None
                     ),
                 )
-                for r in bstack1l1lllllll1_opy_
-                if isinstance(getattr(r, bstack11l1l11_opy_ (u"ࠨ࡭ࡦࡵࡶࡥ࡬࡫ࠢ዁"), None), str) and r.message.strip()
+                for r in bstack1ll11ll111l_opy_
+                if isinstance(getattr(r, bstack111111l_opy_ (u"ࠤࡰࡩࡸࡹࡡࡨࡧࠥኚ"), None), str) and r.message.strip()
             ]
             if not records:
                 continue
-            bstack1ll11l1ll1l_opy_, bstack1ll11l1111l_opy_ = bstack1ll11l11lll_opy_.get(when, (None, None))
-            bstack1ll11l1l11l_opy_ = TestFramework.get_state(instance, bstack1ll11l1ll1l_opy_, None) if bstack1ll11l1ll1l_opy_ else None
-            bstack1ll11111lll_opy_ = TestFramework.get_state(instance, bstack1ll11l1111l_opy_, None) if bstack1ll11l1l11l_opy_ else None
-            if isinstance(bstack1ll11111lll_opy_, dict) and len(bstack1ll11111lll_opy_.get(bstack1ll11l1l11l_opy_, [])) > 0:
-                hook = bstack1ll11111lll_opy_[bstack1ll11l1l11l_opy_][-1]
-                if isinstance(hook, dict) and TestFramework.bstack1l1lllll11l_opy_ in hook:
-                    hook[TestFramework.bstack1l1lllll11l_opy_].extend(records)
+            bstack1ll11111lll_opy_, bstack1ll111ll11l_opy_ = bstack1ll11ll11ll_opy_.get(when, (None, None))
+            bstack1ll1l11l1ll_opy_ = TestFramework.get_state(instance, bstack1ll11111lll_opy_, None) if bstack1ll11111lll_opy_ else None
+            bstack1ll1l111ll1_opy_ = TestFramework.get_state(instance, bstack1ll111ll11l_opy_, None) if bstack1ll1l11l1ll_opy_ else None
+            if isinstance(bstack1ll1l111ll1_opy_, dict) and len(bstack1ll1l111ll1_opy_.get(bstack1ll1l11l1ll_opy_, [])) > 0:
+                hook = bstack1ll1l111ll1_opy_[bstack1ll1l11l1ll_opy_][-1]
+                if isinstance(hook, dict) and TestFramework.bstack1ll11l1l1l1_opy_ in hook:
+                    hook[TestFramework.bstack1ll11l1l1l1_opy_].extend(records)
                     continue
-            logs = TestFramework.get_state(instance, TestFramework.bstack1ll1l11ll1l_opy_, [])
+            logs = TestFramework.get_state(instance, TestFramework.bstack1ll1ll11l11_opy_, [])
             logs.extend(records)
     @staticmethod
-    def __1l1lllll111_opy_(args) -> Dict[str, Any]:
+    def __1ll1l11llll_opy_(args) -> Dict[str, Any]:
         request, feature, scenario = args
         test_id = request.node.nodeid
-        test_name = PytestBDDFramework.__1ll1l111lll_opy_(request.node, scenario)
-        bstack1ll1l11111l_opy_ = feature.filename
-        if not test_id or not test_name or not bstack1ll1l11111l_opy_:
+        test_name = PytestBDDFramework.__1ll1111l1ll_opy_(request.node, scenario)
+        bstack1l1llllll1l_opy_ = feature.filename
+        if not test_id or not test_name or not bstack1l1llllll1l_opy_:
             return None
         code = None
         return {
-            TestFramework.bstack1llll111ll1_opy_: uuid4().__str__(),
-            TestFramework.bstack1ll1111llll_opy_: test_id,
-            TestFramework.bstack1l1llllllll_opy_: test_name,
-            TestFramework.bstack1ll111l11l1_opy_: test_id,
-            TestFramework.bstack1ll1l1l11ll_opy_: bstack1ll1l11111l_opy_,
-            TestFramework.bstack1ll111l1l1l_opy_: PytestBDDFramework.__1l1llllll11_opy_(feature, scenario),
-            TestFramework.bstack1ll11lll111_opy_: code,
-            TestFramework.bstack1lll11l1l1l_opy_: TestFramework.bstack1ll11ll11l1_opy_,
-            TestFramework.bstack1lll111l111_opy_: test_name
+            TestFramework.bstack1llll11lll1_opy_: uuid4().__str__(),
+            TestFramework.bstack1ll1l11l11l_opy_: test_id,
+            TestFramework.bstack1ll11lll111_opy_: test_name,
+            TestFramework.bstack1ll11ll11l1_opy_: test_id,
+            TestFramework.bstack1ll11111l1l_opy_: bstack1l1llllll1l_opy_,
+            TestFramework.bstack1ll11lll1ll_opy_: PytestBDDFramework.__1ll11l111l1_opy_(feature, scenario),
+            TestFramework.bstack1ll1111llll_opy_: code,
+            TestFramework.bstack1lll1ll1ll1_opy_: TestFramework.bstack1ll11llll1l_opy_,
+            TestFramework.bstack1lll11ll1l1_opy_: test_name
         }
     @staticmethod
-    def __1ll1l111lll_opy_(node, scenario):
-        if hasattr(node, bstack11l1l11_opy_ (u"ࠧࡤࡣ࡯ࡰࡸࡶࡥࡤࠩዂ")):
-            parts = node.nodeid.rsplit(bstack11l1l11_opy_ (u"ࠣ࡝ࠥዃ"))
+    def __1ll1111l1ll_opy_(node, scenario):
+        if hasattr(node, bstack111111l_opy_ (u"ࠪࡧࡦࡲ࡬ࡴࡲࡨࡧࠬኛ")):
+            parts = node.nodeid.rsplit(bstack111111l_opy_ (u"ࠦࡠࠨኜ"))
             params = parts[-1]
-            return bstack11l1l11_opy_ (u"ࠤࡾࢁࠥࡡࡻࡾࠤዄ").format(scenario.name, params)
+            return bstack111111l_opy_ (u"ࠧࢁࡽࠡ࡝ࡾࢁࠧኝ").format(scenario.name, params)
         return scenario.name
     @staticmethod
-    def __1l1llllll11_opy_(feature, scenario) -> List[str]:
-        return (list(feature.tags) if hasattr(feature, bstack11l1l11_opy_ (u"ࠪࡸࡦ࡭ࡳࠨዅ")) else []) + (list(scenario.tags) if hasattr(scenario, bstack11l1l11_opy_ (u"ࠫࡹࡧࡧࡴࠩ዆")) else [])
+    def __1ll11l111l1_opy_(feature, scenario) -> List[str]:
+        return (list(feature.tags) if hasattr(feature, bstack111111l_opy_ (u"࠭ࡴࡢࡩࡶࠫኞ")) else []) + (list(scenario.tags) if hasattr(scenario, bstack111111l_opy_ (u"ࠧࡵࡣࡪࡷࠬኟ")) else [])
     @staticmethod
-    def __1ll11ll1l11_opy_(location):
-        return bstack11l1l11_opy_ (u"ࠧࡀ࠺ࠣ዇").join(filter(lambda x: isinstance(x, str), location))
+    def __1ll1l111111_opy_(location):
+        return bstack111111l_opy_ (u"ࠣ࠼࠽ࠦአ").join(filter(lambda x: isinstance(x, str), location))
