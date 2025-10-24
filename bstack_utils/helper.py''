@@ -205,7 +205,12 @@ def get_git_metadata_for_ai_selection(folders=None):
                     result["prDescription"] = '\n'.join(message_lines[2:]).strip()
             results.append(result)
         except Exception as err:
-            logger.error("Exception in populating Git metadata for AI selection (folder: {}): {}".format(folder, str(err)))
+            logger.error("Exception in populating Git metadata for AI selection (folder: {}): {} - {}".format(
+                folder, 
+                type(err).__name__, 
+                str(err)
+            ))
+            logger.error("Full traceback: {}".format(traceback.format_exc()))
     # Filter out results with empty filesChanged
     filtered_results = [
         result

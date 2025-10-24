@@ -14,3 +14,9 @@ def bstack1l1_opy_ (bstack1llllll_opy_):
     else:
         bstack1lllll1_opy_ = str () .join ([chr (ord (char) - bstack11l11_opy_ - (bstack1l1ll11_opy_ + bstack1l111l_opy_) % bstack1_opy_) for bstack1l1ll11_opy_, char in enumerate (bstack11111l1_opy_)])
     return eval (bstack1lllll1_opy_)
+from bstack_utils.constants import bstack11l1l111ll1_opy_
+def bstack11ll1ll1ll_opy_(bstack11ll11l11l1_opy_):
+    from browserstack_sdk.sdk_cli.cli import cli
+    from bstack_utils.helper import bstack11ll11llll_opy_
+    host = bstack11ll11llll_opy_(cli.config, [bstack1l1_opy_ (u"ࠦࡦࡶࡩࡴࠤ≜"), bstack1l1_opy_ (u"ࠧࡧࡵࡵࡱࡰࡥࡹ࡫ࠢ≝"), bstack1l1_opy_ (u"ࠨࡡࡱ࡫ࠥ≞")], bstack11l1l111ll1_opy_)
+    return bstack1l1_opy_ (u"ࠧࡼࡿ࠲ࡿࢂ࠭≟").format(host, bstack11ll11l11l1_opy_)

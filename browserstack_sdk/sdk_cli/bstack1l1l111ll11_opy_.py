@@ -1,0 +1,147 @@
+# coding: UTF-8
+import sys
+bstack1lll1_opy_ = sys.version_info [0] == 2
+bstack11l11_opy_ = 2048
+bstack1_opy_ = 7
+def bstack1l1_opy_ (bstack1llllll_opy_):
+    global bstack1l11111_opy_
+    bstack1l111l_opy_ = ord (bstack1llllll_opy_ [-1])
+    bstack11l1ll1_opy_ = bstack1llllll_opy_ [:-1]
+    bstack11l1l1l_opy_ = bstack1l111l_opy_ % len (bstack11l1ll1_opy_)
+    bstack11111l1_opy_ = bstack11l1ll1_opy_ [:bstack11l1l1l_opy_] + bstack11l1ll1_opy_ [bstack11l1l1l_opy_:]
+    if bstack1lll1_opy_:
+        bstack1lllll1_opy_ = unicode () .join ([unichr (ord (char) - bstack11l11_opy_ - (bstack1l1ll11_opy_ + bstack1l111l_opy_) % bstack1_opy_) for bstack1l1ll11_opy_, char in enumerate (bstack11111l1_opy_)])
+    else:
+        bstack1lllll1_opy_ = str () .join ([chr (ord (char) - bstack11l11_opy_ - (bstack1l1ll11_opy_ + bstack1l111l_opy_) % bstack1_opy_) for bstack1l1ll11_opy_, char in enumerate (bstack11111l1_opy_)])
+    return eval (bstack1lllll1_opy_)
+from typing import Dict, List, Any, Callable, Tuple, Union
+from browserstack_sdk import sdk_pb2 as structs
+from browserstack_sdk.sdk_cli.bstack1llllll1lll_opy_ import bstack1llll1llll1_opy_
+from browserstack_sdk.sdk_cli.bstack1llll11ll1l_opy_ import (
+    bstack1llllll111l_opy_,
+    bstack1llll1l111l_opy_,
+    bstack1llllll1l1l_opy_,
+)
+from bstack_utils.helper import  bstack11lll111_opy_
+from browserstack_sdk.sdk_cli.bstack1111111l11_opy_ import bstack1llll1l11l1_opy_
+from browserstack_sdk.sdk_cli.test_framework import TestFramework, bstack1llll11l11l_opy_, bstack1lll1l11111_opy_, bstack1lll11llll1_opy_, bstack1ll111ll111_opy_
+from typing import Tuple, Any
+import threading
+from bstack_utils.bstack111l111lll_opy_ import bstack1lll1l11l1_opy_
+from browserstack_sdk.sdk_cli.bstack1lll11l1l1l_opy_ import bstack1lll11l1l11_opy_
+from bstack_utils.percy import bstack111llll1l_opy_
+from bstack_utils.percy_sdk import PercySDK
+from bstack_utils.constants import *
+import re
+class bstack1l1l111ll1l_opy_(bstack1llll1llll1_opy_):
+    def __init__(self, bstack11llllll11l_opy_: Dict[str, str]):
+        super().__init__()
+        self.bstack11llllll11l_opy_ = bstack11llllll11l_opy_
+        self.percy = bstack111llll1l_opy_()
+        self.bstack1l11lllll_opy_ = bstack1lll1l11l1_opy_()
+        self.bstack11llllll111_opy_()
+        bstack1llll1l11l1_opy_.bstack1llll1ll1l1_opy_((bstack1llllll111l_opy_.bstack1lllllll111_opy_, bstack1llll1l111l_opy_.PRE), self.bstack11lllll111l_opy_)
+        TestFramework.bstack1llll1ll1l1_opy_((bstack1llll11l11l_opy_.TEST, bstack1lll11llll1_opy_.POST), self.bstack1lll11ll1l1_opy_)
+    def is_enabled(self) -> bool:
+        return True
+    def bstack1l11l1ll1l1_opy_(self, instance: bstack1llllll1l1l_opy_, driver: object):
+        bstack1l11ll11111_opy_ = TestFramework.bstack1l11l1lll1l_opy_(instance.context)
+        for t in bstack1l11ll11111_opy_:
+            bstack1lll1111l11_opy_ = TestFramework.get_state(t, bstack1lll11l1l11_opy_.bstack1llll1111l1_opy_, [])
+            if any(instance is d[1] for d in bstack1lll1111l11_opy_) or instance == driver:
+                return t
+    def bstack11lllll111l_opy_(
+        self,
+        f: bstack1llll1l11l1_opy_,
+        driver: object,
+        exec: Tuple[bstack1llllll1l1l_opy_, str],
+        bstack1lllll1l1l1_opy_: Tuple[bstack1llllll111l_opy_, bstack1llll1l111l_opy_],
+        result: Any,
+        *args,
+        **kwargs,
+    ):
+        try:
+            instance, method_name = exec
+            if not bstack1llll1l11l1_opy_.bstack1l1ll1ll1l1_opy_(method_name):
+                return
+            platform_index = f.get_state(instance, bstack1llll1l11l1_opy_.bstack1lllll1l11l_opy_, 0)
+            bstack1ll111lllll_opy_ = self.bstack1l11l1ll1l1_opy_(instance, driver)
+            bstack11lllll1111_opy_ = TestFramework.get_state(bstack1ll111lllll_opy_, TestFramework.bstack1ll1l11ll11_opy_, None)
+            if not bstack11lllll1111_opy_:
+                self.logger.debug(bstack1l1_opy_ (u"ࠧࡵ࡮ࡠࡲࡵࡩࡤ࡫ࡸࡦࡥࡸࡸࡪࡀࠠࡳࡧࡷࡹࡷࡴࡩ࡯ࡩࠣࡥࡸࠦࡳࡦࡵࡶ࡭ࡴࡴࠠࡪࡵࠣࡲࡴࡺࠠࡺࡧࡷࠤࡸࡺࡡࡳࡶࡨࡨࠧᔯ"))
+                return
+            driver_command = f.bstack1l1lll11ll1_opy_(*args)
+            for command in bstack1111l11l1_opy_:
+                if command == driver_command:
+                    self.bstack111ll11l1l_opy_(driver, platform_index)
+            bstack111l1l1l1_opy_ = self.percy.bstack111ll1l111_opy_()
+            if driver_command in bstack1l1l111lll_opy_[bstack111l1l1l1_opy_]:
+                self.bstack1l11lllll_opy_.bstack1l111ll1ll_opy_(bstack11lllll1111_opy_, driver_command)
+        except Exception as e:
+            self.logger.error(bstack1l1_opy_ (u"ࠨ࡯࡯ࡡࡳࡶࡪࡥࡥࡹࡧࡦࡹࡹ࡫࠺ࠡࡧࡵࡶࡴࡸࠢᔰ"), e)
+    def bstack1lll11ll1l1_opy_(
+        self,
+        f: TestFramework,
+        instance: bstack1lll1l11111_opy_,
+        bstack1lllll1l1l1_opy_: Tuple[bstack1llll11l11l_opy_, bstack1lll11llll1_opy_],
+        *args,
+        **kwargs,
+    ):
+        from bstack_utils.bstack111l11l11_opy_ import bstack1lllllll11l_opy_
+        bstack1lll1111l11_opy_ = f.get_state(instance, bstack1lll11l1l11_opy_.bstack1llll1111l1_opy_, [])
+        if not bstack1lll1111l11_opy_:
+            self.logger.debug(bstack1l1_opy_ (u"ࠢࡰࡰࡢࡥ࡫ࡺࡥࡳࡡࡷࡩࡸࡺ࠺ࠡࡰࡲࠤࡩࡸࡩࡷࡧࡵࡷࠥ࡬࡯ࡳࠢ࡫ࡳࡴࡱ࡟ࡪࡰࡩࡳࡂࢁࡨࡰࡱ࡮ࡣ࡮ࡴࡦࡰࡿࠣࡥࡷ࡭ࡳ࠾ࡽࡤࡶ࡬ࡹࡽࠡ࡭ࡺࡥࡷ࡭ࡳ࠾ࠤᔱ") + str(kwargs) + bstack1l1_opy_ (u"ࠣࠤᔲ"))
+            return
+        if len(bstack1lll1111l11_opy_) > 1:
+            self.logger.debug(bstack1l1_opy_ (u"ࠤࡲࡲࡤࡧࡦࡵࡧࡵࡣࡹ࡫ࡳࡵ࠼ࠣࡿࡱ࡫࡮ࠩࡦࡵ࡭ࡻ࡫ࡲࡠ࡫ࡱࡷࡹࡧ࡮ࡤࡧࡶ࠭ࢂࠦࡤࡳ࡫ࡹࡩࡷࡹࠠࡧࡱࡵࠤ࡭ࡵ࡯࡬ࡡ࡬ࡲ࡫ࡵ࠽ࡼࡪࡲࡳࡰࡥࡩ࡯ࡨࡲࢁࠥࡧࡲࡨࡵࡀࡿࡦࡸࡧࡴࡿࠣ࡯ࡼࡧࡲࡨࡵࡀࠦᔳ") + str(kwargs) + bstack1l1_opy_ (u"ࠥࠦᔴ"))
+        bstack1lll11l11l1_opy_, bstack1lll1l1l1l1_opy_ = bstack1lll1111l11_opy_[0]
+        driver = bstack1lll11l11l1_opy_()
+        if not driver:
+            self.logger.debug(bstack1l1_opy_ (u"ࠦࡴࡴ࡟ࡢࡨࡷࡩࡷࡥࡴࡦࡵࡷ࠾ࠥࡴ࡯ࠡࡦࡵ࡭ࡻ࡫ࡲࠡࡨࡲࡶࠥ࡮࡯ࡰ࡭ࡢ࡭ࡳ࡬࡯࠾ࡽ࡫ࡳࡴࡱ࡟ࡪࡰࡩࡳࢂࠦࡡࡳࡩࡶࡁࢀࡧࡲࡨࡵࢀࠤࡰࡽࡡࡳࡩࡶࡁࠧᔵ") + str(kwargs) + bstack1l1_opy_ (u"ࠧࠨᔶ"))
+            return
+        bstack11lllll1lll_opy_ = {
+            TestFramework.bstack1ll111ll1ll_opy_: bstack1l1_opy_ (u"ࠨࡴࡦࡵࡷࠤࡳࡧ࡭ࡦࠤᔷ"),
+            TestFramework.bstack1llll111ll1_opy_: bstack1l1_opy_ (u"ࠢࡵࡧࡶࡸࠥࡻࡵࡪࡦࠥᔸ"),
+            TestFramework.bstack1ll1l11ll11_opy_: bstack1l1_opy_ (u"ࠣࡶࡨࡷࡹࠦࡲࡦࡴࡸࡲࠥࡴࡡ࡮ࡧࠥᔹ")
+        }
+        bstack11lllll11ll_opy_ = { key: f.get_state(instance, key) for key in bstack11lllll1lll_opy_ }
+        bstack11lllll1l11_opy_ = [key for key, value in bstack11lllll11ll_opy_.items() if not value]
+        if bstack11lllll1l11_opy_:
+            for key in bstack11lllll1l11_opy_:
+                self.logger.debug(bstack1l1_opy_ (u"ࠤࡲࡲࡤࡧࡦࡵࡧࡵࡣࡹ࡫ࡳࡵ࠼ࠣࡱ࡮ࡹࡳࡪࡰࡪࠤࠧᔺ") + str(key) + bstack1l1_opy_ (u"ࠥࠦᔻ"))
+            return
+        platform_index = f.get_state(instance, bstack1llll1l11l1_opy_.bstack1lllll1l11l_opy_, 0)
+        if self.bstack11llllll11l_opy_.percy_capture_mode == bstack1l1_opy_ (u"ࠦࡹ࡫ࡳࡵࡥࡤࡷࡪࠨᔼ"):
+            bstack111l1l1ll1_opy_ = bstack11lllll11ll_opy_.get(TestFramework.bstack1ll1l11ll11_opy_) + bstack1l1_opy_ (u"ࠧ࠳ࡴࡦࡵࡷࡧࡦࡹࡥࠣᔽ")
+            bstack1ll11ll1lll_opy_ = bstack1lllllll11l_opy_.bstack1ll1l1l1lll_opy_(EVENTS.bstack11lllll1l1l_opy_.value)
+            PercySDK.screenshot(
+                driver,
+                bstack111l1l1ll1_opy_,
+                bstack1ll1lll111_opy_=bstack11lllll11ll_opy_[TestFramework.bstack1ll111ll1ll_opy_],
+                bstack11l11ll11l_opy_=bstack11lllll11ll_opy_[TestFramework.bstack1llll111ll1_opy_],
+                bstack111l1l1111_opy_=platform_index
+            )
+            bstack1lllllll11l_opy_.end(EVENTS.bstack11lllll1l1l_opy_.value, bstack1ll11ll1lll_opy_+bstack1l1_opy_ (u"ࠨ࠺ࡴࡶࡤࡶࡹࠨᔾ"), bstack1ll11ll1lll_opy_+bstack1l1_opy_ (u"ࠢ࠻ࡧࡱࡨࠧᔿ"), True, None, None, None, None, test_name=bstack111l1l1ll1_opy_)
+    def bstack111ll11l1l_opy_(self, driver, platform_index):
+        if self.bstack1l11lllll_opy_.bstack1111l11l11_opy_() is True or self.bstack1l11lllll_opy_.capturing() is True:
+            return
+        self.bstack1l11lllll_opy_.bstack11lll1ll1_opy_()
+        while not self.bstack1l11lllll_opy_.bstack1111l11l11_opy_():
+            bstack11lllll1111_opy_ = self.bstack1l11lllll_opy_.bstack1111l1l11l_opy_()
+            self.bstack11l11111l1_opy_(driver, bstack11lllll1111_opy_, platform_index)
+        self.bstack1l11lllll_opy_.bstack11ll11l111_opy_()
+    def bstack11l11111l1_opy_(self, driver, bstack1l1l11111_opy_, platform_index, test=None):
+        from bstack_utils.bstack111l11l11_opy_ import bstack1lllllll11l_opy_
+        bstack1ll11ll1lll_opy_ = bstack1lllllll11l_opy_.bstack1ll1l1l1lll_opy_(EVENTS.bstack1l111ll11l_opy_.value)
+        if test != None:
+            bstack1ll1lll111_opy_ = getattr(test, bstack1l1_opy_ (u"ࠨࡰࡤࡱࡪ࠭ᕀ"), None)
+            bstack11l11ll11l_opy_ = getattr(test, bstack1l1_opy_ (u"ࠩࡸࡹ࡮ࡪࠧᕁ"), None)
+            PercySDK.screenshot(driver, bstack1l1l11111_opy_, bstack1ll1lll111_opy_=bstack1ll1lll111_opy_, bstack11l11ll11l_opy_=bstack11l11ll11l_opy_, bstack111l1l1111_opy_=platform_index)
+        else:
+            PercySDK.screenshot(driver, bstack1l1l11111_opy_)
+        bstack1lllllll11l_opy_.end(EVENTS.bstack1l111ll11l_opy_.value, bstack1ll11ll1lll_opy_+bstack1l1_opy_ (u"ࠥ࠾ࡸࡺࡡࡳࡶࠥᕂ"), bstack1ll11ll1lll_opy_+bstack1l1_opy_ (u"ࠦ࠿࡫࡮ࡥࠤᕃ"), True, None, None, None, None, test_name=bstack1l1l11111_opy_)
+    def bstack11llllll111_opy_(self):
+        os.environ[bstack1l1_opy_ (u"ࠬࡈࡒࡐ࡙ࡖࡉࡗ࡙ࡔࡂࡅࡎࡣࡕࡋࡒࡄ࡛ࠪᕄ")] = str(self.bstack11llllll11l_opy_.success)
+        os.environ[bstack1l1_opy_ (u"࠭ࡂࡓࡑ࡚ࡗࡊࡘࡓࡕࡃࡆࡏࡤࡖࡅࡓࡅ࡜ࡣࡈࡇࡐࡕࡗࡕࡉࡤࡓࡏࡅࡇࠪᕅ")] = str(self.bstack11llllll11l_opy_.percy_capture_mode)
+        self.percy.bstack11lllll1ll1_opy_(self.bstack11llllll11l_opy_.is_percy_auto_enabled)
+        self.percy.bstack11lllll11l1_opy_(self.bstack11llllll11l_opy_.percy_build_id)

@@ -1,101 +1,373 @@
 # coding: UTF-8
 import sys
-bstack1lllll1_opy_ = sys.version_info [0] == 2
-bstack11lll1l_opy_ = 2048
-bstack1lll1l_opy_ = 7
-def bstack11l11l1_opy_ (bstack111l1ll_opy_):
-    global bstack1ll1l_opy_
-    bstack1l1l1ll_opy_ = ord (bstack111l1ll_opy_ [-1])
-    bstack1l11l_opy_ = bstack111l1ll_opy_ [:-1]
-    bstack1lllll1l_opy_ = bstack1l1l1ll_opy_ % len (bstack1l11l_opy_)
-    bstack11ll1l1_opy_ = bstack1l11l_opy_ [:bstack1lllll1l_opy_] + bstack1l11l_opy_ [bstack1lllll1l_opy_:]
-    if bstack1lllll1_opy_:
-        bstack1lll_opy_ = unicode () .join ([unichr (ord (char) - bstack11lll1l_opy_ - (bstack1l1ll11_opy_ + bstack1l1l1ll_opy_) % bstack1lll1l_opy_) for bstack1l1ll11_opy_, char in enumerate (bstack11ll1l1_opy_)])
+bstack1lll1_opy_ = sys.version_info [0] == 2
+bstack11l11_opy_ = 2048
+bstack1_opy_ = 7
+def bstack1l1_opy_ (bstack1llllll_opy_):
+    global bstack1l11111_opy_
+    bstack1l111l_opy_ = ord (bstack1llllll_opy_ [-1])
+    bstack11l1ll1_opy_ = bstack1llllll_opy_ [:-1]
+    bstack11l1l1l_opy_ = bstack1l111l_opy_ % len (bstack11l1ll1_opy_)
+    bstack11111l1_opy_ = bstack11l1ll1_opy_ [:bstack11l1l1l_opy_] + bstack11l1ll1_opy_ [bstack11l1l1l_opy_:]
+    if bstack1lll1_opy_:
+        bstack1lllll1_opy_ = unicode () .join ([unichr (ord (char) - bstack11l11_opy_ - (bstack1l1ll11_opy_ + bstack1l111l_opy_) % bstack1_opy_) for bstack1l1ll11_opy_, char in enumerate (bstack11111l1_opy_)])
     else:
-        bstack1lll_opy_ = str () .join ([chr (ord (char) - bstack11lll1l_opy_ - (bstack1l1ll11_opy_ + bstack1l1l1ll_opy_) % bstack1lll1l_opy_) for bstack1l1ll11_opy_, char in enumerate (bstack11ll1l1_opy_)])
-    return eval (bstack1lll_opy_)
+        bstack1lllll1_opy_ = str () .join ([chr (ord (char) - bstack11l11_opy_ - (bstack1l1ll11_opy_ + bstack1l111l_opy_) % bstack1_opy_) for bstack1l1ll11_opy_, char in enumerate (bstack11111l1_opy_)])
+    return eval (bstack1lllll1_opy_)
+import json
+import logging
 import os
+import datetime
 import threading
-from bstack_utils.helper import bstack111lll11l1_opy_
-from bstack_utils.constants import bstack11l1l11llll_opy_, EVENTS, STAGE
-from bstack_utils.bstack11111l1l1_opy_ import get_logger
-logger = get_logger(__name__)
-class bstack1ll1l1l1_opy_:
-    bstack11l11l11l1l_opy_ = None
+from bstack_utils.constants import EVENTS, STAGE
+from bstack_utils.helper import bstack111l1ll1ll1_opy_, bstack111l11l1111_opy_, bstack1lll1l1l11_opy_, error_handler, bstack1111lll1ll1_opy_, bstack1111l1ll1l1_opy_, bstack111l1ll1l1l_opy_, bstack1l1ll11l_opy_, bstack11lll111_opy_
+from bstack_utils.measure import measure
+from bstack_utils.bstack11l11l111l1_opy_ import bstack111ll1111l1_opy_
+import bstack_utils.bstack1ll1ll111_opy_ as bstack1l111l111_opy_
+from bstack_utils.bstack1l1l1l1l_opy_ import bstack1l111ll1_opy_
+import bstack_utils.accessibility as bstack11l1111l_opy_
+from bstack_utils.bstack11l1111ll_opy_ import bstack11l1111ll_opy_
+from bstack_utils.bstack1l11lll1_opy_ import bstack1ll1ll11_opy_
+from bstack_utils.constants import bstack1111111l1_opy_
+bstack1llll11lll11_opy_ = bstack1l1_opy_ (u"ࠬ࡮ࡴࡵࡲࡶ࠾࠴࠵ࡣࡰ࡮࡯ࡩࡨࡺ࡯ࡳ࠯ࡲࡦࡸ࡫ࡲࡷࡣࡥ࡭ࡱ࡯ࡴࡺ࠰ࡥࡶࡴࡽࡳࡦࡴࡶࡸࡦࡩ࡫࠯ࡥࡲࡱࠬ℔")
+logger = logging.getLogger(__name__)
+class bstack1l11llll_opy_:
+    bstack11l11l111l1_opy_ = None
+    bs_config = None
+    bstack1l1ll1llll_opy_ = None
     @classmethod
-    def bstack11lllll1l1_opy_(cls):
-        if cls.on() and os.getenv(bstack11l11l1_opy_ (u"ࠦࡇࡘࡏࡘࡕࡈࡖࡘ࡚ࡁࡄࡍࡢࡘࡊ࡙ࡔࡉࡗࡅࡣ࡚࡛ࡉࡅࠤ᫺")):
-            logger.info(
-                bstack11l11l1_opy_ (u"ࠬ࡜ࡩࡴ࡫ࡷࠤ࡭ࡺࡴࡱࡵ࠽࠳࠴ࡧࡵࡵࡱࡰࡥࡹ࡯࡯࡯࠰ࡥࡶࡴࡽࡳࡦࡴࡶࡸࡦࡩ࡫࠯ࡥࡲࡱ࠴ࡨࡵࡪ࡮ࡧࡷ࠴ࢁࡽࠡࡶࡲࠤࡻ࡯ࡥࡸࠢࡥࡹ࡮ࡲࡤࠡࡴࡨࡴࡴࡸࡴ࠭ࠢ࡬ࡲࡸ࡯ࡧࡩࡶࡶ࠰ࠥࡧ࡮ࡥࠢࡰࡥࡳࡿࠠ࡮ࡱࡵࡩࠥࡪࡥࡣࡷࡪ࡫࡮ࡴࡧࠡ࡫ࡱࡪࡴࡸ࡭ࡢࡶ࡬ࡳࡳࠦࡡ࡭࡮ࠣࡥࡹࠦ࡯࡯ࡧࠣࡴࡱࡧࡣࡦࠣ࡟ࡲࠬ᫻").format(os.getenv(bstack11l11l1_opy_ (u"ࠨࡂࡓࡑ࡚ࡗࡊࡘࡓࡕࡃࡆࡏࡤ࡚ࡅࡔࡖࡋ࡙ࡇࡥࡕࡖࡋࡇࠦ᫼"))))
+    @error_handler(class_method=True)
+    @measure(event_name=EVENTS.bstack11l11ll11l1_opy_, stage=STAGE.bstack1lllll1l1l_opy_)
+    def launch(cls, bs_config, bstack1l1ll1llll_opy_):
+        cls.bs_config = bs_config
+        cls.bstack1l1ll1llll_opy_ = bstack1l1ll1llll_opy_
+        try:
+            cls.bstack1llll1l111l1_opy_()
+            bstack1llll1lll111_opy_ = bstack111l1ll1ll1_opy_(bs_config)
+            bstack1llll1ll1l1l_opy_ = bstack111l11l1111_opy_(bs_config)
+            data = bstack1l111l111_opy_.bstack1llll11ll11l_opy_(bs_config, bstack1l1ll1llll_opy_)
+            config = {
+                bstack1l1_opy_ (u"࠭ࡡࡶࡶ࡫ࠫℕ"): (bstack1llll1lll111_opy_, bstack1llll1ll1l1l_opy_),
+                bstack1l1_opy_ (u"ࠧࡩࡧࡤࡨࡪࡸࡳࠨ№"): cls.default_headers()
+            }
+            response = bstack1lll1l1l11_opy_(bstack1l1_opy_ (u"ࠨࡒࡒࡗ࡙࠭℗"), cls.request_url(bstack1l1_opy_ (u"ࠩࡤࡴ࡮࠵ࡶ࠳࠱ࡥࡹ࡮ࡲࡤࡴࠩ℘")), data, config)
+            if response.status_code != 200:
+                bstack11111l1ll_opy_ = response.json()
+                if bstack11111l1ll_opy_[bstack1l1_opy_ (u"ࠪࡷࡺࡩࡣࡦࡵࡶࠫℙ")] == False:
+                    cls.bstack1llll11l1lll_opy_(bstack11111l1ll_opy_)
+                    return
+                cls.bstack1llll1l11l11_opy_(bstack11111l1ll_opy_[bstack1l1_opy_ (u"ࠫࡴࡨࡳࡦࡴࡹࡥࡧ࡯࡬ࡪࡶࡼࠫℚ")])
+                cls.bstack1llll1l1l11l_opy_(bstack11111l1ll_opy_[bstack1l1_opy_ (u"ࠬࡧࡣࡤࡧࡶࡷ࡮ࡨࡩ࡭࡫ࡷࡽࠬℛ")])
+                return None
+            bstack1llll1l1111l_opy_ = cls.bstack1llll1l11l1l_opy_(response)
+            return bstack1llll1l1111l_opy_, response.json()
+        except Exception as error:
+            logger.error(bstack1l1_opy_ (u"ࠨࡅࡹࡥࡨࡴࡹ࡯࡯࡯ࠢࡺ࡬࡮ࡲࡥࠡࡥࡵࡩࡦࡺࡩ࡯ࡩࠣࡦࡺ࡯࡬ࡥࠢࡩࡳࡷࠦࡔࡦࡵࡷࡌࡺࡨ࠺ࠡࡽࢀࠦℜ").format(str(error)))
+            return None
+    @classmethod
+    @error_handler(class_method=True)
+    def stop(cls, bstack1llll1l111ll_opy_=None):
+        if not bstack1l111ll1_opy_.on() and not bstack11l1111l_opy_.on():
+            return
+        if os.environ.get(bstack1l1_opy_ (u"ࠧࡃࡔࡒ࡛ࡘࡋࡒࡔࡖࡄࡇࡐࡥࡔࡆࡕࡗࡌ࡚ࡈ࡟ࡋ࡙ࡗࠫℝ")) == bstack1l1_opy_ (u"ࠣࡰࡸࡰࡱࠨ℞") or os.environ.get(bstack1l1_opy_ (u"ࠩࡅࡖࡔ࡝ࡓࡆࡔࡖࡘࡆࡉࡋࡠࡖࡈࡗ࡙ࡎࡕࡃࡡࡘ࡙ࡎࡊࠧ℟")) == bstack1l1_opy_ (u"ࠥࡲࡺࡲ࡬ࠣ℠"):
+            logger.error(bstack1l1_opy_ (u"ࠫࡊࡾࡣࡦࡲࡷ࡭ࡴࡴࠠࡪࡰࠣࡷࡹࡵࡰࠡࡤࡸ࡭ࡱࡪࠠࡳࡧࡴࡹࡪࡹࡴࠡࡶࡲࠤ࡙࡫ࡳࡵࡊࡸࡦ࠿ࠦࡍࡪࡵࡶ࡭ࡳ࡭ࠠࡢࡷࡷ࡬ࡪࡴࡴࡪࡥࡤࡸ࡮ࡵ࡮ࠡࡶࡲ࡯ࡪࡴࠧ℡"))
+            return {
+                bstack1l1_opy_ (u"ࠬࡹࡴࡢࡶࡸࡷࠬ™"): bstack1l1_opy_ (u"࠭ࡥࡳࡴࡲࡶࠬ℣"),
+                bstack1l1_opy_ (u"ࠧ࡮ࡧࡶࡷࡦ࡭ࡥࠨℤ"): bstack1l1_opy_ (u"ࠨࡖࡲ࡯ࡪࡴ࠯ࡣࡷ࡬ࡰࡩࡏࡄࠡ࡫ࡶࠤࡺࡴࡤࡦࡨ࡬ࡲࡪࡪࠬࠡࡤࡸ࡭ࡱࡪࠠࡤࡴࡨࡥࡹ࡯࡯࡯ࠢࡰ࡭࡬࡮ࡴࠡࡪࡤࡺࡪࠦࡦࡢ࡫࡯ࡩࡩ࠭℥")
+            }
+        try:
+            cls.bstack11l11l111l1_opy_.shutdown()
+            data = {
+                bstack1l1_opy_ (u"ࠩࡩ࡭ࡳ࡯ࡳࡩࡧࡧࡣࡦࡺࠧΩ"): bstack1l1ll11l_opy_()
+            }
+            if not bstack1llll1l111ll_opy_ is None:
+                data[bstack1l1_opy_ (u"ࠪࡪ࡮ࡴࡩࡴࡪࡨࡨࡤࡳࡥࡵࡣࡧࡥࡹࡧࠧ℧")] = [{
+                    bstack1l1_opy_ (u"ࠫࡷ࡫ࡡࡴࡱࡱࠫℨ"): bstack1l1_opy_ (u"ࠬࡻࡳࡦࡴࡢ࡯࡮ࡲ࡬ࡦࡦࠪ℩"),
+                    bstack1l1_opy_ (u"࠭ࡳࡪࡩࡱࡥࡱ࠭K"): bstack1llll1l111ll_opy_
+                }]
+            config = {
+                bstack1l1_opy_ (u"ࠧࡩࡧࡤࡨࡪࡸࡳࠨÅ"): cls.default_headers()
+            }
+            bstack11ll11l11l1_opy_ = bstack1l1_opy_ (u"ࠨࡣࡳ࡭࠴ࡼ࠱࠰ࡤࡸ࡭ࡱࡪࡳ࠰ࡽࢀ࠳ࡸࡺ࡯ࡱࠩℬ").format(os.environ[bstack1l1_opy_ (u"ࠤࡅࡖࡔ࡝ࡓࡆࡔࡖࡘࡆࡉࡋࡠࡖࡈࡗ࡙ࡎࡕࡃࡡࡘ࡙ࡎࡊࠢℭ")])
+            bstack1llll11l11ll_opy_ = cls.request_url(bstack11ll11l11l1_opy_)
+            response = bstack1lll1l1l11_opy_(bstack1l1_opy_ (u"ࠪࡔ࡚࡚ࠧ℮"), bstack1llll11l11ll_opy_, data, config)
+            if not response.ok:
+                raise Exception(bstack1l1_opy_ (u"ࠦࡘࡺ࡯ࡱࠢࡵࡩࡶࡻࡥࡴࡶࠣࡲࡴࡺࠠࡰ࡭ࠥℯ"))
+        except Exception as error:
+            logger.error(bstack1l1_opy_ (u"ࠧࡋࡸࡤࡧࡳࡸ࡮ࡵ࡮ࠡ࡫ࡱࠤࡸࡺ࡯ࡱࠢࡥࡹ࡮ࡲࡤࠡࡴࡨࡵࡺ࡫ࡳࡵࠢࡷࡳ࡚ࠥࡥࡴࡶࡋࡹࡧࡀ࠺ࠡࠤℰ") + str(error))
+            return {
+                bstack1l1_opy_ (u"࠭ࡳࡵࡣࡷࡹࡸ࠭ℱ"): bstack1l1_opy_ (u"ࠧࡦࡴࡵࡳࡷ࠭Ⅎ"),
+                bstack1l1_opy_ (u"ࠨ࡯ࡨࡷࡸࡧࡧࡦࠩℳ"): str(error)
+            }
+    @classmethod
+    @error_handler(class_method=True)
+    def bstack1llll1l11l1l_opy_(cls, response):
+        bstack11111l1ll_opy_ = response.json() if not isinstance(response, dict) else response
+        bstack1llll1l1111l_opy_ = {}
+        if bstack11111l1ll_opy_.get(bstack1l1_opy_ (u"ࠩ࡭ࡻࡹ࠭ℴ")) is None:
+            os.environ[bstack1l1_opy_ (u"ࠪࡆࡗࡕࡗࡔࡇࡕࡗ࡙ࡇࡃࡌࡡࡗࡉࡘ࡚ࡈࡖࡄࡢࡎ࡜࡚ࠧℵ")] = bstack1l1_opy_ (u"ࠫࡳࡻ࡬࡭ࠩℶ")
+        else:
+            os.environ[bstack1l1_opy_ (u"ࠬࡈࡒࡐ࡙ࡖࡉࡗ࡙ࡔࡂࡅࡎࡣ࡙ࡋࡓࡕࡊࡘࡆࡤࡐࡗࡕࠩℷ")] = bstack11111l1ll_opy_.get(bstack1l1_opy_ (u"࠭ࡪࡸࡶࠪℸ"), bstack1l1_opy_ (u"ࠧ࡯ࡷ࡯ࡰࠬℹ"))
+        os.environ[bstack1l1_opy_ (u"ࠨࡄࡕࡓ࡜࡙ࡅࡓࡕࡗࡅࡈࡑ࡟ࡕࡇࡖࡘࡍ࡛ࡂࡠࡗࡘࡍࡉ࠭℺")] = bstack11111l1ll_opy_.get(bstack1l1_opy_ (u"ࠩࡥࡹ࡮ࡲࡤࡠࡪࡤࡷ࡭࡫ࡤࡠ࡫ࡧࠫ℻"), bstack1l1_opy_ (u"ࠪࡲࡺࡲ࡬ࠨℼ"))
+        logger.info(bstack1l1_opy_ (u"࡙ࠫ࡫ࡳࡵࡪࡸࡦࠥࡹࡴࡢࡴࡷࡩࡩࠦࡷࡪࡶ࡫ࠤ࡮ࡪ࠺ࠡࠩℽ") + os.getenv(bstack1l1_opy_ (u"ࠬࡈࡒࡐ࡙ࡖࡉࡗ࡙ࡔࡂࡅࡎࡣ࡙ࡋࡓࡕࡊࡘࡆࡤ࡛ࡕࡊࡆࠪℾ")));
+        if bstack1l111ll1_opy_.bstack11l11l11l11_opy_(cls.bs_config, cls.bstack1l1ll1llll_opy_.get(bstack1l1_opy_ (u"࠭ࡦࡳࡣࡰࡩࡼࡵࡲ࡬ࡡࡸࡷࡪࡪࠧℿ"), bstack1l1_opy_ (u"ࠧࠨ⅀"))) is True:
+            bstack11ll11l1l11_opy_, build_hashed_id, bstack1llll1l1l111_opy_ = cls.bstack1llll11llll1_opy_(bstack11111l1ll_opy_)
+            if bstack11ll11l1l11_opy_ != None and build_hashed_id != None:
+                bstack1llll1l1111l_opy_[bstack1l1_opy_ (u"ࠨࡱࡥࡷࡪࡸࡶࡢࡤ࡬ࡰ࡮ࡺࡹࠨ⅁")] = {
+                    bstack1l1_opy_ (u"ࠩ࡭ࡻࡹࡥࡴࡰ࡭ࡨࡲࠬ⅂"): bstack11ll11l1l11_opy_,
+                    bstack1l1_opy_ (u"ࠪࡦࡺ࡯࡬ࡥࡡ࡫ࡥࡸ࡮ࡥࡥࡡ࡬ࡨࠬ⅃"): build_hashed_id,
+                    bstack1l1_opy_ (u"ࠫࡦࡲ࡬ࡰࡹࡢࡷࡨࡸࡥࡦࡰࡶ࡬ࡴࡺࡳࠨ⅄"): bstack1llll1l1l111_opy_
+                }
+            else:
+                bstack1llll1l1111l_opy_[bstack1l1_opy_ (u"ࠬࡵࡢࡴࡧࡵࡺࡦࡨࡩ࡭࡫ࡷࡽࠬⅅ")] = {}
+        else:
+            bstack1llll1l1111l_opy_[bstack1l1_opy_ (u"࠭࡯ࡣࡵࡨࡶࡻࡧࡢࡪ࡮࡬ࡸࡾ࠭ⅆ")] = {}
+        bstack1llll11lll1l_opy_, build_hashed_id = cls.bstack1llll11lllll_opy_(bstack11111l1ll_opy_)
+        if bstack1llll11lll1l_opy_ != None and build_hashed_id != None:
+            bstack1llll1l1111l_opy_[bstack1l1_opy_ (u"ࠧࡢࡥࡦࡩࡸࡹࡩࡣ࡫࡯࡭ࡹࡿࠧⅇ")] = {
+                bstack1l1_opy_ (u"ࠨࡣࡸࡸ࡭ࡥࡴࡰ࡭ࡨࡲࠬⅈ"): bstack1llll11lll1l_opy_,
+                bstack1l1_opy_ (u"ࠩࡥࡹ࡮ࡲࡤࡠࡪࡤࡷ࡭࡫ࡤࡠ࡫ࡧࠫⅉ"): build_hashed_id,
+            }
+        else:
+            bstack1llll1l1111l_opy_[bstack1l1_opy_ (u"ࠪࡥࡨࡩࡥࡴࡵ࡬ࡦ࡮ࡲࡩࡵࡻࠪ⅊")] = {}
+        if bstack1llll1l1111l_opy_[bstack1l1_opy_ (u"ࠫࡴࡨࡳࡦࡴࡹࡥࡧ࡯࡬ࡪࡶࡼࠫ⅋")].get(bstack1l1_opy_ (u"ࠬࡨࡵࡪ࡮ࡧࡣ࡭ࡧࡳࡩࡧࡧࡣ࡮ࡪࠧ⅌")) != None or bstack1llll1l1111l_opy_[bstack1l1_opy_ (u"࠭ࡡࡤࡥࡨࡷࡸ࡯ࡢࡪ࡮࡬ࡸࡾ࠭⅍")].get(bstack1l1_opy_ (u"ࠧࡣࡷ࡬ࡰࡩࡥࡨࡢࡵ࡫ࡩࡩࡥࡩࡥࠩⅎ")) != None:
+            cls.bstack1llll11ll1ll_opy_(bstack11111l1ll_opy_.get(bstack1l1_opy_ (u"ࠨ࡬ࡺࡸࠬ⅏")), bstack11111l1ll_opy_.get(bstack1l1_opy_ (u"ࠩࡥࡹ࡮ࡲࡤࡠࡪࡤࡷ࡭࡫ࡤࡠ࡫ࡧࠫ⅐")))
+        return bstack1llll1l1111l_opy_
+    @classmethod
+    def bstack1llll11llll1_opy_(cls, bstack11111l1ll_opy_):
+        if bstack11111l1ll_opy_.get(bstack1l1_opy_ (u"ࠪࡳࡧࡹࡥࡳࡸࡤࡦ࡮ࡲࡩࡵࡻࠪ⅑")) == None:
+            cls.bstack1llll1l11l11_opy_()
+            return [None, None, None]
+        if bstack11111l1ll_opy_[bstack1l1_opy_ (u"ࠫࡴࡨࡳࡦࡴࡹࡥࡧ࡯࡬ࡪࡶࡼࠫ⅒")][bstack1l1_opy_ (u"ࠬࡹࡵࡤࡥࡨࡷࡸ࠭⅓")] != True:
+            cls.bstack1llll1l11l11_opy_(bstack11111l1ll_opy_[bstack1l1_opy_ (u"࠭࡯ࡣࡵࡨࡶࡻࡧࡢࡪ࡮࡬ࡸࡾ࠭⅔")])
+            return [None, None, None]
+        logger.debug(bstack1l1_opy_ (u"ࠧࡼࡿࠣࡆࡺ࡯࡬ࡥࠢࡦࡶࡪࡧࡴࡪࡱࡱࠤࡘࡻࡣࡤࡧࡶࡷ࡫ࡻ࡬ࠢࠩ⅕").format(bstack1111111l1_opy_))
+        os.environ[bstack1l1_opy_ (u"ࠨࡄࡖࡣ࡙ࡋࡓࡕࡑࡓࡗࡤࡈࡕࡊࡎࡇࡣࡈࡕࡍࡑࡎࡈࡘࡊࡊࠧ⅖")] = bstack1l1_opy_ (u"ࠩࡷࡶࡺ࡫ࠧ⅗")
+        if bstack11111l1ll_opy_.get(bstack1l1_opy_ (u"ࠪ࡮ࡼࡺࠧ⅘")):
+            os.environ[bstack1l1_opy_ (u"ࠫࡈࡘࡅࡅࡇࡑࡘࡎࡇࡌࡔࡡࡉࡓࡗࡥࡃࡓࡃࡖࡌࡤࡘࡅࡑࡑࡕࡘࡎࡔࡇࠨ⅙")] = json.dumps({
+                bstack1l1_opy_ (u"ࠬࡻࡳࡦࡴࡱࡥࡲ࡫ࠧ⅚"): bstack111l1ll1ll1_opy_(cls.bs_config),
+                bstack1l1_opy_ (u"࠭ࡰࡢࡵࡶࡻࡴࡸࡤࠨ⅛"): bstack111l11l1111_opy_(cls.bs_config)
+            })
+        if bstack11111l1ll_opy_.get(bstack1l1_opy_ (u"ࠧࡣࡷ࡬ࡰࡩࡥࡨࡢࡵ࡫ࡩࡩࡥࡩࡥࠩ⅜")):
+            os.environ[bstack1l1_opy_ (u"ࠨࡄࡖࡣ࡙ࡋࡓࡕࡑࡓࡗࡤࡈࡕࡊࡎࡇࡣࡍࡇࡓࡉࡇࡇࡣࡎࡊࠧ⅝")] = bstack11111l1ll_opy_[bstack1l1_opy_ (u"ࠩࡥࡹ࡮ࡲࡤࡠࡪࡤࡷ࡭࡫ࡤࡠ࡫ࡧࠫ⅞")]
+        if bstack11111l1ll_opy_[bstack1l1_opy_ (u"ࠪࡳࡧࡹࡥࡳࡸࡤࡦ࡮ࡲࡩࡵࡻࠪ⅟")].get(bstack1l1_opy_ (u"ࠫࡴࡶࡴࡪࡱࡱࡷࠬⅠ"), {}).get(bstack1l1_opy_ (u"ࠬࡧ࡬࡭ࡱࡺࡣࡸࡩࡲࡦࡧࡱࡷ࡭ࡵࡴࡴࠩⅡ")):
+            os.environ[bstack1l1_opy_ (u"࠭ࡂࡔࡡࡗࡉࡘ࡚ࡏࡑࡕࡢࡅࡑࡒࡏࡘࡡࡖࡇࡗࡋࡅࡏࡕࡋࡓ࡙࡙ࠧⅢ")] = str(bstack11111l1ll_opy_[bstack1l1_opy_ (u"ࠧࡰࡤࡶࡩࡷࡼࡡࡣ࡫࡯࡭ࡹࡿࠧⅣ")][bstack1l1_opy_ (u"ࠨࡱࡳࡸ࡮ࡵ࡮ࡴࠩⅤ")][bstack1l1_opy_ (u"ࠩࡤࡰࡱࡵࡷࡠࡵࡦࡶࡪ࡫࡮ࡴࡪࡲࡸࡸ࠭Ⅵ")])
+        else:
+            os.environ[bstack1l1_opy_ (u"ࠪࡆࡘࡥࡔࡆࡕࡗࡓࡕ࡙࡟ࡂࡎࡏࡓ࡜ࡥࡓࡄࡔࡈࡉࡓ࡙ࡈࡐࡖࡖࠫⅦ")] = bstack1l1_opy_ (u"ࠦࡳࡻ࡬࡭ࠤⅧ")
+        return [bstack11111l1ll_opy_[bstack1l1_opy_ (u"ࠬࡰࡷࡵࠩⅨ")], bstack11111l1ll_opy_[bstack1l1_opy_ (u"࠭ࡢࡶ࡫࡯ࡨࡤ࡮ࡡࡴࡪࡨࡨࡤ࡯ࡤࠨⅩ")], os.environ[bstack1l1_opy_ (u"ࠧࡃࡕࡢࡘࡊ࡙ࡔࡐࡒࡖࡣࡆࡒࡌࡐ࡙ࡢࡗࡈࡘࡅࡆࡐࡖࡌࡔ࡚ࡓࠨⅪ")]]
+    @classmethod
+    def bstack1llll11lllll_opy_(cls, bstack11111l1ll_opy_):
+        if bstack11111l1ll_opy_.get(bstack1l1_opy_ (u"ࠨࡣࡦࡧࡪࡹࡳࡪࡤ࡬ࡰ࡮ࡺࡹࠨⅫ")) == None:
+            cls.bstack1llll1l1l11l_opy_()
+            return [None, None]
+        if bstack11111l1ll_opy_[bstack1l1_opy_ (u"ࠩࡤࡧࡨ࡫ࡳࡴ࡫ࡥ࡭ࡱ࡯ࡴࡺࠩⅬ")][bstack1l1_opy_ (u"ࠪࡷࡺࡩࡣࡦࡵࡶࠫⅭ")] != True:
+            cls.bstack1llll1l1l11l_opy_(bstack11111l1ll_opy_[bstack1l1_opy_ (u"ࠫࡦࡩࡣࡦࡵࡶ࡭ࡧ࡯࡬ࡪࡶࡼࠫⅮ")])
+            return [None, None]
+        if bstack11111l1ll_opy_[bstack1l1_opy_ (u"ࠬࡧࡣࡤࡧࡶࡷ࡮ࡨࡩ࡭࡫ࡷࡽࠬⅯ")].get(bstack1l1_opy_ (u"࠭࡯ࡱࡶ࡬ࡳࡳࡹࠧⅰ")):
+            logger.debug(bstack1l1_opy_ (u"ࠧࡕࡧࡶࡸࠥࡇࡣࡤࡧࡶࡷ࡮ࡨࡩ࡭࡫ࡷࡽࠥࡈࡵࡪ࡮ࡧࠤࡨࡸࡥࡢࡶ࡬ࡳࡳࠦࡓࡶࡥࡦࡩࡸࡹࡦࡶ࡮ࠤࠫⅱ"))
+            parsed = json.loads(os.getenv(bstack1l1_opy_ (u"ࠨࡄࡕࡓ࡜࡙ࡅࡓࡕࡗࡅࡈࡑ࡟ࡕࡇࡖࡘࡤࡇࡃࡄࡇࡖࡗࡎࡈࡉࡍࡋࡗ࡝ࡤࡉࡏࡏࡈࡌࡋ࡚ࡘࡁࡕࡋࡒࡒࡤ࡟ࡍࡍࠩⅲ"), bstack1l1_opy_ (u"ࠩࡾࢁࠬⅳ")))
+            capabilities = bstack1l111l111_opy_.bstack1llll11ll111_opy_(bstack11111l1ll_opy_[bstack1l1_opy_ (u"ࠪࡥࡨࡩࡥࡴࡵ࡬ࡦ࡮ࡲࡩࡵࡻࠪⅴ")][bstack1l1_opy_ (u"ࠫࡴࡶࡴࡪࡱࡱࡷࠬⅵ")][bstack1l1_opy_ (u"ࠬࡩࡡࡱࡣࡥ࡭ࡱ࡯ࡴࡪࡧࡶࠫⅶ")], bstack1l1_opy_ (u"࠭࡮ࡢ࡯ࡨࠫⅷ"), bstack1l1_opy_ (u"ࠧࡷࡣ࡯ࡹࡪ࠭ⅸ"))
+            bstack1llll11lll1l_opy_ = capabilities[bstack1l1_opy_ (u"ࠨࡣࡦࡧࡪࡹࡳࡪࡤ࡬ࡰ࡮ࡺࡹࡕࡱ࡮ࡩࡳ࠭ⅹ")]
+            os.environ[bstack1l1_opy_ (u"ࠩࡅࡗࡤࡇ࠱࠲࡛ࡢࡎ࡜࡚ࠧⅺ")] = bstack1llll11lll1l_opy_
+            if bstack1l1_opy_ (u"ࠥࡥࡺࡺ࡯࡮ࡣࡷࡩࠧⅻ") in bstack11111l1ll_opy_ and bstack11111l1ll_opy_.get(bstack1l1_opy_ (u"ࠦࡦࡶࡰࡠࡣࡸࡸࡴࡳࡡࡵࡧࠥⅼ")) is None:
+                parsed[bstack1l1_opy_ (u"ࠬࡹࡣࡢࡰࡱࡩࡷ࡜ࡥࡳࡵ࡬ࡳࡳ࠭ⅽ")] = capabilities[bstack1l1_opy_ (u"࠭ࡳࡤࡣࡱࡲࡪࡸࡖࡦࡴࡶ࡭ࡴࡴࠧⅾ")]
+            os.environ[bstack1l1_opy_ (u"ࠧࡃࡔࡒ࡛ࡘࡋࡒࡔࡖࡄࡇࡐࡥࡔࡆࡕࡗࡣࡆࡉࡃࡆࡕࡖࡍࡇࡏࡌࡊࡖ࡜ࡣࡈࡕࡎࡇࡋࡊ࡙ࡗࡇࡔࡊࡑࡑࡣ࡞ࡓࡌࠨⅿ")] = json.dumps(parsed)
+            scripts = bstack1l111l111_opy_.bstack1llll11ll111_opy_(bstack11111l1ll_opy_[bstack1l1_opy_ (u"ࠨࡣࡦࡧࡪࡹࡳࡪࡤ࡬ࡰ࡮ࡺࡹࠨↀ")][bstack1l1_opy_ (u"ࠩࡲࡴࡹ࡯࡯࡯ࡵࠪↁ")][bstack1l1_opy_ (u"ࠪࡷࡨࡸࡩࡱࡶࡶࠫↂ")], bstack1l1_opy_ (u"ࠫࡳࡧ࡭ࡦࠩↃ"), bstack1l1_opy_ (u"ࠬࡩ࡯࡮࡯ࡤࡲࡩ࠭ↄ"))
+            bstack11l1111ll_opy_.bstack1l1l1ll11_opy_(scripts)
+            commands = bstack11111l1ll_opy_[bstack1l1_opy_ (u"࠭ࡡࡤࡥࡨࡷࡸ࡯ࡢࡪ࡮࡬ࡸࡾ࠭ↅ")][bstack1l1_opy_ (u"ࠧࡰࡲࡷ࡭ࡴࡴࡳࠨↆ")][bstack1l1_opy_ (u"ࠨࡥࡲࡱࡲࡧ࡮ࡥࡵࡗࡳ࡜ࡸࡡࡱࠩↇ")].get(bstack1l1_opy_ (u"ࠩࡦࡳࡲࡳࡡ࡯ࡦࡶࠫↈ"))
+            bstack11l1111ll_opy_.bstack1lllll11l111_opy_(commands)
+            bstack1lllll11l1l1_opy_ = capabilities.get(bstack1l1_opy_ (u"ࠪ࡫ࡴࡵࡧ࠻ࡥ࡫ࡶࡴࡳࡥࡐࡲࡷ࡭ࡴࡴࡳࠨ↉"))
+            bstack11l1111ll_opy_.bstack1lllll111lll_opy_(bstack1lllll11l1l1_opy_)
+            bstack11l1111ll_opy_.store()
+        return [bstack1llll11lll1l_opy_, bstack11111l1ll_opy_[bstack1l1_opy_ (u"ࠫࡧࡻࡩ࡭ࡦࡢ࡬ࡦࡹࡨࡦࡦࡢ࡭ࡩ࠭↊")]]
+    @classmethod
+    def bstack1llll1l11l11_opy_(cls, response=None):
+        os.environ[bstack1l1_opy_ (u"ࠬࡈࡒࡐ࡙ࡖࡉࡗ࡙ࡔࡂࡅࡎࡣ࡙ࡋࡓࡕࡊࡘࡆࡤ࡛ࡕࡊࡆࠪ↋")] = bstack1l1_opy_ (u"࠭࡮ࡶ࡮࡯ࠫ↌")
+        os.environ[bstack1l1_opy_ (u"ࠧࡃࡔࡒ࡛ࡘࡋࡒࡔࡖࡄࡇࡐࡥࡔࡆࡕࡗࡌ࡚ࡈ࡟ࡋ࡙ࡗࠫ↍")] = bstack1l1_opy_ (u"ࠨࡰࡸࡰࡱ࠭↎")
+        os.environ[bstack1l1_opy_ (u"ࠩࡅࡗࡤ࡚ࡅࡔࡖࡒࡔࡘࡥࡂࡖࡋࡏࡈࡤࡉࡏࡎࡒࡏࡉ࡙ࡋࡄࠨ↏")] = bstack1l1_opy_ (u"ࠪࡪࡦࡲࡳࡦࠩ←")
+        os.environ[bstack1l1_opy_ (u"ࠫࡇ࡙࡟ࡕࡇࡖࡘࡔࡖࡓࡠࡄࡘࡍࡑࡊ࡟ࡉࡃࡖࡌࡊࡊ࡟ࡊࡆࠪ↑")] = bstack1l1_opy_ (u"ࠧࡴࡵ࡭࡮ࠥ→")
+        os.environ[bstack1l1_opy_ (u"࠭ࡂࡔࡡࡗࡉࡘ࡚ࡏࡑࡕࡢࡅࡑࡒࡏࡘࡡࡖࡇࡗࡋࡅࡏࡕࡋࡓ࡙࡙ࠧ↓")] = bstack1l1_opy_ (u"ࠢ࡯ࡷ࡯ࡰࠧ↔")
+        cls.bstack1llll11l1lll_opy_(response, bstack1l1_opy_ (u"ࠣࡱࡥࡷࡪࡸࡶࡢࡤ࡬ࡰ࡮ࡺࡹࠣ↕"))
+        return [None, None, None]
+    @classmethod
+    def bstack1llll1l1l11l_opy_(cls, response=None):
+        os.environ[bstack1l1_opy_ (u"ࠩࡅࡖࡔ࡝ࡓࡆࡔࡖࡘࡆࡉࡋࡠࡖࡈࡗ࡙ࡎࡕࡃࡡࡘ࡙ࡎࡊࠧ↖")] = bstack1l1_opy_ (u"ࠪࡲࡺࡲ࡬ࠨ↗")
+        os.environ[bstack1l1_opy_ (u"ࠫࡇ࡙࡟ࡂ࠳࠴࡝ࡤࡐࡗࡕࠩ↘")] = bstack1l1_opy_ (u"ࠬࡴࡵ࡭࡮ࠪ↙")
+        os.environ[bstack1l1_opy_ (u"࠭ࡂࡓࡑ࡚ࡗࡊࡘࡓࡕࡃࡆࡏࡤ࡚ࡅࡔࡖࡋ࡙ࡇࡥࡊࡘࡖࠪ↚")] = bstack1l1_opy_ (u"ࠧ࡯ࡷ࡯ࡰࠬ↛")
+        cls.bstack1llll11l1lll_opy_(response, bstack1l1_opy_ (u"ࠣࡣࡦࡧࡪࡹࡳࡪࡤ࡬ࡰ࡮ࡺࡹࠣ↜"))
+        return [None, None, None]
+    @classmethod
+    def bstack1llll11ll1ll_opy_(cls, jwt, build_hashed_id):
+        os.environ[bstack1l1_opy_ (u"ࠩࡅࡖࡔ࡝ࡓࡆࡔࡖࡘࡆࡉࡋࡠࡖࡈࡗ࡙ࡎࡕࡃࡡࡍ࡛࡙࠭↝")] = jwt
+        os.environ[bstack1l1_opy_ (u"ࠪࡆࡗࡕࡗࡔࡇࡕࡗ࡙ࡇࡃࡌࡡࡗࡉࡘ࡚ࡈࡖࡄࡢ࡙࡚ࡏࡄࠨ↞")] = build_hashed_id
+    @classmethod
+    def bstack1llll11l1lll_opy_(cls, response=None, product=bstack1l1_opy_ (u"ࠦࠧ↟")):
+        if response == None or response.get(bstack1l1_opy_ (u"ࠬ࡫ࡲࡳࡱࡵࡷࠬ↠")) == None:
+            logger.error(product + bstack1l1_opy_ (u"ࠨࠠࡃࡷ࡬ࡰࡩࠦࡣࡳࡧࡤࡸ࡮ࡵ࡮ࠡࡨࡤ࡭ࡱ࡫ࡤࠣ↡"))
+            return
+        for error in response[bstack1l1_opy_ (u"ࠧࡦࡴࡵࡳࡷࡹࠧ↢")]:
+            bstack1111l1l1l11_opy_ = error[bstack1l1_opy_ (u"ࠨ࡭ࡨࡽࠬ↣")]
+            error_message = error[bstack1l1_opy_ (u"ࠩࡰࡩࡸࡹࡡࡨࡧࠪ↤")]
+            if error_message:
+                if bstack1111l1l1l11_opy_ == bstack1l1_opy_ (u"ࠥࡉࡗࡘࡏࡓࡡࡄࡇࡈࡋࡓࡔࡡࡇࡉࡓࡏࡅࡅࠤ↥"):
+                    logger.info(error_message)
+                else:
+                    logger.error(error_message)
+            else:
+                logger.error(bstack1l1_opy_ (u"ࠦࡉࡧࡴࡢࠢࡸࡴࡱࡵࡡࡥࠢࡷࡳࠥࡈࡲࡰࡹࡶࡩࡷ࡙ࡴࡢࡥ࡮ࠤࠧ↦") + product + bstack1l1_opy_ (u"ࠧࠦࡦࡢ࡫࡯ࡩࡩࠦࡤࡶࡧࠣࡸࡴࠦࡳࡰ࡯ࡨࠤࡪࡸࡲࡰࡴࠥ↧"))
+    @classmethod
+    def bstack1llll1l111l1_opy_(cls):
+        if cls.bstack11l11l111l1_opy_ is not None:
+            return
+        cls.bstack11l11l111l1_opy_ = bstack111ll1111l1_opy_(cls.post_data)
+        cls.bstack11l11l111l1_opy_.start()
+    @classmethod
+    def bstack1l111l1l_opy_(cls):
+        if cls.bstack11l11l111l1_opy_ is None:
+            return
+        cls.bstack11l11l111l1_opy_.shutdown()
+    @classmethod
+    @error_handler(class_method=True)
+    def post_data(cls, bstack1l1111l1_opy_, event_url=bstack1l1_opy_ (u"࠭ࡡࡱ࡫࠲ࡺ࠶࠵ࡢࡢࡶࡦ࡬ࠬ↨")):
+        config = {
+            bstack1l1_opy_ (u"ࠧࡩࡧࡤࡨࡪࡸࡳࠨ↩"): cls.default_headers()
+        }
+        logger.debug(bstack1l1_opy_ (u"ࠣࡲࡲࡷࡹࡥࡤࡢࡶࡤ࠾࡙ࠥࡥ࡯ࡦ࡬ࡲ࡬ࠦࡤࡢࡶࡤࠤࡹࡵࠠࡵࡧࡶࡸ࡭ࡻࡢࠡࡨࡲࡶࠥ࡫ࡶࡦࡰࡷࡷࠥࢁࡽࠣ↪").format(bstack1l1_opy_ (u"ࠩ࠯ࠤࠬ↫").join([event[bstack1l1_opy_ (u"ࠪࡩࡻ࡫࡮ࡵࡡࡷࡽࡵ࡫ࠧ↬")] for event in bstack1l1111l1_opy_])))
+        response = bstack1lll1l1l11_opy_(bstack1l1_opy_ (u"ࠫࡕࡕࡓࡕࠩ↭"), cls.request_url(event_url), bstack1l1111l1_opy_, config)
+        bstack1llll1lll11l_opy_ = response.json()
+    @classmethod
+    def bstack1l11l1ll_opy_(cls, bstack1l1111l1_opy_, event_url=bstack1l1_opy_ (u"ࠬࡧࡰࡪ࠱ࡹ࠵࠴ࡨࡡࡵࡥ࡫ࠫ↮")):
+        logger.debug(bstack1l1_opy_ (u"ࠨࡳࡦࡰࡧࡣࡩࡧࡴࡢ࠼ࠣࡅࡹࡺࡥ࡮ࡲࡷ࡭ࡳ࡭ࠠࡵࡱࠣࡥࡩࡪࠠࡥࡣࡷࡥࠥࡺ࡯ࠡࡤࡤࡸࡨ࡮ࠠࡸ࡫ࡷ࡬ࠥ࡫ࡶࡦࡰࡷࡣࡹࡿࡰࡦ࠼ࠣࡿࢂࠨ↯").format(bstack1l1111l1_opy_[bstack1l1_opy_ (u"ࠧࡦࡸࡨࡲࡹࡥࡴࡺࡲࡨࠫ↰")]))
+        if not bstack1l111l111_opy_.bstack1llll1l11ll1_opy_(bstack1l1111l1_opy_[bstack1l1_opy_ (u"ࠨࡧࡹࡩࡳࡺ࡟ࡵࡻࡳࡩࠬ↱")]):
+            logger.debug(bstack1l1_opy_ (u"ࠤࡶࡩࡳࡪ࡟ࡥࡣࡷࡥ࠿ࠦࡎࡰࡶࠣࡥࡩࡪࡩ࡯ࡩࠣࡨࡦࡺࡡࠡࡹ࡬ࡸ࡭ࠦࡥࡷࡧࡱࡸࡤࡺࡹࡱࡧ࠽ࠤࢀࢃࠢ↲").format(bstack1l1111l1_opy_[bstack1l1_opy_ (u"ࠪࡩࡻ࡫࡮ࡵࡡࡷࡽࡵ࡫ࠧ↳")]))
+            return
+        bstack11lllllll_opy_ = bstack1l111l111_opy_.bstack1llll11l1ll1_opy_(bstack1l1111l1_opy_[bstack1l1_opy_ (u"ࠫࡪࡼࡥ࡯ࡶࡢࡸࡾࡶࡥࠨ↴")], bstack1l1111l1_opy_.get(bstack1l1_opy_ (u"ࠬࡺࡥࡴࡶࡢࡶࡺࡴࠧ↵")))
+        if bstack11lllllll_opy_ != None:
+            if bstack1l1111l1_opy_.get(bstack1l1_opy_ (u"࠭ࡴࡦࡵࡷࡣࡷࡻ࡮ࠨ↶")) != None:
+                bstack1l1111l1_opy_[bstack1l1_opy_ (u"ࠧࡵࡧࡶࡸࡤࡸࡵ࡯ࠩ↷")][bstack1l1_opy_ (u"ࠨࡲࡵࡳࡩࡻࡣࡵࡡࡰࡥࡵ࠭↸")] = bstack11lllllll_opy_
+            else:
+                bstack1l1111l1_opy_[bstack1l1_opy_ (u"ࠩࡳࡶࡴࡪࡵࡤࡶࡢࡱࡦࡶࠧ↹")] = bstack11lllllll_opy_
+        if event_url == bstack1l1_opy_ (u"ࠪࡥࡵ࡯࠯ࡷ࠳࠲ࡦࡦࡺࡣࡩࠩ↺"):
+            cls.bstack1llll1l111l1_opy_()
+            logger.debug(bstack1l1_opy_ (u"ࠦࡸ࡫࡮ࡥࡡࡧࡥࡹࡧ࠺ࠡࡃࡧࡨ࡮ࡴࡧࠡࡦࡤࡸࡦࠦࡴࡰࠢࡥࡥࡹࡩࡨࠡࡹ࡬ࡸ࡭ࠦࡥࡷࡧࡱࡸࡤࡺࡹࡱࡧ࠽ࠤࢀࢃࠢ↻").format(bstack1l1111l1_opy_[bstack1l1_opy_ (u"ࠬ࡫ࡶࡦࡰࡷࡣࡹࡿࡰࡦࠩ↼")]))
+            cls.bstack11l11l111l1_opy_.add(bstack1l1111l1_opy_)
+        elif event_url == bstack1l1_opy_ (u"࠭ࡡࡱ࡫࠲ࡺ࠶࠵ࡳࡤࡴࡨࡩࡳࡹࡨࡰࡶࡶࠫ↽"):
+            cls.post_data([bstack1l1111l1_opy_], event_url)
+    @classmethod
+    @error_handler(class_method=True)
+    def bstack1l1lll1l_opy_(cls, logs):
+        for log in logs:
+            bstack1llll11l1l1l_opy_ = {
+                bstack1l1_opy_ (u"ࠧ࡬࡫ࡱࡨࠬ↾"): bstack1l1_opy_ (u"ࠨࡖࡈࡗ࡙ࡥࡌࡐࡉࠪ↿"),
+                bstack1l1_opy_ (u"ࠩ࡯ࡩࡻ࡫࡬ࠨ⇀"): log[bstack1l1_opy_ (u"ࠪࡰࡪࡼࡥ࡭ࠩ⇁")],
+                bstack1l1_opy_ (u"ࠫࡹ࡯࡭ࡦࡵࡷࡥࡲࡶࠧ⇂"): log[bstack1l1_opy_ (u"ࠬࡺࡩ࡮ࡧࡶࡸࡦࡳࡰࠨ⇃")],
+                bstack1l1_opy_ (u"࠭ࡨࡵࡶࡳࡣࡷ࡫ࡳࡱࡱࡱࡷࡪ࠭⇄"): {},
+                bstack1l1_opy_ (u"ࠧ࡮ࡧࡶࡷࡦ࡭ࡥࠨ⇅"): log[bstack1l1_opy_ (u"ࠨ࡯ࡨࡷࡸࡧࡧࡦࠩ⇆")],
+            }
+            if bstack1l1_opy_ (u"ࠩࡷࡩࡸࡺ࡟ࡳࡷࡱࡣࡺࡻࡩࡥࠩ⇇") in log:
+                bstack1llll11l1l1l_opy_[bstack1l1_opy_ (u"ࠪࡸࡪࡹࡴࡠࡴࡸࡲࡤࡻࡵࡪࡦࠪ⇈")] = log[bstack1l1_opy_ (u"ࠫࡹ࡫ࡳࡵࡡࡵࡹࡳࡥࡵࡶ࡫ࡧࠫ⇉")]
+            elif bstack1l1_opy_ (u"ࠬ࡮࡯ࡰ࡭ࡢࡶࡺࡴ࡟ࡶࡷ࡬ࡨࠬ⇊") in log:
+                bstack1llll11l1l1l_opy_[bstack1l1_opy_ (u"࠭ࡨࡰࡱ࡮ࡣࡷࡻ࡮ࡠࡷࡸ࡭ࡩ࠭⇋")] = log[bstack1l1_opy_ (u"ࠧࡩࡱࡲ࡯ࡤࡸࡵ࡯ࡡࡸࡹ࡮ࡪࠧ⇌")]
+            cls.bstack1l11l1ll_opy_({
+                bstack1l1_opy_ (u"ࠨࡧࡹࡩࡳࡺ࡟ࡵࡻࡳࡩࠬ⇍"): bstack1l1_opy_ (u"ࠩࡏࡳ࡬ࡉࡲࡦࡣࡷࡩࡩ࠭⇎"),
+                bstack1l1_opy_ (u"ࠪࡰࡴ࡭ࡳࠨ⇏"): [bstack1llll11l1l1l_opy_]
+            })
+    @classmethod
+    @error_handler(class_method=True)
+    def bstack1llll1l11111_opy_(cls, steps):
+        bstack1llll11ll1l1_opy_ = []
+        for step in steps:
+            bstack1llll11l11l1_opy_ = {
+                bstack1l1_opy_ (u"ࠫࡰ࡯࡮ࡥࠩ⇐"): bstack1l1_opy_ (u"࡚ࠬࡅࡔࡖࡢࡗ࡙ࡋࡐࠨ⇑"),
+                bstack1l1_opy_ (u"࠭࡬ࡦࡸࡨࡰࠬ⇒"): step[bstack1l1_opy_ (u"ࠧ࡭ࡧࡹࡩࡱ࠭⇓")],
+                bstack1l1_opy_ (u"ࠨࡶ࡬ࡱࡪࡹࡴࡢ࡯ࡳࠫ⇔"): step[bstack1l1_opy_ (u"ࠩࡷ࡭ࡲ࡫ࡳࡵࡣࡰࡴࠬ⇕")],
+                bstack1l1_opy_ (u"ࠪࡱࡪࡹࡳࡢࡩࡨࠫ⇖"): step[bstack1l1_opy_ (u"ࠫࡲ࡫ࡳࡴࡣࡪࡩࠬ⇗")],
+                bstack1l1_opy_ (u"ࠬࡪࡵࡳࡣࡷ࡭ࡴࡴࠧ⇘"): step[bstack1l1_opy_ (u"࠭ࡤࡶࡴࡤࡸ࡮ࡵ࡮ࠨ⇙")]
+            }
+            if bstack1l1_opy_ (u"ࠧࡵࡧࡶࡸࡤࡸࡵ࡯ࡡࡸࡹ࡮ࡪࠧ⇚") in step:
+                bstack1llll11l11l1_opy_[bstack1l1_opy_ (u"ࠨࡶࡨࡷࡹࡥࡲࡶࡰࡢࡹࡺ࡯ࡤࠨ⇛")] = step[bstack1l1_opy_ (u"ࠩࡷࡩࡸࡺ࡟ࡳࡷࡱࡣࡺࡻࡩࡥࠩ⇜")]
+            elif bstack1l1_opy_ (u"ࠪ࡬ࡴࡵ࡫ࡠࡴࡸࡲࡤࡻࡵࡪࡦࠪ⇝") in step:
+                bstack1llll11l11l1_opy_[bstack1l1_opy_ (u"ࠫ࡭ࡵ࡯࡬ࡡࡵࡹࡳࡥࡵࡶ࡫ࡧࠫ⇞")] = step[bstack1l1_opy_ (u"ࠬ࡮࡯ࡰ࡭ࡢࡶࡺࡴ࡟ࡶࡷ࡬ࡨࠬ⇟")]
+            bstack1llll11ll1l1_opy_.append(bstack1llll11l11l1_opy_)
+        cls.bstack1l11l1ll_opy_({
+            bstack1l1_opy_ (u"࠭ࡥࡷࡧࡱࡸࡤࡺࡹࡱࡧࠪ⇠"): bstack1l1_opy_ (u"ࠧࡍࡱࡪࡇࡷ࡫ࡡࡵࡧࡧࠫ⇡"),
+            bstack1l1_opy_ (u"ࠨ࡮ࡲ࡫ࡸ࠭⇢"): bstack1llll11ll1l1_opy_
+        })
+    @classmethod
+    @error_handler(class_method=True)
+    @measure(event_name=EVENTS.bstack111llll1ll_opy_, stage=STAGE.bstack1lllll1l1l_opy_)
+    def bstack1l1ll1lll_opy_(cls, screenshot):
+        cls.bstack1l11l1ll_opy_({
+            bstack1l1_opy_ (u"ࠩࡨࡺࡪࡴࡴࡠࡶࡼࡴࡪ࠭⇣"): bstack1l1_opy_ (u"ࠪࡐࡴ࡭ࡃࡳࡧࡤࡸࡪࡪࠧ⇤"),
+            bstack1l1_opy_ (u"ࠫࡱࡵࡧࡴࠩ⇥"): [{
+                bstack1l1_opy_ (u"ࠬࡱࡩ࡯ࡦࠪ⇦"): bstack1l1_opy_ (u"࠭ࡔࡆࡕࡗࡣࡘࡉࡒࡆࡇࡑࡗࡍࡕࡔࠨ⇧"),
+                bstack1l1_opy_ (u"ࠧࡵ࡫ࡰࡩࡸࡺࡡ࡮ࡲࠪ⇨"): datetime.datetime.utcnow().isoformat() + bstack1l1_opy_ (u"ࠨ࡜ࠪ⇩"),
+                bstack1l1_opy_ (u"ࠩࡰࡩࡸࡹࡡࡨࡧࠪ⇪"): screenshot[bstack1l1_opy_ (u"ࠪ࡭ࡲࡧࡧࡦࠩ⇫")],
+                bstack1l1_opy_ (u"ࠫࡹ࡫ࡳࡵࡡࡵࡹࡳࡥࡵࡶ࡫ࡧࠫ⇬"): screenshot[bstack1l1_opy_ (u"ࠬࡺࡥࡴࡶࡢࡶࡺࡴ࡟ࡶࡷ࡬ࡨࠬ⇭")]
+            }]
+        }, event_url=bstack1l1_opy_ (u"࠭ࡡࡱ࡫࠲ࡺ࠶࠵ࡳࡤࡴࡨࡩࡳࡹࡨࡰࡶࡶࠫ⇮"))
+    @classmethod
+    @error_handler(class_method=True)
+    def bstack1l1lll111l_opy_(cls, driver):
+        current_test_uuid = cls.current_test_uuid()
+        if not current_test_uuid:
+            return
+        cls.bstack1l11l1ll_opy_({
+            bstack1l1_opy_ (u"ࠧࡦࡸࡨࡲࡹࡥࡴࡺࡲࡨࠫ⇯"): bstack1l1_opy_ (u"ࠨࡅࡅࡘࡘ࡫ࡳࡴ࡫ࡲࡲࡈࡸࡥࡢࡶࡨࡨࠬ⇰"),
+            bstack1l1_opy_ (u"ࠩࡷࡩࡸࡺ࡟ࡳࡷࡱࠫ⇱"): {
+                bstack1l1_opy_ (u"ࠥࡹࡺ࡯ࡤࠣ⇲"): cls.current_test_uuid(),
+                bstack1l1_opy_ (u"ࠦ࡮ࡴࡴࡦࡩࡵࡥࡹ࡯࡯࡯ࡵࠥ⇳"): cls.bstack1l1l1lll_opy_(driver)
+            }
+        })
+    @classmethod
+    def bstack1ll1l11l_opy_(cls, event: str, bstack1l1111l1_opy_: bstack1ll1ll11_opy_):
+        bstack1l1ll1l1_opy_ = {
+            bstack1l1_opy_ (u"ࠬ࡫ࡶࡦࡰࡷࡣࡹࡿࡰࡦࠩ⇴"): event,
+            bstack1l1111l1_opy_.event_key(): bstack1l1111l1_opy_.bstack1ll11ll1_opy_(event)
+        }
+        cls.bstack1l11l1ll_opy_(bstack1l1ll1l1_opy_)
+        result = getattr(bstack1l1111l1_opy_, bstack1l1_opy_ (u"࠭ࡲࡦࡵࡸࡰࡹ࠭⇵"), None)
+        if event == bstack1l1_opy_ (u"ࠧࡕࡧࡶࡸࡗࡻ࡮ࡔࡶࡤࡶࡹ࡫ࡤࠨ⇶"):
+            threading.current_thread().bstackTestMeta = {bstack1l1_opy_ (u"ࠨࡵࡷࡥࡹࡻࡳࠨ⇷"): bstack1l1_opy_ (u"ࠩࡳࡩࡳࡪࡩ࡯ࡩࠪ⇸")}
+        elif event == bstack1l1_opy_ (u"ࠪࡘࡪࡹࡴࡓࡷࡱࡊ࡮ࡴࡩࡴࡪࡨࡨࠬ⇹"):
+            threading.current_thread().bstackTestMeta = {bstack1l1_opy_ (u"ࠫࡸࡺࡡࡵࡷࡶࠫ⇺"): getattr(result, bstack1l1_opy_ (u"ࠬࡸࡥࡴࡷ࡯ࡸࠬ⇻"), bstack1l1_opy_ (u"࠭ࠧ⇼"))}
     @classmethod
     def on(cls):
-        if os.environ.get(bstack11l11l1_opy_ (u"ࠧࡃࡔࡒ࡛ࡘࡋࡒࡔࡖࡄࡇࡐࡥࡔࡆࡕࡗࡌ࡚ࡈ࡟ࡋ࡙ࡗࠫ᫽"), None) is None or os.environ[bstack11l11l1_opy_ (u"ࠨࡄࡕࡓ࡜࡙ࡅࡓࡕࡗࡅࡈࡑ࡟ࡕࡇࡖࡘࡍ࡛ࡂࡠࡌ࡚ࡘࠬ᫾")] == bstack11l11l1_opy_ (u"ࠤࡱࡹࡱࡲࠢ᫿"):
+        if (os.environ.get(bstack1l1_opy_ (u"ࠧࡃࡔࡒ࡛ࡘࡋࡒࡔࡖࡄࡇࡐࡥࡔࡆࡕࡗࡌ࡚ࡈ࡟ࡋ࡙ࡗࠫ⇽"), None) is None or os.environ[bstack1l1_opy_ (u"ࠨࡄࡕࡓ࡜࡙ࡅࡓࡕࡗࡅࡈࡑ࡟ࡕࡇࡖࡘࡍ࡛ࡂࡠࡌ࡚ࡘࠬ⇾")] == bstack1l1_opy_ (u"ࠤࡱࡹࡱࡲࠢ⇿")) and (os.environ.get(bstack1l1_opy_ (u"ࠪࡆࡘࡥࡁ࠲࠳࡜ࡣࡏ࡝ࡔࠨ∀"), None) is None or os.environ[bstack1l1_opy_ (u"ࠫࡇ࡙࡟ࡂ࠳࠴࡝ࡤࡐࡗࡕࠩ∁")] == bstack1l1_opy_ (u"ࠧࡴࡵ࡭࡮ࠥ∂")):
             return False
         return True
-    @classmethod
-    def bstack11l11l11ll1_opy_(cls, bs_config, framework=bstack11l11l1_opy_ (u"ࠥࠦᬀ")):
-        bstack11ll11lllll_opy_ = False
-        for fw in bstack11l1l11llll_opy_:
-            if fw in framework:
-                bstack11ll11lllll_opy_ = True
-        return bstack111lll11l1_opy_(bs_config.get(bstack11l11l1_opy_ (u"ࠫࡹ࡫ࡳࡵࡑࡥࡷࡪࡸࡶࡢࡤ࡬ࡰ࡮ࡺࡹࠨᬁ"), bstack11ll11lllll_opy_))
-    @classmethod
-    def bstack11l11l11lll_opy_(cls, framework):
-        return framework in bstack11l1l11llll_opy_
-    @classmethod
-    def bstack11l11l11111_opy_(cls, bs_config, framework):
-        return cls.bstack11l11l11ll1_opy_(bs_config, framework) is True and cls.bstack11l11l11lll_opy_(framework)
     @staticmethod
-    def current_hook_uuid():
-        return getattr(threading.current_thread(), bstack11l11l1_opy_ (u"ࠬࡩࡵࡳࡴࡨࡲࡹࡥࡨࡰࡱ࡮ࡣࡺࡻࡩࡥࠩᬂ"), None)
-    @staticmethod
-    def bstack1l11111l_opy_():
-        if getattr(threading.current_thread(), bstack11l11l1_opy_ (u"࠭ࡣࡶࡴࡵࡩࡳࡺ࡟ࡵࡧࡶࡸࡤࡻࡵࡪࡦࠪᬃ"), None):
-            return {
-                bstack11l11l1_opy_ (u"ࠧࡵࡻࡳࡩࠬᬄ"): bstack11l11l1_opy_ (u"ࠨࡶࡨࡷࡹ࠭ᬅ"),
-                bstack11l11l1_opy_ (u"ࠩࡷࡩࡸࡺ࡟ࡳࡷࡱࡣࡺࡻࡩࡥࠩᬆ"): getattr(threading.current_thread(), bstack11l11l1_opy_ (u"ࠪࡧࡺࡸࡲࡦࡰࡷࡣࡹ࡫ࡳࡵࡡࡸࡹ࡮ࡪࠧᬇ"), None)
-            }
-        if getattr(threading.current_thread(), bstack11l11l1_opy_ (u"ࠫࡨࡻࡲࡳࡧࡱࡸࡤ࡮࡯ࡰ࡭ࡢࡹࡺ࡯ࡤࠨᬈ"), None):
-            return {
-                bstack11l11l1_opy_ (u"ࠬࡺࡹࡱࡧࠪᬉ"): bstack11l11l1_opy_ (u"࠭ࡨࡰࡱ࡮ࠫᬊ"),
-                bstack11l11l1_opy_ (u"ࠧࡩࡱࡲ࡯ࡤࡸࡵ࡯ࡡࡸࡹ࡮ࡪࠧᬋ"): getattr(threading.current_thread(), bstack11l11l1_opy_ (u"ࠨࡥࡸࡶࡷ࡫࡮ࡵࡡ࡫ࡳࡴࡱ࡟ࡶࡷ࡬ࡨࠬᬌ"), None)
-            }
-        return None
-    @staticmethod
-    def bstack11l11l111ll_opy_(func):
+    def bstack1llll1l11lll_opy_(func):
         def wrap(*args, **kwargs):
-            if bstack1ll1l1l1_opy_.on():
+            if bstack1l11llll_opy_.on():
                 return func(*args, **kwargs)
             return
         return wrap
     @staticmethod
-    def bstack1l1lll1l_opy_(test, hook_name=None):
-        bstack11l11l111l1_opy_ = test.parent
-        if hook_name in [bstack11l11l1_opy_ (u"ࠩࡶࡩࡹࡻࡰࡠࡥ࡯ࡥࡸࡹࠧᬍ"), bstack11l11l1_opy_ (u"ࠪࡸࡪࡧࡲࡥࡱࡺࡲࡤࡩ࡬ࡢࡵࡶࠫᬎ"), bstack11l11l1_opy_ (u"ࠫࡸ࡫ࡴࡶࡲࡢࡱࡴࡪࡵ࡭ࡧࠪᬏ"), bstack11l11l1_opy_ (u"ࠬࡺࡥࡢࡴࡧࡳࡼࡴ࡟࡮ࡱࡧࡹࡱ࡫ࠧᬐ")]:
-            bstack11l11l111l1_opy_ = test
-        scope = []
-        while bstack11l11l111l1_opy_ is not None:
-            scope.append(bstack11l11l111l1_opy_.name)
-            bstack11l11l111l1_opy_ = bstack11l11l111l1_opy_.parent
-        scope.reverse()
-        return scope[2:]
+    def default_headers():
+        headers = {
+            bstack1l1_opy_ (u"࠭ࡃࡰࡰࡷࡩࡳࡺ࠭ࡕࡻࡳࡩࠬ∃"): bstack1l1_opy_ (u"ࠧࡢࡲࡳࡰ࡮ࡩࡡࡵ࡫ࡲࡲ࠴ࡰࡳࡰࡰࠪ∄"),
+            bstack1l1_opy_ (u"ࠨ࡚࠰ࡆࡘ࡚ࡁࡄࡍ࠰ࡘࡊ࡙ࡔࡐࡒࡖࠫ∅"): bstack1l1_opy_ (u"ࠩࡷࡶࡺ࡫ࠧ∆")
+        }
+        if os.environ.get(bstack1l1_opy_ (u"ࠪࡆࡗࡕࡗࡔࡇࡕࡗ࡙ࡇࡃࡌࡡࡗࡉࡘ࡚ࡈࡖࡄࡢࡎ࡜࡚ࠧ∇"), None):
+            headers[bstack1l1_opy_ (u"ࠫࡆࡻࡴࡩࡱࡵ࡭ࡿࡧࡴࡪࡱࡱࠫ∈")] = bstack1l1_opy_ (u"ࠬࡈࡥࡢࡴࡨࡶࠥࢁࡽࠨ∉").format(os.environ[bstack1l1_opy_ (u"ࠨࡂࡓࡑ࡚ࡗࡊࡘࡓࡕࡃࡆࡏࡤ࡚ࡅࡔࡖࡋ࡙ࡇࡥࡊࡘࡖࠥ∊")])
+        return headers
     @staticmethod
-    def bstack11l11l1111l_opy_(hook_type):
-        if hook_type == bstack11l11l1_opy_ (u"ࠨࡂࡆࡈࡒࡖࡊࡥࡅࡂࡅࡋࠦᬑ"):
-            return bstack11l11l1_opy_ (u"ࠢࡔࡧࡷࡹࡵࠦࡨࡰࡱ࡮ࠦᬒ")
-        elif hook_type == bstack11l11l1_opy_ (u"ࠣࡃࡉࡘࡊࡘ࡟ࡆࡃࡆࡌࠧᬓ"):
-            return bstack11l11l1_opy_ (u"ࠤࡗࡩࡦࡸࡤࡰࡹࡱࠤ࡭ࡵ࡯࡬ࠤᬔ")
+    def request_url(url):
+        return bstack1l1_opy_ (u"ࠧࡼࡿ࠲ࡿࢂ࠭∋").format(bstack1llll11lll11_opy_, url)
     @staticmethod
-    def bstack11l11l11l11_opy_(bstack111l111l_opy_):
-        try:
-            if not bstack1ll1l1l1_opy_.on():
-                return bstack111l111l_opy_
-            if os.environ.get(bstack11l11l1_opy_ (u"ࠥࡆࡗࡕࡗࡔࡇࡕࡗ࡙ࡇࡃࡌࡡࡕࡉࡗ࡛ࡎࠣᬕ"), None) == bstack11l11l1_opy_ (u"ࠦࡹࡸࡵࡦࠤᬖ"):
-                tests = os.environ.get(bstack11l11l1_opy_ (u"ࠧࡈࡒࡐ࡙ࡖࡉࡗ࡙ࡔࡂࡅࡎࡣࡗࡋࡒࡖࡐࡢࡘࡊ࡙ࡔࡔࠤᬗ"), None)
-                if tests is None or tests == bstack11l11l1_opy_ (u"ࠨ࡮ࡶ࡮࡯ࠦᬘ"):
-                    return bstack111l111l_opy_
-                bstack111l111l_opy_ = tests.split(bstack11l11l1_opy_ (u"ࠧ࠭ࠩᬙ"))
-                return bstack111l111l_opy_
-        except Exception as exc:
-            logger.debug(bstack11l11l1_opy_ (u"ࠣࡇࡻࡧࡪࡶࡴࡪࡱࡱࠤ࡮ࡴࠠࡳࡧࡵࡹࡳࠦࡨࡢࡰࡧࡰࡪࡸ࠺ࠡࠤᬚ") + str(str(exc)) + bstack11l11l1_opy_ (u"ࠤࠥᬛ"))
-        return bstack111l111l_opy_
+    def current_test_uuid():
+        return getattr(threading.current_thread(), bstack1l1_opy_ (u"ࠨࡥࡸࡶࡷ࡫࡮ࡵࡡࡷࡩࡸࡺ࡟ࡶࡷ࡬ࡨࠬ∌"), None)
+    @staticmethod
+    def bstack1l1l1lll_opy_(driver):
+        return {
+            bstack1111lll1ll1_opy_(): bstack1111l1ll1l1_opy_(driver)
+        }
+    @staticmethod
+    def bstack1llll11l1l11_opy_(exception_info, report):
+        return [{bstack1l1_opy_ (u"ࠩࡥࡥࡨࡱࡴࡳࡣࡦࡩࠬ∍"): [exception_info.exconly(), report.longreprtext]}]
+    @staticmethod
+    def bstack111111l111_opy_(typename):
+        if bstack1l1_opy_ (u"ࠥࡅࡸࡹࡥࡳࡶ࡬ࡳࡳࠨ∎") in typename:
+            return bstack1l1_opy_ (u"ࠦࡆࡹࡳࡦࡴࡷ࡭ࡴࡴࡅࡳࡴࡲࡶࠧ∏")
+        return bstack1l1_opy_ (u"࡛ࠧ࡮ࡩࡣࡱࡨࡱ࡫ࡤࡆࡴࡵࡳࡷࠨ∐")
