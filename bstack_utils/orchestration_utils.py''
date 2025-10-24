@@ -61,11 +61,25 @@ class OrchestrationUtils:
         self.smartSelectionFeatureBranchesENV = config.get('smartSelectionFeatureBranchesENV', "")
         self.smartSelectionFeatureBranchesCLI = config.get('smartSelectionFeatureBranchesCLI', "")
         run_smart_selection_opts = opts.get(RUN_SMART_SELECTION, {})
-        # If source key is not present in yml, it should be treated as None, if key is present but value is null, it should be treated as empty list
+        # If source key is not present in yml, it should be treated as None, if key is present but value is null or empty string, it should be treated as empty list
         source_value = None
         if 'source' in run_smart_selection_opts:
-            source_value = run_smart_selection_opts['source']
-            if source_value is None:
+            raw_source = run_smart_selection_opts['source']
+            
+            # Key is present, so it's multi-repo approach
+            # Normalize based on value type
+            if raw_source is None or raw_source == '' or (isinstance(raw_source, list) and len(raw_source) == 0):
+                # Empty/null value → empty list (multi-repo with no sources configured)
+                source_value = []
+            elif isinstance(raw_source, list):
+                # Valid list → use as-is
+                source_value = raw_source
+            elif isinstance(raw_source, str) and raw_source.strip():
+                # Non-empty string → could be JSON file path or single source
+                source_value = raw_source
+            else:
+                # Invalid value → treat as empty list
+                logger.warning("Invalid source value in config: {}. Defaulting it as empty list.".format(raw_source))
                 source_value = []
         
         self.__set_run_smart_selection(

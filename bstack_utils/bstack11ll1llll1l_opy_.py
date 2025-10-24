@@ -1,0 +1,129 @@
+# coding: UTF-8
+import sys
+bstack1lllll1_opy_ = sys.version_info [0] == 2
+bstack11lll1l_opy_ = 2048
+bstack1lll1l_opy_ = 7
+def bstack11l11l1_opy_ (bstack111l1ll_opy_):
+    global bstack1ll1l_opy_
+    bstack1l1l1ll_opy_ = ord (bstack111l1ll_opy_ [-1])
+    bstack1l11l_opy_ = bstack111l1ll_opy_ [:-1]
+    bstack1lllll1l_opy_ = bstack1l1l1ll_opy_ % len (bstack1l11l_opy_)
+    bstack11ll1l1_opy_ = bstack1l11l_opy_ [:bstack1lllll1l_opy_] + bstack1l11l_opy_ [bstack1lllll1l_opy_:]
+    if bstack1lllll1_opy_:
+        bstack1lll_opy_ = unicode () .join ([unichr (ord (char) - bstack11lll1l_opy_ - (bstack1l1ll11_opy_ + bstack1l1l1ll_opy_) % bstack1lll1l_opy_) for bstack1l1ll11_opy_, char in enumerate (bstack11ll1l1_opy_)])
+    else:
+        bstack1lll_opy_ = str () .join ([chr (ord (char) - bstack11lll1l_opy_ - (bstack1l1ll11_opy_ + bstack1l1l1ll_opy_) % bstack1lll1l_opy_) for bstack1l1ll11_opy_, char in enumerate (bstack11ll1l1_opy_)])
+    return eval (bstack1lll_opy_)
+import os
+import time
+from bstack_utils.bstack11ll1llllll_opy_ import bstack11ll1llll11_opy_
+from bstack_utils.constants import bstack11ll1ll1ll1_opy_
+from bstack_utils.helper import get_host_info, bstack11ll1l1l1ll_opy_
+class bstack11lll1111ll_opy_:
+    bstack11l11l1_opy_ (u"ࠧࠨࠢࠋࠢࠣࠤࠥࡎࡡ࡯ࡦ࡯ࡩࡸࠦࡴࡦࡵࡷࠤࡴࡸࡤࡦࡴ࡬ࡲ࡬ࠦ࡯ࡳࡥ࡫ࡩࡸࡺࡲࡢࡶ࡬ࡳࡳࠦࡷࡪࡶ࡫ࠤࡹ࡮ࡥࠡࡄࡵࡳࡼࡹࡥࡳࡕࡷࡥࡨࡱࠠࡴࡧࡵࡺࡪࡸ࠮ࠋࠢࠣࠤࠥࠨࠢࠣᙎ")
+    def __init__(self, config, logger):
+        bstack11l11l1_opy_ (u"ࠨࠢࠣࠌࠣࠤࠥࠦࠠࠡࠢࠣ࠾ࡵࡧࡲࡢ࡯ࠣࡧࡴࡴࡦࡪࡩ࠽ࠤࡩ࡯ࡣࡵ࠮ࠣࡸࡪࡹࡴࠡࡱࡵࡧ࡭࡫ࡳࡵࡴࡤࡸ࡮ࡵ࡮ࠡࡥࡲࡲ࡫࡯ࡧࠋࠢࠣࠤࠥࠦࠠࠡࠢ࠽ࡴࡦࡸࡡ࡮ࠢࡲࡶࡨ࡮ࡥࡴࡶࡵࡥࡹ࡯࡯࡯ࡡࡶࡸࡷࡧࡴࡦࡩࡼ࠾ࠥࡹࡴࡳ࠮ࠣࡸࡪࡹࡴࠡࡱࡵࡨࡪࡸࡩ࡯ࡩࠣࡷࡹࡸࡡࡵࡧࡪࡽࠥࡴࡡ࡮ࡧࠍࠤࠥࠦࠠࠡࠢࠣࠤࠧࠨࠢᙏ")
+        self.config = config
+        self.logger = logger
+        self.bstack11lll111111_opy_ = bstack11l11l1_opy_ (u"ࠢࡵࡧࡶࡸࡴࡸࡣࡩࡧࡶࡸࡷࡧࡴࡪࡱࡱ࠳ࡦࡶࡩ࠰ࡸ࠴࠳ࡸࡶ࡬ࡪࡶ࠰ࡸࡪࡹࡴࡴࠤᙐ")
+        self.bstack11ll1ll1lll_opy_ = None
+        self.default_timeout = 60
+        self.bstack11ll1lll1ll_opy_ = 5
+        self.bstack11ll1lllll1_opy_ = 0
+    def bstack11ll1l1lll1_opy_(self, test_files, orchestration_strategy, orchestration_metadata={}):
+        bstack11l11l1_opy_ (u"ࠣࠤࠥࠎࠥࠦࠠࠡࠢࠣࠤࠥࡏ࡮ࡪࡶ࡬ࡥࡹ࡫ࡳࠡࡶ࡫ࡩࠥࡹࡰ࡭࡫ࡷࠤࡹ࡫ࡳࡵࡵࠣࡶࡪࡷࡵࡦࡵࡷࠤࡦࡴࡤࠡࡵࡷࡳࡷ࡫ࡳࠡࡶ࡫ࡩࠥࡸࡥࡴࡲࡲࡲࡸ࡫ࠠࡥࡣࡷࡥࠥ࡬࡯ࡳࠢࡳࡳࡱࡲࡩ࡯ࡩ࠱ࠎࠥࠦࠠࠡࠢࠣࠤࠥࠨࠢࠣᙑ")
+        self.logger.debug(bstack11l11l1_opy_ (u"ࠤ࡞ࡷࡵࡲࡩࡵࡖࡨࡷࡹࡹ࡝ࠡࡋࡱ࡭ࡹ࡯ࡡࡵ࡫ࡱ࡫ࠥࡹࡰ࡭࡫ࡷࠤࡹ࡫ࡳࡵࡵࠣࡻ࡮ࡺࡨࠡࡵࡷࡶࡦࡺࡥࡨࡻ࠽ࠤࢀࢃࠢᙒ").format(orchestration_strategy))
+        try:
+            bstack11ll1ll111l_opy_ = []
+            bstack11l11l1_opy_ (u"ࠥࠦࠧ࡝ࡥࠡࡹ࡬ࡰࡱࠦ࡮ࡰࡶࠣࡪࡪࡺࡣࡩࠢࡪ࡭ࡹࠦ࡭ࡦࡶࡤࡨࡦࡺࡡࠡ࡫ࡶࠤࡸࡵࡵࡳࡥࡨࠤ࡮ࡹࠠࡵࡻࡳࡩࠥࡵࡦࠡࡣࡵࡶࡦࡿࠠࡢࡰࡧࠤ࡮ࡺࠧࡴࠢࡨࡰࡪࡳࡥ࡯ࡶࡶࠤࡦࡸࡥࠡࡱࡩࠤࡹࡿࡰࡦࠢࡧ࡭ࡨࡺࠊࠡࠢࠣࠤࠥࠦࠠࠡࠢࠣࠤࠥࡨࡥࡤࡣࡸࡷࡪࠦࡩ࡯ࠢࡷ࡬ࡦࡺࠠࡤࡣࡶࡩ࠱ࠦࡵࡴࡧࡵࠤ࡭ࡧࡳࠡࡲࡵࡳࡻ࡯ࡤࡦࡦࠣࡱࡺࡲࡴࡪ࠯ࡵࡩࡵࡵࠠࡴࡱࡸࡶࡨ࡫ࠠࡸ࡫ࡷ࡬ࠥ࡬ࡥࡢࡶࡸࡶࡪࡈࡲࡢࡰࡦ࡬ࠥ࡯࡮ࠡࡤࡵࡳࡼࡹࡥࡳࡵࡷࡥࡨࡱࠢࠣࠤᙓ")
+            source = orchestration_metadata[bstack11l11l1_opy_ (u"ࠫࡷࡻ࡮ࡠࡵࡰࡥࡷࡺ࡟ࡴࡧ࡯ࡩࡨࡺࡩࡰࡰࠪᙔ")].get(bstack11l11l1_opy_ (u"ࠬࡹ࡯ࡶࡴࡦࡩࠬᙕ"), [])
+            bstack11lll11111l_opy_ = isinstance(source, list) and all(isinstance(src, dict) and src is not None for src in source) and len(source) > 0
+            if orchestration_metadata[bstack11l11l1_opy_ (u"࠭ࡲࡶࡰࡢࡷࡲࡧࡲࡵࡡࡶࡩࡱ࡫ࡣࡵ࡫ࡲࡲࠬᙖ")].get(bstack11l11l1_opy_ (u"ࠧࡦࡰࡤࡦࡱ࡫ࡤࠨᙗ"), False) and not bstack11lll11111l_opy_:
+                bstack11ll1ll111l_opy_ = bstack11ll1l1l1ll_opy_(source) # bstack11ll1ll11ll_opy_-repo is handled bstack11ll1l1ll11_opy_
+            payload = {
+                bstack11l11l1_opy_ (u"ࠣࡶࡨࡷࡹࡹࠢᙘ"): [{bstack11l11l1_opy_ (u"ࠤࡩ࡭ࡱ࡫ࡐࡢࡶ࡫ࠦᙙ"): f} for f in test_files],
+                bstack11l11l1_opy_ (u"ࠥࡳࡷࡩࡨࡦࡵࡷࡶࡦࡺࡩࡰࡰࡖࡸࡷࡧࡴࡦࡩࡼࠦᙚ"): orchestration_strategy,
+                bstack11l11l1_opy_ (u"ࠦࡴࡸࡣࡩࡧࡶࡸࡷࡧࡴࡪࡱࡱࡑࡪࡺࡡࡥࡣࡷࡥࠧᙛ"): orchestration_metadata,
+                bstack11l11l1_opy_ (u"ࠧࡴ࡯ࡥࡧࡌࡲࡩ࡫ࡸࠣᙜ"): int(os.environ.get(bstack11l11l1_opy_ (u"ࠨࡂࡓࡑ࡚ࡗࡊࡘࡓࡕࡃࡆࡏࡤࡔࡏࡅࡇࡢࡍࡓࡊࡅ࡙ࠤᙝ")) or bstack11l11l1_opy_ (u"ࠢ࠱ࠤᙞ")),
+                bstack11l11l1_opy_ (u"ࠣࡶࡲࡸࡦࡲࡎࡰࡦࡨࡷࠧᙟ"): int(os.environ.get(bstack11l11l1_opy_ (u"ࠤࡅࡖࡔ࡝ࡓࡆࡔࡖࡘࡆࡉࡋࡠࡖࡒࡘࡆࡒ࡟ࡏࡑࡇࡉࡤࡉࡏࡖࡐࡗࠦᙠ")) or bstack11l11l1_opy_ (u"ࠥ࠵ࠧᙡ")),
+                bstack11l11l1_opy_ (u"ࠦࡵࡸ࡯࡫ࡧࡦࡸࡓࡧ࡭ࡦࠤᙢ"): self.config.get(bstack11l11l1_opy_ (u"ࠬࡶࡲࡰ࡬ࡨࡧࡹࡔࡡ࡮ࡧࠪᙣ"), bstack11l11l1_opy_ (u"࠭ࠧᙤ")),
+                bstack11l11l1_opy_ (u"ࠢࡣࡷ࡬ࡰࡩࡔࡡ࡮ࡧࠥᙥ"): self.config.get(bstack11l11l1_opy_ (u"ࠨࡤࡸ࡭ࡱࡪࡎࡢ࡯ࡨࠫᙦ"), os.path.basename(os.path.abspath(os.getcwd()))),
+                bstack11l11l1_opy_ (u"ࠤࡥࡹ࡮ࡲࡤࡓࡷࡱࡍࡩ࡫࡮ࡵ࡫ࡩ࡭ࡪࡸࠢᙧ"): os.environ.get(bstack11l11l1_opy_ (u"ࠥࡆࡗࡕࡗࡔࡇࡕࡗ࡙ࡇࡃࡌࡡࡅ࡙ࡎࡒࡄࡠࡔࡘࡒࡤࡏࡄࡆࡐࡗࡍࡋࡏࡅࡓࠤᙨ"), bstack11l11l1_opy_ (u"ࠦࠧᙩ")),
+                bstack11l11l1_opy_ (u"ࠧ࡮࡯ࡴࡶࡌࡲ࡫ࡵࠢᙪ"): get_host_info(),
+                bstack11l11l1_opy_ (u"ࠨࡰࡳࡆࡨࡸࡦ࡯࡬ࡴࠤᙫ"): bstack11ll1ll111l_opy_
+            }
+            self.logger.debug(bstack11l11l1_opy_ (u"ࠢ࡜ࡵࡳࡰ࡮ࡺࡔࡦࡵࡷࡷࡢࠦࡓࡦࡰࡧ࡭ࡳ࡭ࠠࡵࡧࡶࡸࠥ࡬ࡩ࡭ࡧࡶ࠾ࠥࢁࡽࠣᙬ").format(payload))
+            response = bstack11ll1llll11_opy_.bstack11lll111l11_opy_(self.bstack11lll111111_opy_, payload)
+            if response:
+                self.bstack11ll1ll1lll_opy_ = self._11ll1ll1l11_opy_(response)
+                self.logger.debug(bstack11l11l1_opy_ (u"ࠣ࡝ࡶࡴࡱ࡯ࡴࡕࡧࡶࡸࡸࡣࠠࡔࡲ࡯࡭ࡹࠦࡴࡦࡵࡷࡷࠥࡸࡥࡴࡲࡲࡲࡸ࡫࠺ࠡࡽࢀࠦ᙭").format(self.bstack11ll1ll1lll_opy_))
+            else:
+                self.logger.error(bstack11l11l1_opy_ (u"ࠤ࡞ࡷࡵࡲࡩࡵࡖࡨࡷࡹࡹ࡝ࠡࡈࡤ࡭ࡱ࡫ࡤࠡࡶࡲࠤ࡬࡫ࡴࠡࡵࡳࡰ࡮ࡺࠠࡵࡧࡶࡸࡸࠦࡲࡦࡵࡳࡳࡳࡹࡥ࠯ࠤ᙮"))
+        except Exception as e:
+            self.logger.error(bstack11l11l1_opy_ (u"ࠥ࡟ࡸࡶ࡬ࡪࡶࡗࡩࡸࡺࡳ࡞ࠢࡈࡼࡨ࡫ࡰࡵ࡫ࡲࡲࠥ࡯࡮ࠡࡵࡨࡲࡩ࡯࡮ࡨࠢࡷࡩࡸࡺࠠࡧ࡫࡯ࡩࡸࡀ࠺ࠡࡽࢀࠦᙯ").format(e))
+    def _11ll1ll1l11_opy_(self, response):
+        bstack11l11l1_opy_ (u"ࠦࠧࠨࠊࠡࠢࠣࠤࠥࠦࠠࠡࡒࡵࡳࡨ࡫ࡳࡴࡧࡶࠤࡹ࡮ࡥࠡࡵࡳࡰ࡮ࡺࠠࡵࡧࡶࡸࡸࠦࡁࡑࡋࠣࡶࡪࡹࡰࡰࡰࡶࡩࠥࡧ࡮ࡥࠢࡨࡼࡹࡸࡡࡤࡶࡶࠤࡷ࡫࡬ࡦࡸࡤࡲࡹࠦࡦࡪࡧ࡯ࡨࡸ࠴ࠊࠡࠢࠣࠤࠥࠦࠠࠡࠤࠥࠦᙰ")
+        bstack11l1l11l11_opy_ = {}
+        bstack11l1l11l11_opy_[bstack11l11l1_opy_ (u"ࠧࡺࡩ࡮ࡧࡲࡹࡹࠨᙱ")] = response.get(bstack11l11l1_opy_ (u"ࠨࡴࡪ࡯ࡨࡳࡺࡺࠢᙲ"), self.default_timeout)
+        bstack11l1l11l11_opy_[bstack11l11l1_opy_ (u"ࠢࡵ࡫ࡰࡩࡴࡻࡴࡊࡰࡷࡩࡷࡼࡡ࡭ࠤᙳ")] = response.get(bstack11l11l1_opy_ (u"ࠣࡶ࡬ࡱࡪࡵࡵࡵࡋࡱࡸࡪࡸࡶࡢ࡮ࠥᙴ"), self.bstack11ll1lll1ll_opy_)
+        bstack11ll1ll1l1l_opy_ = response.get(bstack11l11l1_opy_ (u"ࠤࡵࡩࡸࡻ࡬ࡵࡗࡵࡰࠧᙵ"))
+        bstack11ll1l1llll_opy_ = response.get(bstack11l11l1_opy_ (u"ࠥࡸ࡮ࡳࡥࡰࡷࡷ࡙ࡷࡲࠢᙶ"))
+        if bstack11ll1ll1l1l_opy_:
+            bstack11l1l11l11_opy_[bstack11l11l1_opy_ (u"ࠦࡷ࡫ࡳࡶ࡮ࡷ࡙ࡷࡲࠢᙷ")] = bstack11ll1ll1l1l_opy_.split(bstack11ll1ll1ll1_opy_ + bstack11l11l1_opy_ (u"ࠧ࠵ࠢᙸ"))[1] if bstack11ll1ll1ll1_opy_ + bstack11l11l1_opy_ (u"ࠨ࠯ࠣᙹ") in bstack11ll1ll1l1l_opy_ else bstack11ll1ll1l1l_opy_
+        else:
+            bstack11l1l11l11_opy_[bstack11l11l1_opy_ (u"ࠢࡳࡧࡶࡹࡱࡺࡕࡳ࡮ࠥᙺ")] = None
+        if bstack11ll1l1llll_opy_:
+            bstack11l1l11l11_opy_[bstack11l11l1_opy_ (u"ࠣࡶ࡬ࡱࡪࡵࡵࡵࡗࡵࡰࠧᙻ")] = bstack11ll1l1llll_opy_.split(bstack11ll1ll1ll1_opy_ + bstack11l11l1_opy_ (u"ࠤ࠲ࠦᙼ"))[1] if bstack11ll1ll1ll1_opy_ + bstack11l11l1_opy_ (u"ࠥ࠳ࠧᙽ") in bstack11ll1l1llll_opy_ else bstack11ll1l1llll_opy_
+        else:
+            bstack11l1l11l11_opy_[bstack11l11l1_opy_ (u"ࠦࡹ࡯࡭ࡦࡱࡸࡸ࡚ࡸ࡬ࠣᙾ")] = None
+        if (
+            response.get(bstack11l11l1_opy_ (u"ࠧࡺࡩ࡮ࡧࡲࡹࡹࠨᙿ")) is None or
+            response.get(bstack11l11l1_opy_ (u"ࠨࡴࡪ࡯ࡨࡳࡺࡺࡉ࡯ࡶࡨࡶࡻࡧ࡬ࠣ ")) is None or
+            response.get(bstack11l11l1_opy_ (u"ࠢࡵ࡫ࡰࡩࡴࡻࡴࡖࡴ࡯ࠦᚁ")) is None or
+            response.get(bstack11l11l1_opy_ (u"ࠣࡴࡨࡷࡺࡲࡴࡖࡴ࡯ࠦᚂ")) is None
+        ):
+            self.logger.debug(bstack11l11l1_opy_ (u"ࠤ࡞ࡴࡷࡵࡣࡦࡵࡶࡣࡸࡶ࡬ࡪࡶࡢࡸࡪࡹࡴࡴࡡࡵࡩࡸࡶ࡯࡯ࡵࡨࡡࠥࡘࡥࡤࡧ࡬ࡺࡪࡪࠠ࡯ࡷ࡯ࡰࠥࡼࡡ࡭ࡷࡨࠬࡸ࠯ࠠࡧࡱࡵࠤࡸࡵ࡭ࡦࠢࡤࡸࡹࡸࡩࡣࡷࡷࡩࡸࠦࡩ࡯ࠢࡶࡴࡱ࡯ࡴࠡࡶࡨࡷࡹࡹࠠࡂࡒࡌࠤࡷ࡫ࡳࡱࡱࡱࡷࡪࠨᚃ"))
+        return bstack11l1l11l11_opy_
+    def bstack11ll1lll11l_opy_(self):
+        if not self.bstack11ll1ll1lll_opy_:
+            self.logger.error(bstack11l11l1_opy_ (u"ࠥ࡟࡬࡫ࡴࡐࡴࡧࡩࡷ࡫ࡤࡕࡧࡶࡸࡋ࡯࡬ࡦࡵࡠࠤࡓࡵࠠࡳࡧࡴࡹࡪࡹࡴࠡࡦࡤࡸࡦࠦࡡࡷࡣ࡬ࡰࡦࡨ࡬ࡦࠢࡷࡳࠥ࡬ࡥࡵࡥ࡫ࠤࡴࡸࡤࡦࡴࡨࡨࠥࡺࡥࡴࡶࠣࡪ࡮ࡲࡥࡴ࠰ࠥᚄ"))
+            return None
+        bstack11ll1ll1111_opy_ = None
+        test_files = []
+        bstack11ll1lll1l1_opy_ = int(time.time() * 1000) # bstack11ll1ll11l1_opy_ sec
+        bstack11lll111l1l_opy_ = int(self.bstack11ll1ll1lll_opy_.get(bstack11l11l1_opy_ (u"ࠦࡹ࡯࡭ࡦࡱࡸࡸࡎࡴࡴࡦࡴࡹࡥࡱࠨᚅ"), self.bstack11ll1lll1ll_opy_))
+        bstack11ll1lll111_opy_ = int(self.bstack11ll1ll1lll_opy_.get(bstack11l11l1_opy_ (u"ࠧࡺࡩ࡮ࡧࡲࡹࡹࠨᚆ"), self.default_timeout)) * 1000
+        bstack11ll1l1llll_opy_ = self.bstack11ll1ll1lll_opy_.get(bstack11l11l1_opy_ (u"ࠨࡴࡪ࡯ࡨࡳࡺࡺࡕࡳ࡮ࠥᚇ"), None)
+        bstack11ll1ll1l1l_opy_ = self.bstack11ll1ll1lll_opy_.get(bstack11l11l1_opy_ (u"ࠢࡳࡧࡶࡹࡱࡺࡕࡳ࡮ࠥᚈ"), None)
+        if bstack11ll1ll1l1l_opy_ is None and bstack11ll1l1llll_opy_ is None:
+            return None
+        try:
+            while bstack11ll1ll1l1l_opy_ and (time.time() * 1000 - bstack11ll1lll1l1_opy_) < bstack11ll1lll111_opy_:
+                response = bstack11ll1llll11_opy_.bstack11ll1l1ll1l_opy_(bstack11ll1ll1l1l_opy_, {})
+                if response and response.get(bstack11l11l1_opy_ (u"ࠣࡶࡨࡷࡹࡹࠢᚉ")):
+                    bstack11ll1ll1111_opy_ = response.get(bstack11l11l1_opy_ (u"ࠤࡷࡩࡸࡺࡳࠣᚊ"))
+                self.bstack11ll1lllll1_opy_ += 1
+                if bstack11ll1ll1111_opy_:
+                    break
+                time.sleep(bstack11lll111l1l_opy_)
+                self.logger.debug(bstack11l11l1_opy_ (u"ࠥ࡟࡬࡫ࡴࡐࡴࡧࡩࡷ࡫ࡤࡕࡧࡶࡸࡋ࡯࡬ࡦࡵࡠࠤࡋ࡫ࡴࡤࡪ࡬ࡲ࡬ࠦ࡯ࡳࡦࡨࡶࡪࡪࠠࡵࡧࡶࡸࡸࠦࡦࡳࡱࡰࠤࡷ࡫ࡳࡶ࡮ࡷࠤ࡚ࡘࡌࠡࡣࡩࡸࡪࡸࠠࡸࡣ࡬ࡸ࡮ࡴࡧࠡࡨࡲࡶࠥࢁࡽࠡࡵࡨࡧࡴࡴࡤࡴ࠰ࠥᚋ").format(bstack11lll111l1l_opy_))
+            if bstack11ll1l1llll_opy_ and not bstack11ll1ll1111_opy_:
+                self.logger.debug(bstack11l11l1_opy_ (u"ࠦࡠ࡭ࡥࡵࡑࡵࡨࡪࡸࡥࡥࡖࡨࡷࡹࡌࡩ࡭ࡧࡶࡡࠥࡌࡥࡵࡥ࡫࡭ࡳ࡭ࠠࡰࡴࡧࡩࡷ࡫ࡤࠡࡶࡨࡷࡹࡹࠠࡧࡴࡲࡱࠥࡺࡩ࡮ࡧࡲࡹࡹࠦࡕࡓࡎࠥᚌ"))
+                response = bstack11ll1llll11_opy_.bstack11ll1l1ll1l_opy_(bstack11ll1l1llll_opy_, {})
+                if response and response.get(bstack11l11l1_opy_ (u"ࠧࡺࡥࡴࡶࡶࠦᚍ")):
+                    bstack11ll1ll1111_opy_ = response.get(bstack11l11l1_opy_ (u"ࠨࡴࡦࡵࡷࡷࠧᚎ"))
+            if bstack11ll1ll1111_opy_ and len(bstack11ll1ll1111_opy_) > 0:
+                for bstack1ll1llll_opy_ in bstack11ll1ll1111_opy_:
+                    file_path = bstack1ll1llll_opy_.get(bstack11l11l1_opy_ (u"ࠢࡧ࡫࡯ࡩࡕࡧࡴࡩࠤᚏ"))
+                    if file_path:
+                        test_files.append(file_path)
+            if not bstack11ll1ll1111_opy_:
+                return None
+            self.logger.debug(bstack11l11l1_opy_ (u"ࠣ࡝ࡪࡩࡹࡕࡲࡥࡧࡵࡩࡩ࡚ࡥࡴࡶࡉ࡭ࡱ࡫ࡳ࡞ࠢࡒࡶࡩ࡫ࡲࡦࡦࠣࡸࡪࡹࡴࠡࡨ࡬ࡰࡪࡹࠠࡳࡧࡦࡩ࡮ࡼࡥࡥ࠼ࠣࡿࢂࠨᚐ").format(test_files))
+            return test_files
+        except Exception as e:
+            self.logger.error(bstack11l11l1_opy_ (u"ࠤ࡞࡫ࡪࡺࡏࡳࡦࡨࡶࡪࡪࡔࡦࡵࡷࡊ࡮ࡲࡥࡴ࡟ࠣࡉࡽࡩࡥࡱࡶ࡬ࡳࡳࠦࡩ࡯ࠢࡩࡩࡹࡩࡨࡪࡰࡪࠤࡴࡸࡤࡦࡴࡨࡨࠥࡺࡥࡴࡶࠣࡪ࡮ࡲࡥࡴ࠼ࠣࡿࢂࠨᚑ").format(e))
+            return None
+    def bstack11lll1111l1_opy_(self):
+        bstack11l11l1_opy_ (u"ࠥࠦࠧࠐࠠࠡࠢࠣࠤࠥࠦࠠࡓࡧࡷࡹࡷࡴࡳࠡࡶ࡫ࡩࠥࡩ࡯ࡶࡰࡷࠤࡴ࡬ࠠࡴࡲ࡯࡭ࡹࠦࡴࡦࡵࡷࡷࠥࡇࡐࡊࠢࡦࡥࡱࡲࡳࠡ࡯ࡤࡨࡪ࠴ࠊࠡࠢࠣࠤࠥࠦࠠࠡࠤࠥࠦᚒ")
+        return self.bstack11ll1lllll1_opy_

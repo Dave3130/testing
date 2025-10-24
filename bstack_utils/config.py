@@ -1,38 +1,38 @@
 # coding: UTF-8
 import sys
-bstack111lll1_opy_ = sys.version_info [0] == 2
-bstack11l1l1_opy_ = 2048
-bstack11lllll_opy_ = 7
-def bstack11lll1_opy_ (bstack111lll_opy_):
-    global bstack11ll1l_opy_
-    bstack11l11l1_opy_ = ord (bstack111lll_opy_ [-1])
-    bstack1l1l_opy_ = bstack111lll_opy_ [:-1]
-    bstack1l11l1_opy_ = bstack11l11l1_opy_ % len (bstack1l1l_opy_)
-    bstack1lll1l_opy_ = bstack1l1l_opy_ [:bstack1l11l1_opy_] + bstack1l1l_opy_ [bstack1l11l1_opy_:]
-    if bstack111lll1_opy_:
-        bstack1111lll_opy_ = unicode () .join ([unichr (ord (char) - bstack11l1l1_opy_ - (bstack1ll1ll1_opy_ + bstack11l11l1_opy_) % bstack11lllll_opy_) for bstack1ll1ll1_opy_, char in enumerate (bstack1lll1l_opy_)])
+bstack1lllll1_opy_ = sys.version_info [0] == 2
+bstack11lll1l_opy_ = 2048
+bstack1lll1l_opy_ = 7
+def bstack11l11l1_opy_ (bstack111l1ll_opy_):
+    global bstack1ll1l_opy_
+    bstack1l1l1ll_opy_ = ord (bstack111l1ll_opy_ [-1])
+    bstack1l11l_opy_ = bstack111l1ll_opy_ [:-1]
+    bstack1lllll1l_opy_ = bstack1l1l1ll_opy_ % len (bstack1l11l_opy_)
+    bstack11ll1l1_opy_ = bstack1l11l_opy_ [:bstack1lllll1l_opy_] + bstack1l11l_opy_ [bstack1lllll1l_opy_:]
+    if bstack1lllll1_opy_:
+        bstack1lll_opy_ = unicode () .join ([unichr (ord (char) - bstack11lll1l_opy_ - (bstack1l1ll11_opy_ + bstack1l1l1ll_opy_) % bstack1lll1l_opy_) for bstack1l1ll11_opy_, char in enumerate (bstack11ll1l1_opy_)])
     else:
-        bstack1111lll_opy_ = str () .join ([chr (ord (char) - bstack11l1l1_opy_ - (bstack1ll1ll1_opy_ + bstack11l11l1_opy_) % bstack11lllll_opy_) for bstack1ll1ll1_opy_, char in enumerate (bstack1lll1l_opy_)])
-    return eval (bstack1111lll_opy_)
+        bstack1lll_opy_ = str () .join ([chr (ord (char) - bstack11lll1l_opy_ - (bstack1l1ll11_opy_ + bstack1l1l1ll_opy_) % bstack1lll1l_opy_) for bstack1l1ll11_opy_, char in enumerate (bstack11ll1l1_opy_)])
+    return eval (bstack1lll_opy_)
 conf = {
-    bstack11lll1_opy_ (u"࠭ࡡࡱࡲࡢࡥࡺࡺ࡯࡮ࡣࡷࡩࠬᚸ"): False,
-    bstack11lll1_opy_ (u"ࠧࡣࡵࡷࡥࡨࡱ࡟ࡴࡧࡶࡷ࡮ࡵ࡮ࠨᚹ"): True,
-    bstack11lll1_opy_ (u"ࠨࡵ࡮࡭ࡵࡥࡳࡦࡵࡶ࡭ࡴࡴ࡟ࡴࡶࡤࡸࡺࡹࠧᚺ"): False
+    bstack11l11l1_opy_ (u"࠭ࡡࡱࡲࡢࡥࡺࡺ࡯࡮ࡣࡷࡩࠬᚱ"): False,
+    bstack11l11l1_opy_ (u"ࠧࡣࡵࡷࡥࡨࡱ࡟ࡴࡧࡶࡷ࡮ࡵ࡮ࠨᚲ"): True,
+    bstack11l11l1_opy_ (u"ࠨࡵ࡮࡭ࡵࡥࡳࡦࡵࡶ࡭ࡴࡴ࡟ࡴࡶࡤࡸࡺࡹࠧᚳ"): False
 }
 class Config(object):
     instance = None
     def __init__(self):
-        self._11ll11ll1l1_opy_ = conf
+        self._11ll11lll1l_opy_ = conf
     @classmethod
-    def bstack111ll1l1_opy_(cls):
+    def bstack1llll1ll1_opy_(cls):
         if cls.instance:
             return cls.instance
         return Config()
-    def get_property(self, property_name, bstack11ll11lll11_opy_=None):
-        return self._11ll11ll1l1_opy_.get(property_name, bstack11ll11lll11_opy_)
-    def set_property(self, property_name, bstack11ll11ll1ll_opy_):
-        self._11ll11ll1l1_opy_[property_name] = bstack11ll11ll1ll_opy_
-    def bstack1ll1l11ll_opy_(self, val):
-        self._11ll11ll1l1_opy_[bstack11lll1_opy_ (u"ࠩࡶ࡯࡮ࡶ࡟ࡴࡧࡶࡷ࡮ࡵ࡮ࡠࡵࡷࡥࡹࡻࡳࠨᚻ")] = bool(val)
-    def bstack111ll111_opy_(self):
-        return self._11ll11ll1l1_opy_.get(bstack11lll1_opy_ (u"ࠪࡷࡰ࡯ࡰࡠࡵࡨࡷࡸ࡯࡯࡯ࡡࡶࡸࡦࡺࡵࡴࠩᚼ"), False)
+    def get_property(self, property_name, bstack11ll11lllll_opy_=None):
+        return self._11ll11lll1l_opy_.get(property_name, bstack11ll11lllll_opy_)
+    def set_property(self, property_name, bstack11ll11llll1_opy_):
+        self._11ll11lll1l_opy_[property_name] = bstack11ll11llll1_opy_
+    def bstack1l11111lll_opy_(self, val):
+        self._11ll11lll1l_opy_[bstack11l11l1_opy_ (u"ࠩࡶ࡯࡮ࡶ࡟ࡴࡧࡶࡷ࡮ࡵ࡮ࡠࡵࡷࡥࡹࡻࡳࠨᚴ")] = bool(val)
+    def bstack111l1111_opy_(self):
+        return self._11ll11lll1l_opy_.get(bstack11l11l1_opy_ (u"ࠪࡷࡰ࡯ࡰࡠࡵࡨࡷࡸ࡯࡯࡯ࡡࡶࡸࡦࡺࡵࡴࠩᚵ"), False)

@@ -135,13 +135,21 @@ def get_git_metadata_for_ai_selection(folders=None):
     Get git metadata specifically formatted for AI selection use cases for each folder in the list.
 
     Args:
-        folders (list, optional): List of folder paths to extract git metadata from. Defaults to [os.getcwd()].
+        folders (list, optional): 
+            - None: Mono-repo approach, uses current directory [os.getcwd()]
+            - Empty list []: Multi-repo approach with no sources configured, returns []
+            - List of paths: Multi-repo approach with specific folders to analyze
 
     Returns:
         list: List of dicts, each containing git metadata for a folder.
     """
-    if folders == None: # Handles for mono-repo
+    if folders is None:
+        # None → Mono-repo approach, use current directory
         folders = [os.getcwd()]
+    elif isinstance(folders, list) and len(folders) == 0:
+        # Empty list → Multi-repo with no sources configured, return empty
+        return []
+    
     results = []
     for folder in folders:
         try:
@@ -197,7 +205,7 @@ def get_git_metadata_for_ai_selection(folders=None):
                     result["prDescription"] = '\n'.join(message_lines[2:]).strip()
             results.append(result)
         except Exception as err:
-            logger.error(f"Exception in populating Git metadata for AI selection (folder: {folder}): {err}")
+            logger.error("Exception in populating Git metadata for AI selection (folder: {}): {}".format(folder, str(err)))
     # Filter out results with empty filesChanged
     filtered_results = [
         result
