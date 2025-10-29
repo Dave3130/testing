@@ -148,7 +148,8 @@ SDK_SPECIFIC_CAPS = [
   'disableAutoCaptureLogs',
   'turboScale',
   'turboScaleOptions',
-  'testOrchestrationOptions'
+  'testOrchestrationOptions',
+  'hubRegion'
 ]
 
 BROWSERSTACK_OPTIONS = [
@@ -301,6 +302,16 @@ HTTPS_HUB = 'https://hub.browserstack.com/wd/hub'
 HTTP_HUB = 'http://hub.browserstack.com:80/wd/hub'
 
 NEXT_HUBS = 'https://hub.browserstack.com/next_hubs'
+
+# Hub URL mapping for hub capability
+HUB_URL_MAP = {
+  'default': 'hub.browserstack.com',
+  'us-east': 'hub-use-only.browserstack.com',
+  'us': 'hub-us-only.browserstack.com',
+  'eu': 'hub-eu-only.browserstack.com',
+  'in': 'hub-aps-only.browserstack.com',
+  'au': 'hub-apse-only.browserstack.com'
+}
 
 LOG_LEVELS = {
   'critical': 50,

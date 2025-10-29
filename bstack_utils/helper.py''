@@ -210,7 +210,6 @@ def get_git_metadata_for_ai_selection(folders=None):
                 type(err).__name__, 
                 str(err)
             ))
-            logger.error("Full traceback: {}".format(traceback.format_exc()))
     # Filter out results with empty filesChanged
     filtered_results = [
         result

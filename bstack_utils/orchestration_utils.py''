@@ -79,7 +79,7 @@ class OrchestrationUtils:
                 source_value = raw_source
             else:
                 # Invalid value → treat as empty list
-                logger.warning("Invalid source value in config: {}. Defaulting it as empty list.".format(raw_source))
+                logger.warning("Invalid source value in config: {}. Defaulting to empty list.".format(raw_source))
                 source_value = []
         
         self.__set_run_smart_selection(
