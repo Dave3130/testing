@@ -153,6 +153,9 @@ def get_git_metadata_for_ai_selection(folders=None):
     results = []
     for folder in folders:
         try:
+            if not os.path.exists(folder):
+                raise Exception("Folder does not exist: {}".format(folder))
+
             repo = git.Repo(folder, search_parent_directories=True)
             # Initialize the result structure
             result = {
