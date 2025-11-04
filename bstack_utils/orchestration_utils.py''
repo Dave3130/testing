@@ -68,7 +68,7 @@ class OrchestrationUtils:
             
             # Key is present, so it's multi-repo approach
             # Normalize based on value type
-            if raw_source is None or raw_source == '' or (isinstance(raw_source, list) and len(raw_source) == 0):
+            if raw_source is None or (isinstance(raw_source, str) and raw_source.strip() == '') or (isinstance(raw_source, list) and len(raw_source) == 0):
                 # Empty/null value → empty list (multi-repo with no sources configured)
                 source_value = []
             elif isinstance(raw_source, list):
@@ -327,7 +327,8 @@ class OrchestrationUtils:
                 if not isinstance(repo_info, dict):
                     continue
 
-                if not repo_info.get('url'):
+                url = repo_info.get('url')
+                if url is None or (isinstance(url, str) and url.strip() == ''):
                     logger.warning("Repository URL is missing for source '{}': {}".format(name, repo_info))
                     continue
                 # Validate name
@@ -342,7 +343,8 @@ class OrchestrationUtils:
                 repo_info['name'] = name
                 repo_info['featureBranch'] = get_feature_branch(name, repo_info)
 
-                if not repo_info.get('featureBranch'):
+                feature_branch = repo_info.get('featureBranch')
+                if not feature_branch or (isinstance(feature_branch, str) and feature_branch.strip() == ''):
                     logger.warning("Feature branch not specified for source '{}': {}".format(name, repo_info))
                     continue
                 

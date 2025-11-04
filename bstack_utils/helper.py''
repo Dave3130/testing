@@ -1247,7 +1247,10 @@ def check_and_update_binary(binary_path, cli_dir, bs_config):
 
     try:
         if binary_path:
-            query_params['cli_version'] = subprocess.check_output([binary_path, "version"]).strip().decode('utf-8')
+            if is_windows():
+                query_params['cli_version'] = subprocess.check_output([binary_path, "version"]).strip().decode('utf-8')
+            else:
+                query_params['cli_version'] = subprocess.check_output([binary_path, "version"], stderr=subprocess.DEVNULL).strip().decode('utf-8')
 
         response = requests.request(
             'GET',

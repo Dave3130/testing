@@ -49,6 +49,8 @@ class AccessibilityModule(BaseModule):
         self.accessibility = False
         self.app_accessibility = False
         self.app_accessibility_test_data = dict()
+        self.central_auth_config_fetched = False
+        self.central_auth_a11y_config = dict()
 
         if not self.is_enabled():
             return
@@ -237,6 +239,11 @@ class AccessibilityModule(BaseModule):
             arg["authHeader"] = self.app_accessibility_test_data["accessibilityToken"]
             arg["thJwtToken"] = self.app_accessibility_test_data["th_jwt_token"]
             arg["scanTimestamp"] = str(int(datetime.now().timestamp() * 1000))
+            updated_args = self.fetch_central_auth_a11y_config("scan", self.app_accessibility_test_data["test_run_uuid"])
+            if "centralAuthToken" in updated_args:
+                updated_args = updated_args.copy()
+                updated_args["centralAuthHeader"] = updated_args.pop("centralAuthToken")
+            arg = merge_object(arg, updated_args)
             formatted_script = script_code % json.dumps(arg)
             driver.execute_script(formatted_script)
             return
@@ -500,6 +507,43 @@ class AccessibilityModule(BaseModule):
             a11y_execute_params = json.loads(result.accessibility_execute_params)
 
         return merge_object(data_for_extension, a11y_execute_params)
+
+    def fetch_central_auth_a11y_config(self, script_name: str, test_uuid: str) -> dict:
+        """
+        Fetch central auth accessibility configuration for the given script name.
+        Returns cached config if already fetched, otherwise loads and caches it.
+        
+        Args:
+            script_name: Name of the script to fetch config for
+            test_uuid: UUID of the test run for which to fetch config
+            
+        Returns:
+            dict: Configuration dictionary, empty dict if error occurs
+        """
+        try:
+            if self.central_auth_config_fetched:
+                return self.central_auth_a11y_config
+            
+            # Create request to fetch driver execute params
+            self.ensure_bin_session()
+            req = structs.FetchDriverExecuteParamsEventRequest()
+            req.bin_session_id = self.bin_session_id
+            req.product = "accessibility"
+            req.script_name = script_name
+            
+            r = self.cli_service.FetchDriverExecuteParamsEvent(req)
+            if r.success:
+                self.central_auth_a11y_config = self.load_driver_execute_params(test_uuid, r)
+                self.central_auth_config_fetched = True
+            else:
+                self.logger.error(f"fetchCentralAuthA11yConfig: Failed to fetch driver execute params for {script_name}: {r.error}")
+                self.central_auth_a11y_config = dict()
+            
+            return self.central_auth_a11y_config
+            
+        except Exception as e:
+            self.logger.error(f"fetchCentralAuthA11yConfig: Failed to fetch driver execute params for {script_name}: {traceback.format_exc()}")
+            return dict()
 
     def stop_test_capture(self, driver: object, name: str, framework_name: str, test_uuid: str):
         random_label = None
