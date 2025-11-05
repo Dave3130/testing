@@ -343,8 +343,7 @@ class OrchestrationUtils:
                 repo_info['name'] = name
                 repo_info['featureBranch'] = get_feature_branch(name, repo_info)
 
-                feature_branch = repo_info.get('featureBranch')
-                if not feature_branch or (isinstance(feature_branch, str) and feature_branch.strip() == ''):
+                if not repo_info.get('featureBranch') or repo_info.get('featureBranch') == '':
                     logger.warning("Feature branch not specified for source '{}': {}".format(name, repo_info))
                     continue
                 
