@@ -1,107 +1,107 @@
 # coding: UTF-8
 import sys
-bstack11_opy_ = sys.version_info [0] == 2
-bstack1l111ll_opy_ = 2048
-bstack11lll1l_opy_ = 7
-def bstack1lll11l_opy_ (bstack11l11l_opy_):
-    global bstack11l1l1_opy_
-    bstack1l111_opy_ = ord (bstack11l11l_opy_ [-1])
-    bstack1ll11l1_opy_ = bstack11l11l_opy_ [:-1]
-    bstack1l_opy_ = bstack1l111_opy_ % len (bstack1ll11l1_opy_)
-    bstack1l11ll1_opy_ = bstack1ll11l1_opy_ [:bstack1l_opy_] + bstack1ll11l1_opy_ [bstack1l_opy_:]
-    if bstack11_opy_:
-        bstack1ll_opy_ = unicode () .join ([unichr (ord (char) - bstack1l111ll_opy_ - (bstack1l11ll_opy_ + bstack1l111_opy_) % bstack11lll1l_opy_) for bstack1l11ll_opy_, char in enumerate (bstack1l11ll1_opy_)])
+bstack1111l1_opy_ = sys.version_info [0] == 2
+bstack1l1ll11_opy_ = 2048
+bstack11l11l_opy_ = 7
+def bstack11111_opy_ (bstack11lll_opy_):
+    global bstack111l1l1_opy_
+    bstack1l1l1_opy_ = ord (bstack11lll_opy_ [-1])
+    bstack1l111ll_opy_ = bstack11lll_opy_ [:-1]
+    bstack1l1l11_opy_ = bstack1l1l1_opy_ % len (bstack1l111ll_opy_)
+    bstack1l11l11_opy_ = bstack1l111ll_opy_ [:bstack1l1l11_opy_] + bstack1l111ll_opy_ [bstack1l1l11_opy_:]
+    if bstack1111l1_opy_:
+        bstack1llll11_opy_ = unicode () .join ([unichr (ord (char) - bstack1l1ll11_opy_ - (bstack1111ll1_opy_ + bstack1l1l1_opy_) % bstack11l11l_opy_) for bstack1111ll1_opy_, char in enumerate (bstack1l11l11_opy_)])
     else:
-        bstack1ll_opy_ = str () .join ([chr (ord (char) - bstack1l111ll_opy_ - (bstack1l11ll_opy_ + bstack1l111_opy_) % bstack11lll1l_opy_) for bstack1l11ll_opy_, char in enumerate (bstack1l11ll1_opy_)])
-    return eval (bstack1ll_opy_)
+        bstack1llll11_opy_ = str () .join ([chr (ord (char) - bstack1l1ll11_opy_ - (bstack1111ll1_opy_ + bstack1l1l1_opy_) % bstack11l11l_opy_) for bstack1111ll1_opy_, char in enumerate (bstack1l11l11_opy_)])
+    return eval (bstack1llll11_opy_)
 import os
 from urllib.parse import urlparse
 from bstack_utils.config import Config
-from bstack_utils.messages import bstack11l1ll1l111_opy_
-bstack111ll1l1_opy_ = Config.bstack111l1111_opy_()
-def bstack11l1ll111ll_opy_(url):
+from bstack_utils.messages import bstack11l1l1lllll_opy_
+bstack111lll11_opy_ = Config.bstack1111llll_opy_()
+def bstack11l1ll11l11_opy_(url):
     try:
         result = urlparse(url)
         return all([result.scheme, result.netloc])
     except:
         return False
-def bstack11l1ll1111l_opy_(bstack11l1ll111l1_opy_, bstack11l1ll11lll_opy_):
+def bstack11l1ll1111l_opy_(bstack11l1l1lll1l_opy_, bstack11l1ll111ll_opy_):
     from pypac import get_pac
     from pypac import PACSession
     from pypac.parser import PACFile
     import socket
-    if os.path.isfile(bstack11l1ll111l1_opy_):
-        with open(bstack11l1ll111l1_opy_) as f:
+    if os.path.isfile(bstack11l1l1lll1l_opy_):
+        with open(bstack11l1l1lll1l_opy_) as f:
             pac = PACFile(f.read())
-    elif bstack11l1ll111ll_opy_(bstack11l1ll111l1_opy_):
-        pac = get_pac(url=bstack11l1ll111l1_opy_)
+    elif bstack11l1ll11l11_opy_(bstack11l1l1lll1l_opy_):
+        pac = get_pac(url=bstack11l1l1lll1l_opy_)
     else:
-        raise Exception(bstack1lll11l_opy_ (u"ࠧࡑࡣࡦࠤ࡫࡯࡬ࡦࠢࡧࡳࡪࡹࠠ࡯ࡱࡷࠤࡪࡾࡩࡴࡶ࠽ࠤࢀࢃࠧ᝶").format(bstack11l1ll111l1_opy_))
+        raise Exception(bstack11111_opy_ (u"ࠬࡖࡡࡤࠢࡩ࡭ࡱ࡫ࠠࡥࡱࡨࡷࠥࡴ࡯ࡵࠢࡨࡼ࡮ࡹࡴ࠻ࠢࡾࢁࠬថ").format(bstack11l1l1lll1l_opy_))
     session = PACSession(pac)
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect((bstack1lll11l_opy_ (u"ࠣ࠺࠱࠼࠳࠾࠮࠹ࠤ᝷"), 80))
-        bstack11l1ll11ll1_opy_ = s.getsockname()[0]
+        s.connect((bstack11111_opy_ (u"ࠨ࠸࠯࠺࠱࠼࠳࠾ࠢទ"), 80))
+        bstack11l1l1llll1_opy_ = s.getsockname()[0]
         s.close()
     except:
-        bstack11l1ll11ll1_opy_ = bstack1lll11l_opy_ (u"ࠩ࠳࠲࠵࠴࠰࠯࠲ࠪ᝸")
-    proxy_url = session.get_pac().find_proxy_for_url(bstack11l1ll11lll_opy_, bstack11l1ll11ll1_opy_)
+        bstack11l1l1llll1_opy_ = bstack11111_opy_ (u"ࠧ࠱࠰࠳࠲࠵࠴࠰ࠨធ")
+    proxy_url = session.get_pac().find_proxy_for_url(bstack11l1ll111ll_opy_, bstack11l1l1llll1_opy_)
     return proxy_url
-def bstack11ll1111ll_opy_(config):
-    return bstack1lll11l_opy_ (u"ࠪ࡬ࡹࡺࡰࡑࡴࡲࡼࡾ࠭᝹") in config or bstack1lll11l_opy_ (u"ࠫ࡭ࡺࡴࡱࡵࡓࡶࡴࡾࡹࠨ᝺") in config
-def bstack1l11l11lll_opy_(config):
-    if not bstack11ll1111ll_opy_(config):
+def bstack111ll11l11_opy_(config):
+    return bstack11111_opy_ (u"ࠨࡪࡷࡸࡵࡖࡲࡰࡺࡼࠫន") in config or bstack11111_opy_ (u"ࠩ࡫ࡸࡹࡶࡳࡑࡴࡲࡼࡾ࠭ប") in config
+def bstack1lll11l11l_opy_(config):
+    if not bstack111ll11l11_opy_(config):
         return
-    if config.get(bstack1lll11l_opy_ (u"ࠬ࡮ࡴࡵࡲࡓࡶࡴࡾࡹࠨ᝻")):
-        return config.get(bstack1lll11l_opy_ (u"࠭ࡨࡵࡶࡳࡔࡷࡵࡸࡺࠩ᝼"))
-    if config.get(bstack1lll11l_opy_ (u"ࠧࡩࡶࡷࡴࡸࡖࡲࡰࡺࡼࠫ᝽")):
-        return config.get(bstack1lll11l_opy_ (u"ࠨࡪࡷࡸࡵࡹࡐࡳࡱࡻࡽࠬ᝾"))
-def bstack1lll1lll11_opy_(config, bstack11l1ll11lll_opy_):
-    proxy = bstack1l11l11lll_opy_(config)
+    if config.get(bstack11111_opy_ (u"ࠪ࡬ࡹࡺࡰࡑࡴࡲࡼࡾ࠭ផ")):
+        return config.get(bstack11111_opy_ (u"ࠫ࡭ࡺࡴࡱࡒࡵࡳࡽࡿࠧព"))
+    if config.get(bstack11111_opy_ (u"ࠬ࡮ࡴࡵࡲࡶࡔࡷࡵࡸࡺࠩភ")):
+        return config.get(bstack11111_opy_ (u"࠭ࡨࡵࡶࡳࡷࡕࡸ࡯ࡹࡻࠪម"))
+def bstack111l11l1l1_opy_(config, bstack11l1ll111ll_opy_):
+    proxy = bstack1lll11l11l_opy_(config)
     proxies = {}
-    if config.get(bstack1lll11l_opy_ (u"ࠩ࡫ࡸࡹࡶࡐࡳࡱࡻࡽࠬ᝿")) or config.get(bstack1lll11l_opy_ (u"ࠪ࡬ࡹࡺࡰࡴࡒࡵࡳࡽࡿࠧក")):
-        if proxy.endswith(bstack1lll11l_opy_ (u"ࠫ࠳ࡶࡡࡤࠩខ")):
-            proxies = bstack1llllllll1_opy_(proxy, bstack11l1ll11lll_opy_)
+    if config.get(bstack11111_opy_ (u"ࠧࡩࡶࡷࡴࡕࡸ࡯ࡹࡻࠪយ")) or config.get(bstack11111_opy_ (u"ࠨࡪࡷࡸࡵࡹࡐࡳࡱࡻࡽࠬរ")):
+        if proxy.endswith(bstack11111_opy_ (u"ࠩ࠱ࡴࡦࡩࠧល")):
+            proxies = bstack1ll1ll11l1_opy_(proxy, bstack11l1ll111ll_opy_)
         else:
             proxies = {
-                bstack1lll11l_opy_ (u"ࠬ࡮ࡴࡵࡲࡶࠫគ"): proxy
+                bstack11111_opy_ (u"ࠪ࡬ࡹࡺࡰࡴࠩវ"): proxy
             }
-    bstack111ll1l1_opy_.set_property(bstack1lll11l_opy_ (u"࠭ࡰࡳࡱࡻࡽࡘ࡫ࡴࡵ࡫ࡱ࡫ࡸ࠭ឃ"), proxies)
+    bstack111lll11_opy_.set_property(bstack11111_opy_ (u"ࠫࡵࡸ࡯ࡹࡻࡖࡩࡹࡺࡩ࡯ࡩࡶࠫឝ"), proxies)
     return proxies
-def bstack1llllllll1_opy_(bstack11l1ll111l1_opy_, bstack11l1ll11lll_opy_):
+def bstack1ll1ll11l1_opy_(bstack11l1l1lll1l_opy_, bstack11l1ll111ll_opy_):
     proxies = {}
-    global bstack11l1ll11l11_opy_
-    if bstack1lll11l_opy_ (u"ࠧࡑࡃࡆࡣࡕࡘࡏ࡙࡛ࠪង") in globals():
-        return bstack11l1ll11l11_opy_
+    global bstack11l1ll11111_opy_
+    if bstack11111_opy_ (u"ࠬࡖࡁࡄࡡࡓࡖࡔ࡞࡙ࠨឞ") in globals():
+        return bstack11l1ll11111_opy_
     try:
-        proxy = bstack11l1ll1111l_opy_(bstack11l1ll111l1_opy_, bstack11l1ll11lll_opy_)
-        if bstack1lll11l_opy_ (u"ࠣࡆࡌࡖࡊࡉࡔࠣច") in proxy:
+        proxy = bstack11l1ll1111l_opy_(bstack11l1l1lll1l_opy_, bstack11l1ll111ll_opy_)
+        if bstack11111_opy_ (u"ࠨࡄࡊࡔࡈࡇ࡙ࠨស") in proxy:
             proxies = {}
-        elif bstack1lll11l_opy_ (u"ࠤࡋࡘ࡙ࡖࠢឆ") in proxy or bstack1lll11l_opy_ (u"ࠥࡌ࡙࡚ࡐࡔࠤជ") in proxy or bstack1lll11l_opy_ (u"ࠦࡘࡕࡃࡌࡕࠥឈ") in proxy:
-            bstack11l1ll11l1l_opy_ = proxy.split(bstack1lll11l_opy_ (u"ࠧࠦࠢញ"))
-            if bstack1lll11l_opy_ (u"ࠨ࠺࠰࠱ࠥដ") in bstack1lll11l_opy_ (u"ࠢࠣឋ").join(bstack11l1ll11l1l_opy_[1:]):
+        elif bstack11111_opy_ (u"ࠢࡉࡖࡗࡔࠧហ") in proxy or bstack11111_opy_ (u"ࠣࡊࡗࡘࡕ࡙ࠢឡ") in proxy or bstack11111_opy_ (u"ࠤࡖࡓࡈࡑࡓࠣអ") in proxy:
+            bstack11l1ll111l1_opy_ = proxy.split(bstack11111_opy_ (u"ࠥࠤࠧឣ"))
+            if bstack11111_opy_ (u"ࠦ࠿࠵࠯ࠣឤ") in bstack11111_opy_ (u"ࠧࠨឥ").join(bstack11l1ll111l1_opy_[1:]):
                 proxies = {
-                    bstack1lll11l_opy_ (u"ࠨࡪࡷࡸࡵࡹࠧឌ"): bstack1lll11l_opy_ (u"ࠤࠥឍ").join(bstack11l1ll11l1l_opy_[1:])
+                    bstack11111_opy_ (u"࠭ࡨࡵࡶࡳࡷࠬឦ"): bstack11111_opy_ (u"ࠢࠣឧ").join(bstack11l1ll111l1_opy_[1:])
                 }
             else:
                 proxies = {
-                    bstack1lll11l_opy_ (u"ࠪ࡬ࡹࡺࡰࡴࠩណ"): str(bstack11l1ll11l1l_opy_[0]).lower() + bstack1lll11l_opy_ (u"ࠦ࠿࠵࠯ࠣត") + bstack1lll11l_opy_ (u"ࠧࠨថ").join(bstack11l1ll11l1l_opy_[1:])
+                    bstack11111_opy_ (u"ࠨࡪࡷࡸࡵࡹࠧឨ"): str(bstack11l1ll111l1_opy_[0]).lower() + bstack11111_opy_ (u"ࠤ࠽࠳࠴ࠨឩ") + bstack11111_opy_ (u"ࠥࠦឪ").join(bstack11l1ll111l1_opy_[1:])
                 }
-        elif bstack1lll11l_opy_ (u"ࠨࡐࡓࡑ࡛࡝ࠧទ") in proxy:
-            bstack11l1ll11l1l_opy_ = proxy.split(bstack1lll11l_opy_ (u"ࠢࠡࠤធ"))
-            if bstack1lll11l_opy_ (u"ࠣ࠼࠲࠳ࠧន") in bstack1lll11l_opy_ (u"ࠤࠥប").join(bstack11l1ll11l1l_opy_[1:]):
+        elif bstack11111_opy_ (u"ࠦࡕࡘࡏ࡙࡛ࠥឫ") in proxy:
+            bstack11l1ll111l1_opy_ = proxy.split(bstack11111_opy_ (u"ࠧࠦࠢឬ"))
+            if bstack11111_opy_ (u"ࠨ࠺࠰࠱ࠥឭ") in bstack11111_opy_ (u"ࠢࠣឮ").join(bstack11l1ll111l1_opy_[1:]):
                 proxies = {
-                    bstack1lll11l_opy_ (u"ࠪ࡬ࡹࡺࡰࡴࠩផ"): bstack1lll11l_opy_ (u"ࠦࠧព").join(bstack11l1ll11l1l_opy_[1:])
+                    bstack11111_opy_ (u"ࠨࡪࡷࡸࡵࡹࠧឯ"): bstack11111_opy_ (u"ࠤࠥឰ").join(bstack11l1ll111l1_opy_[1:])
                 }
             else:
                 proxies = {
-                    bstack1lll11l_opy_ (u"ࠬ࡮ࡴࡵࡲࡶࠫភ"): bstack1lll11l_opy_ (u"ࠨࡨࡵࡶࡳ࠾࠴࠵ࠢម") + bstack1lll11l_opy_ (u"ࠢࠣយ").join(bstack11l1ll11l1l_opy_[1:])
+                    bstack11111_opy_ (u"ࠪ࡬ࡹࡺࡰࡴࠩឱ"): bstack11111_opy_ (u"ࠦ࡭ࡺࡴࡱ࠼࠲࠳ࠧឲ") + bstack11111_opy_ (u"ࠧࠨឳ").join(bstack11l1ll111l1_opy_[1:])
                 }
         else:
             proxies = {
-                bstack1lll11l_opy_ (u"ࠨࡪࡷࡸࡵࡹࠧរ"): proxy
+                bstack11111_opy_ (u"࠭ࡨࡵࡶࡳࡷࠬ឴"): proxy
             }
     except Exception as e:
-        print(bstack1lll11l_opy_ (u"ࠤࡶࡳࡲ࡫ࠠࡦࡴࡵࡳࡷࠨល"), bstack11l1ll1l111_opy_.format(bstack11l1ll111l1_opy_, str(e)))
-    bstack11l1ll11l11_opy_ = proxies
+        print(bstack11111_opy_ (u"ࠢࡴࡱࡰࡩࠥ࡫ࡲࡳࡱࡵࠦ឵"), bstack11l1l1lllll_opy_.format(bstack11l1l1lll1l_opy_, str(e)))
+    bstack11l1ll11111_opy_ = proxies
     return proxies
